@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { Shield, Menu, X, Lock, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const navLinks = [
-  { label: 'Mission', href: '#mission' },
-  { label: 'Technology', href: '#technology' },
-  { label: 'Privacy', href: '#privacy' },
-  { label: 'Team', href: '#team' },
-  { label: 'FAQ', href: '#faq' },
+  { label: 'Mission', href: '/#mission' },
+  { label: 'Technology', href: '/#technology' },
+  { label: 'Privacy', href: '/#privacy' },
+  { label: 'FAQ', href: '/#faq' },
 ];
 
 export default function Navbar() {
@@ -33,7 +34,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-[72px]">
           {/* Logo */}
-          <a href="#" className="flex items-center gap-3 group" id="logo-link">
+          <Link href="/#" className="flex items-center gap-3 group" id="logo-link">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:shadow-lg"
               style={{
@@ -50,18 +51,18 @@ export default function Navbar() {
                 Smart Nation Healthcare
               </span>
             </div>
-          </a>
+          </Link>
 
           {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.label}
                 href={link.href}
                 className="nav-link text-[14px] font-medium text-text-muted hover:text-text-heading transition-colors duration-200"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
           </div>
 
@@ -97,14 +98,14 @@ export default function Navbar() {
         <div className="md:hidden bg-white border-t border-border animate-fade-up">
           <div className="px-6 py-4 space-y-1">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.label}
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
                 className="block px-4 py-3 rounded-lg text-[14px] font-medium text-text-body hover:bg-bg-soft hover:text-primary transition-all"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
             <div className="pt-3 border-t border-border mt-3">
               <a

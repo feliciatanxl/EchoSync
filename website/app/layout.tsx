@@ -25,6 +25,8 @@ export const metadata: Metadata = {
   ],
 };
 
+import AIChatBot from "@/components/AIChatBot";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -32,7 +34,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        {children}
+        <AIChatBot />
+      </body>
     </html>
   );
 }

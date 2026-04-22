@@ -1,4 +1,5 @@
 import { LayoutDashboard, Activity, ShieldCheck, Zap } from 'lucide-react';
+import Link from 'next/link';
 
 
 
@@ -159,9 +160,9 @@ export default function Home() {
                   <td className="py-2.5 text-[12px] text-text-primary">Blk 124 #04-12</td>
                   <td className="py-2.5 text-[12px] font-bold text-alert-high animate-pulse">00:42</td>
                   <td className="py-2.5 text-right">
-                    <button className="px-3 py-1 rounded bg-alert-high/10 text-alert-high text-[11px] font-bold hover:bg-alert-high hover:text-white transition-colors">
+                    <Link href="/incidents/triage" className="px-3 py-1 rounded bg-alert-high/10 text-alert-high text-[11px] font-bold hover:bg-alert-high hover:text-white transition-colors">
                       Dispatch
-                    </button>
+                    </Link>
                   </td>
                 </tr>
                 <tr className="hover:bg-bg-surface/30">
@@ -170,9 +171,9 @@ export default function Home() {
                   <td className="py-2.5 text-[12px] text-text-primary">Blk 126 #11-30</td>
                   <td className="py-2.5 text-[12px] font-medium text-alert-medium">03:15</td>
                   <td className="py-2.5 text-right">
-                    <button className="px-3 py-1 rounded bg-bg-surface border border-border text-text-primary text-[11px] font-medium hover:bg-bg-hover transition-colors">
+                    <Link href="/incidents/triage" className="px-3 py-1 rounded bg-bg-surface border border-border text-text-primary text-[11px] font-medium hover:bg-bg-hover transition-colors">
                       Review
-                    </button>
+                    </Link>
                   </td>
                 </tr>
               </tbody>

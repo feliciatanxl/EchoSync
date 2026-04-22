@@ -11,6 +11,7 @@ import {
   LogOut,
   ChevronLeft,
   Shield,
+  History,
 } from 'lucide-react';
 
 interface NavItem {
@@ -24,7 +25,8 @@ interface NavItem {
 const navItems: NavItem[] = [
   { id: 'dashboard', href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'residents', href: '/residents', label: 'Residents', icon: Users, badge: 1247 },
-  { id: 'incidents', href: '/incidents', label: 'Incident Reports', icon: FileText, badge: 3 },
+  { id: 'incidents', href: '/incidents', label: 'Triage Queue', icon: FileText, badge: 3 },
+  { id: 'history', href: '/incidents/history', label: 'Resolution Logs', icon: History },
   { id: 'settings', href: '/settings', label: 'Settings', icon: Settings },
 ];
 

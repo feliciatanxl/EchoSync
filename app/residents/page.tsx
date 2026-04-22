@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Users, Search, Filter, Download, MoreVertical, CheckCircle2, XCircle, AlertTriangle, X } from 'lucide-react';
+import Link from 'next/link';
 
 const mockResidents = [
   { id: 'R-8492', name: 'Tan Ah Lian', age: 78, block: 'Blk 124', unit: '#04-12', status: 'online', risk: 'high', lastActive: '2 mins ago' },
@@ -137,7 +138,7 @@ export default function ResidentsPage() {
                           <span className="text-[10px] font-bold text-text-secondary">{resident.name.split(' ').map(n => n[0]).join('').substring(0, 2)}</span>
                         </div>
                         <div>
-                          <p className="text-[13px] font-semibold text-text-primary">{resident.name}</p>
+                          <Link href="/residents/detail" className="text-[13px] font-semibold text-text-primary hover:text-accent hover:underline transition-colors">{resident.name}</Link>
                           <p className="text-[11px] text-text-muted">{resident.id} • {resident.age} yrs</p>
                         </div>
                       </div>

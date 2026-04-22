@@ -18,6 +18,10 @@ export default function ForgotPasswordPage() {
     }, 1500);
   };
 
+  const openAIChat = () => {
+    window.dispatchEvent(new CustomEvent('open-echo-ai'));
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col relative overflow-hidden font-sans">
       {/* Background Orbs */}
@@ -51,7 +55,6 @@ export default function ForgotPasswordPage() {
 
           {/* Card */}
           <div className="bg-white rounded-3xl border border-border/60 shadow-2xl p-8 relative overflow-hidden">
-            {/* Subtle glass effect overlay */}
             <div className="absolute inset-0 bg-gradient-to-b from-primary-ghost/10 to-transparent pointer-events-none" />
             
             {isSubmitted ? (
@@ -62,7 +65,7 @@ export default function ForgotPasswordPage() {
                 <div className="space-y-2">
                   <h3 className="text-xl font-bold text-text-heading">Check your email</h3>
                   <p className="text-[14px] text-text-muted leading-relaxed">
-                    We&apos;ve sent a password reset link to your official inbox. Please check your junk folder if you don&apos;t see it.
+                    We&apos;ve sent a password reset link to your official inbox.
                   </p>
                 </div>
                 <Link 
@@ -74,12 +77,6 @@ export default function ForgotPasswordPage() {
                 >
                   Return to Sign In
                 </Link>
-                <button 
-                  onClick={() => setIsSubmitted(false)}
-                  className="text-[12px] font-bold text-text-muted hover:text-primary transition-colors uppercase tracking-widest"
-                >
-                  Didn&apos;t receive it? Try again
-                </button>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="relative z-10 space-y-6">
@@ -122,9 +119,12 @@ export default function ForgotPasswordPage() {
           {/* Footer Info */}
           <div className="mt-8 text-center">
             <p className="text-[11px] text-text-muted">
-              Need technical assistance? 
-              <br />
-              Contact the <span className="font-bold text-primary cursor-pointer hover:underline">Helpdesk Support</span>.
+              Need technical assistance? <button 
+                onClick={openAIChat}
+                className="font-bold text-primary cursor-pointer hover:underline bg-transparent border-none p-0"
+              >
+                Ask EchoAI
+              </button>.
             </p>
           </div>
         </div>

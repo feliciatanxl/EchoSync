@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ArrowRight, Play, Shield, Activity, Wifi, X, Building, Mail, User } from 'lucide-react';
+import Link from 'next/link';
 
 export default function HeroSection() {
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);

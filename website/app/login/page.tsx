@@ -17,6 +17,10 @@ export default function LoginPage() {
     }, 1500);
   };
 
+  const openAIChat = () => {
+    window.dispatchEvent(new CustomEvent('open-echo-ai'));
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col relative overflow-hidden font-sans">
       {/* Background Orbs */}
@@ -50,11 +54,9 @@ export default function LoginPage() {
 
           {/* Login Card */}
           <div className="bg-white rounded-3xl border border-border/60 shadow-2xl p-8 relative overflow-hidden">
-            {/* Subtle glass effect overlay */}
             <div className="absolute inset-0 bg-gradient-to-b from-primary-ghost/10 to-transparent pointer-events-none" />
             
             <form onSubmit={handleLogin} className="relative z-10 space-y-5">
-              {/* Email */}
               <div className="space-y-1.5">
                 <label className="text-[13px] font-bold text-text-heading">Official Email</label>
                 <div className="relative">
@@ -68,7 +70,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Password */}
               <div className="space-y-1.5">
                 <label className="text-[13px] font-bold text-text-heading">Password</label>
                 <div className="relative">
@@ -89,7 +90,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between py-1">
                 <div className="flex items-center gap-2">
                   <input type="checkbox" id="remember" className="w-4 h-4 rounded border-border text-primary focus:ring-primary/20 cursor-pointer" />
@@ -98,7 +98,6 @@ export default function LoginPage() {
                 <Link href="/forgot-password" className="text-[12px] font-bold text-primary hover:underline transition-colors">Forgot Password</Link>
               </div>
 
-              {/* Login Button */}
               <button 
                 type="submit"
                 disabled={isLoading}
@@ -136,17 +135,18 @@ export default function LoginPage() {
           {/* Footer Info */}
           <div className="mt-8 text-center space-y-4">
             <p className="text-[11px] text-text-muted">
+              Need technical assistance? Ask <button 
+                onClick={openAIChat}
+                className="font-bold text-primary cursor-pointer hover:underline bg-transparent border-none p-0"
+              >
+                EchoAI Assistant
+              </button>.
+            </p>
+            <p className="text-[11px] text-text-muted">
               Unauthorized access to this system is prohibited under the 
               <br />
               <span className="font-bold">Computer Misuse Act (Cap 50A)</span>.
             </p>
-            <div className="flex items-center justify-center gap-4 text-[11px] font-bold text-text-muted/60 uppercase tracking-widest">
-              <span>Security</span>
-              <span className="w-1 h-1 rounded-full bg-border" />
-              <span>PDPA Policy</span>
-              <span className="w-1 h-1 rounded-full bg-border" />
-              <span>Support</span>
-            </div>
           </div>
         </div>
       </div>

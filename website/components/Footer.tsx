@@ -2,26 +2,28 @@
 
 import { useState } from 'react';
 import { Shield, Mail, MapPin, Phone, ArrowRight, X, Building, User } from 'lucide-react';
+import Link from 'next/link';
 
 const footerLinks = {
   product: [
-    { label: 'How It Works', href: '#technology' },
-    { label: 'Privacy', href: '#privacy' },
-    { label: 'For Government', href: '#mission' },
-    { label: 'FAQ', href: '#faq' },
-    { label: 'EchoRover', href: '#technology' },
+    { label: 'Mission', href: '/#mission' },
+    { label: 'How It Works', href: '/technology' },
+    { label: 'Privacy', href: '/privacy' },
+    { label: 'For Government', href: '/#mission' },
+    { label: 'FAQ', href: '/#faq' },
+    { label: 'EchoRover', href: '/technology' },
   ],
   company: [
-    { label: 'Our Mission', href: '#mission' },
-    { label: 'Team', href: '#team' },
-    { label: 'Careers', href: '#' },
-    { label: 'Press Kit', href: '#' },
+    { label: 'About Us', href: '/#mission' },
+    { label: 'Our Team', href: '/#team' },
+    { label: 'Ethics & AI', href: '/privacy' },
+    { label: 'Contact', href: '/#faq' },
   ],
   compliance: [
-    { label: 'PDPA Policy', href: '#privacy' },
-    { label: 'Data Governance', href: '#privacy' },
-    { label: 'Terms of Service', href: '#' },
-    { label: 'Security', href: '#privacy' },
+    { label: 'PDPA Policy', href: '/privacy' },
+    { label: 'Data Governance', href: '/privacy' },
+    { label: 'Terms of Service', href: '/terms' },
+    { label: 'Security', href: '/privacy' },
   ],
 };
 
@@ -94,9 +96,12 @@ export default function Footer() {
               <ul className="space-y-3">
                 {links.map((link) => (
                   <li key={link.label}>
-                    <a href={link.href} className="text-[13px] text-white/50 hover:text-white transition-colors duration-200">
+                    <Link 
+                      href={link.href} 
+                      className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
+                    >
                       {link.label}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
