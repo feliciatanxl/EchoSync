@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+/* ============================================
+   EchoSync B2G Portal — Design System
+   Dark Command Center Theme
+   ============================================ */
+
+@theme inline {
+  /* ---- Core Backgrounds ---- */
+  --color-bg-deep: #060a14;
+  --color-bg-primary: #0a0e1a;
+  --color-bg-secondary: #111827;
+  --color-bg-elevated: #1a1f35;
+  --color-bg-surface: #1e2540;
+  --color-bg-hover: #252d4a;
+
+  /* ---- Accent Colors ---- */
+  --color-accent: #00d4aa;
+  --color-accent-dim: #00a888;
+  --color-accent-glow: rgba(0, 212, 170, 0.15);
+  --color-accent-bright: #00ffd0;
+  --color-cyan: #06b6d4;
+  --color-cyan-dim: #0891b2;
+
+  /* ---- Alert Tiers ---- */
+  --color-alert-low: #22c55e;
+  --color-alert-medium: #f59e0b;
+  --color-alert-high: #ef4444;
+  --color-alert-critical: #dc2626;
+
+  /* ---- Text ---- */
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+  --color-text-accent: #00d4aa;
+
+  /* ---- Borders ---- */
+  --color-border: rgba(148, 163, 184, 0.08);
+  --color-border-accent: rgba(0, 212, 170, 0.2);
+
+  /* ---- Font Families ---- */
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* ---- Base Styles ---- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-bg-elevated) transparent;
+}
+
+body {
+  background: var(--color-bg-deep);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---- Glassmorphism Utilities ---- */
+.glass {
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border);
+}
+
+.glass-elevated {
+  background: rgba(26, 31, 53, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--color-border);
+}
+
+/* ---- Glow Effects ---- */
+.glow-accent {
+  box-shadow: 0 0 20px rgba(0, 212, 170, 0.1),
+              0 0 60px rgba(0, 212, 170, 0.05);
+}
+
+.glow-text {
+  text-shadow: 0 0 20px rgba(0, 212, 170, 0.3),
+               0 0 40px rgba(0, 212, 170, 0.1);
+}
+
+/* ---- Animations ---- */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out forwards;
+}
+
+/* ---- Active Nav Indicator ---- */
+.nav-active-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--color-accent);
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 0 12px rgba(0, 212, 170, 0.4);
+  transition: all 0.2s ease;
+}
+
+/* ---- Dot Grid Pattern for Empty Content ---- */
+.dot-grid-pattern {
+  background-image: radial-gradient(circle, var(--color-bg-elevated) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ---- Custom Scrollbar (Webkit) ---- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-bg-elevated);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-bg-surface);
+}
