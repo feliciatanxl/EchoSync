@@ -8,6 +8,7 @@ const navLinks = [
   { label: 'Technology', href: '#technology' },
   { label: 'Privacy', href: '#privacy' },
   { label: 'Team', href: '#team' },
+  { label: 'FAQ', href: '#faq' },
 ];
 
 export default function Navbar() {
@@ -67,9 +68,7 @@ export default function Navbar() {
           {/* Client Portal Button */}
           <div className="hidden md:flex items-center gap-4">
             <a
-              href="http://localhost:3000"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/login"
               id="client-portal-button"
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               style={{
@@ -109,9 +108,7 @@ export default function Navbar() {
             ))}
             <div className="pt-3 border-t border-border mt-3">
               <a
-                href="http://localhost:3000"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/login"
                 className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-[14px] font-semibold text-white"
                 style={{
                   background: 'linear-gradient(135deg, #0f766e 0%, #0d9488 100%)',

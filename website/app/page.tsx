@@ -4,6 +4,7 @@ import MissionSection from "@/components/MissionSection";
 import TechnologySection from "@/components/TechnologySection";
 import PrivacySection from "@/components/PrivacySection";
 import TeamSection from "@/components/TeamSection";
+import FAQSection from "@/components/FAQSection";
 import Footer from "@/components/Footer";
 
 export default function Home() {
@@ -16,6 +17,7 @@ export default function Home() {
         <TechnologySection />
         <PrivacySection />
         <TeamSection />
+        <FAQSection />
       </main>
       <Footer />
     </>

@@ -8,6 +8,7 @@ const footerLinks = {
     { label: 'How It Works', href: '#technology' },
     { label: 'Privacy', href: '#privacy' },
     { label: 'For Government', href: '#mission' },
+    { label: 'FAQ', href: '#faq' },
     { label: 'EchoRover', href: '#technology' },
   ],
   company: [
