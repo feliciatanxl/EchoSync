@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 export default function Home() {
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Welcome Header */}
       <div className="mb-8 animate-fade-in">
         <div className="flex items-center gap-3 mb-2">
@@ -27,7 +27,7 @@ export default function Home() {
       </div>
 
       {/* Quick Stats Strip */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
           { label: 'Active Nodes', value: '1,247', change: '+12 today', color: 'accent' },
           { label: 'Open Incidents', value: '3', change: '2 critical', color: 'alert-high' },
@@ -53,10 +53,10 @@ export default function Home() {
       </div>
 
       {/* Dashboard Widgets */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         
         {/* Live Alert Feed (col-span-2) */}
-        <div className="col-span-2 h-72 glass-elevated rounded-xl border border-border flex flex-col overflow-hidden">
+        <div className="col-span-1 lg:col-span-2 h-72 glass-elevated rounded-xl border border-border flex flex-col overflow-hidden">
           <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-accent" />
@@ -95,7 +95,7 @@ export default function Home() {
         </div>
 
         {/* Estate Heatmap (col-span-2) */}
-        <div className="col-span-2 h-72 glass-elevated rounded-xl border border-border flex flex-col overflow-hidden relative">
+        <div className="col-span-1 lg:col-span-2 h-72 glass-elevated rounded-xl border border-border flex flex-col overflow-hidden relative">
           <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between z-10 bg-bg-elevated/80 backdrop-blur-sm">
             <div className="flex items-center gap-2">
               <LayoutDashboard className="w-4 h-4 text-cyan" />
@@ -134,7 +134,7 @@ export default function Home() {
         </div>
 
         {/* Incident Triage Queue (col-span-3) */}
-        <div className="col-span-3 h-56 glass-elevated rounded-xl border border-border flex flex-col overflow-hidden">
+        <div className="col-span-1 lg:col-span-3 h-56 glass-elevated rounded-xl border border-border flex flex-col overflow-hidden">
           <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-alert-high" />
@@ -142,7 +142,7 @@ export default function Home() {
             </div>
             <button className="text-[11px] text-accent hover:text-accent-bright font-medium">View All</button>
           </div>
-          <div className="p-4 flex-1 overflow-y-auto">
+          <div className="p-4 flex-1 overflow-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="text-[10px] text-text-muted uppercase tracking-wider border-b border-border/40">

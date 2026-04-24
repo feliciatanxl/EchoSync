@@ -42,7 +42,7 @@ export default function IncidentTriagePage() {
   return (
     <div className="flex flex-col h-full bg-bg-deep font-sans">
       {/* Emergency Header */}
-      <div className={`p-6 border-b flex items-center justify-between transition-colors duration-500 ${
+      <div className={`p-6 border-b flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-colors duration-500 ${
         activeStage === 'resolved' ? 'bg-success/10 border-success/20' : 'bg-alert-high/10 border-alert-high/20 animate-pulse'
       }`}>
         <div className="flex items-center gap-4">
@@ -84,9 +84,9 @@ export default function IncidentTriagePage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden flex p-6 gap-6">
+      <div className="flex-1 overflow-auto xl:overflow-hidden flex flex-col xl:flex-row p-4 md:p-6 gap-6">
         {/* Left Column: Triage & Evidence */}
-        <div className="w-[380px] space-y-6 overflow-y-auto pr-2">
+        <div className="w-full xl:w-[380px] space-y-6 xl:overflow-y-auto pr-2 flex-shrink-0">
           {/* AI Triage Card */}
           <div className="bg-bg-surface border border-border/60 rounded-3xl p-6">
             <h3 className="text-[11px] font-bold text-accent uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -159,7 +159,7 @@ export default function IncidentTriagePage() {
         </div>
 
         {/* Center Column: Live Feed / Activity */}
-        <div className="flex-1 bg-bg-surface border border-border/60 rounded-3xl flex flex-col overflow-hidden shadow-2xl relative">
+        <div className="flex-1 min-h-[400px] bg-bg-surface border border-border/60 rounded-3xl flex flex-col overflow-hidden shadow-2xl relative">
           <div className="p-6 border-b border-border/40 flex items-center justify-between bg-bg-elevated/30">
             <h3 className="text-[13px] font-bold text-text-primary flex items-center gap-2">
               <Radio className="w-4 h-4 text-alert-high animate-pulse" />
@@ -209,7 +209,7 @@ export default function IncidentTriagePage() {
         </div>
 
         {/* Right Column: Response Workflow Action Page */}
-        <div className="w-[340px] flex flex-col gap-4">
+        <div className="w-full xl:w-[340px] flex flex-col gap-4 flex-shrink-0">
           <div className="bg-bg-surface border border-border/60 rounded-3xl p-6 shadow-xl relative overflow-hidden flex-1 flex flex-col">
             <div className="absolute inset-0 bg-gradient-to-b from-accent/5 to-transparent pointer-events-none" />
             

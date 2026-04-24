@@ -9,7 +9,8 @@ import {
   Radio,
   Shield,
   Users,
-  Activity
+  Activity,
+  Menu
 } from 'lucide-react';
 
 const pageTitles: Record<string, string> = {
@@ -30,47 +31,59 @@ export default function TopBar() {
   return (
     <header
       id="top-navigation-bar"
-      className="fixed top-0 right-0 z-40 h-16 flex items-center justify-between px-6 transition-all duration-300"
+      className="fixed top-0 right-0 left-0 z-40 h-16 flex items-center justify-between px-4 transition-all duration-300"
       style={{
-        left: '260px', // We can leave this fixed for now since layout handles the spacing
         background: 'rgba(6, 10, 20, 0.8)',
         backdropFilter: 'blur(20px)',
         borderBottom: '1px solid rgba(148, 163, 184, 0.06)',
+        paddingLeft: 'calc(1rem + var(--sidebar-w))'
       }}
     >
       {/* Left: Page Title & Breadcrumb */}
-      <div className="flex items-center gap-3">
-        <div>
-          <div className="flex items-center gap-2 text-[11px] text-text-muted">
+      <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+        <button
+          id="mobile-menu-toggle"
+          className="md:hidden p-2 -ml-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent('toggle-mobile-sidebar'));
+          }}
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+        <div className="flex flex-col justify-center min-w-0">
+          <div className="hidden lg:flex items-center gap-2 text-[10px] text-text-muted uppercase tracking-wider">
             <span>EchoSync</span>
             <ChevronRight className="w-3 h-3" />
-            <span className="text-text-secondary">B2G Portal</span>
+            <span className="text-text-secondary">Portal</span>
           </div>
-          <h2 className="text-[15px] font-semibold text-text-primary tracking-tight">
+          <h2 className="text-[13px] md:text-[15px] font-bold text-text-primary tracking-tight truncate">
             {title}
           </h2>
         </div>
       </div>
 
       {/* Right: Controls */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3">
         {/* Search */}
         <div
           className={`relative flex items-center transition-all duration-300 ${
-            searchFocused || globalSearch.length > 0 ? 'w-64' : 'w-48'
+            searchFocused || globalSearch.length > 0 
+              ? 'w-48 sm:w-64' 
+              : 'w-10 sm:w-48'
           }`}
         >
-          <Search className="absolute left-3 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+          <Search className="absolute left-3 w-4 h-4 text-text-muted pointer-events-none z-10" />
           <input
             id="global-search"
             type="text"
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
-            placeholder="Search residents, incidents..."
-            className="w-full pl-9 pr-3 py-2 text-[12px] rounded-lg bg-bg-secondary/60 border border-border text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-accent/30 focus:bg-bg-secondary transition-all duration-200"
+            placeholder={typeof window !== 'undefined' && window.innerWidth >= 640 ? "Search residents, incidents..." : ""}
+            className={`w-full pl-9 pr-3 py-2 text-[12px] rounded-lg bg-bg-secondary/60 border border-border text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-accent/30 focus:bg-bg-secondary transition-all duration-200 ${
+              searchFocused || globalSearch.length > 0 ? 'opacity-100' : 'opacity-0 sm:opacity-100 cursor-pointer'
+            }`}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => {
-              // Delay hiding so clicks on the dropdown items can register
               setTimeout(() => setSearchFocused(false), 200);
             }}
           />
@@ -116,7 +129,7 @@ export default function TopBar() {
         {/* System Status */}
         <div
           id="system-status-indicator"
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-alert-low/8 border border-alert-low/15"
+          className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-alert-low/8 border border-alert-low/15"
         >
           <div className="relative">
             <div className="w-2 h-2 rounded-full bg-alert-low" />
@@ -204,7 +217,7 @@ export default function TopBar() {
         {/* User Role Badge */}
         <div
           id="user-role-badge"
-          className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg glass-elevated cursor-default"
+          className="hidden md:flex items-center gap-2.5 px-3 py-1.5 rounded-lg glass-elevated cursor-default"
         >
           <div className="flex items-center gap-1.5">
             <Shield className="w-3.5 h-3.5 text-accent" />

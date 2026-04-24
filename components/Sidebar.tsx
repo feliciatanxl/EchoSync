@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -34,6 +34,13 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const handleToggle = () => setMobileOpen(prev => !prev);
+    window.addEventListener('toggle-mobile-sidebar', handleToggle);
+    return () => window.removeEventListener('toggle-mobile-sidebar', handleToggle);
+  }, []);
 
   const handleSignOut = () => {
     setIsLoggingOut(true);
@@ -45,10 +52,19 @@ export default function Sidebar() {
 
   return (
     <>
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity" 
+          onClick={() => setMobileOpen(false)} 
+        />
+      )}
       <aside
         id="sidebar-navigation"
         className={`fixed left-0 top-0 h-screen z-50 flex flex-col transition-all duration-300 ease-in-out ${
-          collapsed ? 'w-[72px]' : 'w-[260px]'
+          collapsed ? 'md:w-[72px]' : 'md:w-[260px]'
+        } ${mobileOpen ? 'w-[260px] translate-x-0' : 'w-0 -translate-x-full md:w-[260px] md:translate-x-0'} ${
+          !mobileOpen ? 'invisible md:visible' : 'visible'
         }`}
         style={{
           background: 'linear-gradient(180deg, rgba(10, 14, 26, 0.95) 0%, rgba(6, 10, 20, 0.98) 100%)',
@@ -78,20 +94,14 @@ export default function Sidebar() {
             </div>
           )}
 
-          {/* Collapse Toggle */}
+          {/* Collapse Toggle (Desktop Only) */}
           <button
             id="sidebar-collapse-toggle"
             onClick={() => setCollapsed(!collapsed)}
-            className={`absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-bg-elevated border border-border flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-200 hover:bg-bg-hover hover:border-accent/30 cursor-pointer ${
+            className={`absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-bg-elevated border border-border hidden md:flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-200 hover:bg-bg-hover hover:border-accent/30 cursor-pointer ${
               collapsed ? '!opacity-100' : 'group-hover:opacity-100'
             }`}
             style={{ opacity: collapsed ? 1 : undefined }}
-            onMouseEnter={(e) => {
-              if (!collapsed) (e.currentTarget as HTMLElement).style.opacity = '1';
-            }}
-            onMouseLeave={(e) => {
-              if (!collapsed) (e.currentTarget as HTMLElement).style.opacity = '0';
-            }}
           >
             <ChevronLeft
               className={`w-3 h-3 text-text-secondary transition-transform duration-300 ${

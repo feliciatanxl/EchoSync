@@ -31,6 +31,15 @@ export const metadata: Metadata = {
   ],
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
+import DashboardLayout from "@/components/DashboardLayout";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -42,16 +51,7 @@ export default function RootLayout({
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-bg-deep text-text-primary">
-        <div className="min-h-screen flex">
-          <Sidebar />
-          <TopBar />
-          <main
-            id="main-content-area"
-            className="flex-1 ml-[260px] pt-16 min-h-screen"
-          >
-            {children}
-          </main>
-        </div>
+        <DashboardLayout>{children}</DashboardLayout>
       </body>
     </html>
   );

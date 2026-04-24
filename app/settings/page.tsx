@@ -11,7 +11,7 @@ export default function SettingsPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   return (
-    <div className="p-6 max-w-5xl">
+    <div className="p-4 sm:p-6 max-w-5xl">
       <div className="mb-8 animate-fade-in">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-1 h-8 rounded-full bg-gradient-to-b from-text-muted to-text-secondary" />

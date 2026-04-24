@@ -35,9 +35,9 @@ const mockIncidents = [
 
 export default function IncidentsPage() {
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-8 animate-fade-in">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
           <div className="flex items-center gap-3">
             <div className="w-1 h-8 rounded-full bg-gradient-to-b from-alert-high to-alert-medium" />
             <div>
@@ -52,7 +52,7 @@ export default function IncidentsPage() {
         </div>
 
         {/* Top Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="glass-elevated rounded-xl p-4 border border-alert-high/30 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full bg-alert-high" />
             <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Active Critical</p>
@@ -105,7 +105,7 @@ export default function IncidentsPage() {
               </div>
 
               {/* Status and Actions */}
-              <div className="flex flex-col md:items-end justify-between border-t md:border-t-0 md:border-l border-border/50 pt-4 md:pt-0 md:pl-6 min-w-[240px]">
+              <div className="flex flex-col md:items-end justify-between border-t md:border-t-0 md:border-l border-border/50 pt-4 md:pt-0 md:pl-6 w-full md:w-auto md:min-w-[240px]">
                 <div className="flex items-center gap-2 mb-4 md:mb-0">
                   <div className={`w-2 h-2 rounded-full ${inc.severity === 'critical' ? 'bg-alert-high animate-pulse' : 'bg-alert-medium'}`} />
                   <span className="text-[12px] font-medium text-text-secondary">Elapsed: <span className="text-text-primary font-bold">{inc.timeElapsed}</span></span>
