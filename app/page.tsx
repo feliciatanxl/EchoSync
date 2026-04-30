@@ -142,8 +142,8 @@ export default function Home() {
             </div>
             <button className="text-[11px] text-accent hover:text-accent-bright font-medium">View All</button>
           </div>
-          <div className="p-4 flex-1 overflow-auto">
-            <table className="w-full text-left">
+          <div className="p-4 flex-1 overflow-x-auto">
+            <table className="w-full text-left min-w-[600px]">
               <thead>
                 <tr className="text-[10px] text-text-muted uppercase tracking-wider border-b border-border/40">
                   <th className="pb-2 font-medium">Incident ID</th>

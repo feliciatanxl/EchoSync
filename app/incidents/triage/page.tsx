@@ -42,41 +42,41 @@ export default function IncidentTriagePage() {
   return (
     <div className="flex flex-col h-full bg-bg-deep font-sans">
       {/* Emergency Header */}
-      <div className={`p-6 border-b flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-colors duration-500 ${
+      <div className={`p-4 sm:p-6 border-b flex flex-col gap-4 transition-colors duration-500 ${
         activeStage === 'resolved' ? 'bg-success/10 border-success/20' : 'bg-alert-high/10 border-alert-high/20 animate-pulse'
       }`}>
-        <div className="flex items-center gap-4">
-          <div className={`p-3 rounded-2xl ${activeStage === 'resolved' ? 'bg-success text-bg-deep' : 'bg-alert-high text-bg-deep'}`}>
+        <div className="flex items-center gap-4 min-w-0">
+          <div className={`p-3 rounded-2xl flex-shrink-0 ${activeStage === 'resolved' ? 'bg-success text-bg-deep' : 'bg-alert-high text-bg-deep'}`}>
             <AlertTriangle className="w-6 h-6" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-text-primary tracking-tight">Active Incident: Heavy Fall Detected</h1>
-              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-lg sm:text-xl font-bold text-text-primary tracking-tight">Active Incident: Heavy Fall Detected</h1>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest flex-shrink-0 ${
                 activeStage === 'resolved' ? 'bg-success/20 text-success' : 'bg-alert-high text-bg-deep animate-bounce'
               }`}>
                 {activeStage === 'resolved' ? 'Resolved' : 'CRITICAL'}
               </span>
             </div>
-            <p className="text-[13px] text-text-muted mt-0.5">Incident ID: #FALL-9921 • Blk 213, Toa Payoh Lorong 8</p>
+            <p className="text-[13px] text-text-muted mt-0.5 truncate">Incident ID: #FALL-9921 • Blk 213, Toa Payoh Lorong 8</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="text-right">
+        <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+          <div>
             <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Time Elapsed</p>
             <p className={`text-2xl font-mono font-bold ${activeStage === 'resolved' ? 'text-success' : 'text-alert-high'}`}>
               {formatTime(elapsedTime)}
             </p>
           </div>
           {activeStage === 'resolved' ? (
-            <Link href="/incidents" className="px-6 py-2.5 rounded-xl bg-bg-surface border border-border text-[13px] font-bold text-text-primary hover:bg-bg-hover transition-all">
+            <Link href="/incidents" className="px-5 py-2.5 rounded-xl bg-bg-surface border border-border text-[13px] font-bold text-text-primary hover:bg-bg-hover transition-all whitespace-nowrap">
               Return to Logs
             </Link>
           ) : (
             <button 
               onClick={() => setActiveStage('resolved')}
-              className="px-6 py-2.5 rounded-xl bg-success text-bg-deep text-[13px] font-bold hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all active:scale-[0.98]"
+              className="px-5 py-2.5 rounded-xl bg-success text-bg-deep text-[13px] font-bold hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all active:scale-[0.98] whitespace-nowrap"
             >
               Mark as Resolved
             </button>

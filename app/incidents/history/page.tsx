@@ -42,8 +42,8 @@ export default function IncidentHistoryPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <History className="w-6 h-6 text-primary" />
+            <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center">
+              <History className="w-6 h-6 text-accent" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-text-primary tracking-tight">Resolution Audit Logs</h1>
@@ -59,7 +59,7 @@ export default function IncidentHistoryPage() {
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="glass-elevated rounded-2xl p-6 border border-border/60 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+            <div className="absolute top-0 left-0 w-1 h-full bg-accent" />
             <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2">Avg Response Time</p>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-text-primary">4m 32s</span>
@@ -98,15 +98,15 @@ export default function IncidentHistoryPage() {
               <input 
                 type="text" 
                 placeholder="Search by ID, Resident, or Type..." 
-                className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-bg-deep border border-border text-[13px] focus:outline-none focus:border-primary/50 text-text-primary"
+                className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-bg-deep border border-border text-[13px] focus:outline-none focus:border-accent/50 text-text-primary"
               />
             </div>
-            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
-              <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-bg-deep border border-border text-[13px] font-semibold text-text-secondary">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-bg-deep border border-border text-[13px] font-semibold text-text-secondary flex-1 sm:flex-none">
                 <Calendar className="w-4 h-4" />
                 Date Range
               </button>
-              <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-bg-deep border border-border text-[13px] font-semibold text-text-secondary">
+              <button className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-bg-deep border border-border text-[13px] font-semibold text-text-secondary flex-1 sm:flex-none">
                 <Filter className="w-4 h-4" />
                 Severity
               </button>
@@ -121,7 +121,7 @@ export default function IncidentHistoryPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                        log.severity === 'critical' ? 'bg-alert-high/10 text-alert-high' : 'bg-primary/10 text-primary'
+                        log.severity === 'critical' ? 'bg-alert-high/10 text-alert-high' : 'bg-accent/10 text-accent'
                       }`}>
                         <AlertTriangle className="w-5 h-5" />
                       </div>
@@ -177,7 +177,7 @@ export default function IncidentHistoryPage() {
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                            log.severity === 'critical' ? 'bg-alert-high/10 text-alert-high' : 'bg-primary/10 text-primary'
+                            log.severity === 'critical' ? 'bg-alert-high/10 text-alert-high' : 'bg-accent/10 text-accent'
                           }`}>
                             <AlertTriangle className="w-5 h-5" />
                           </div>

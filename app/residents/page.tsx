@@ -41,7 +41,7 @@ export default function ResidentsPage() {
       <div className="mb-8 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-1 h-8 rounded-full bg-gradient-to-b from-primary to-accent" />
+            <div className="w-1 h-8 rounded-full bg-gradient-to-b from-accent to-accent" />
             <div>
               <h1 className="text-2xl font-bold text-text-primary tracking-tight">
                 Resident Directory
@@ -51,14 +51,14 @@ export default function ResidentsPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-bg-surface border border-border text-[12px] font-bold text-text-primary hover:bg-bg-hover transition-all">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            <button className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-bg-surface border border-border text-[12px] font-bold text-text-primary hover:bg-bg-hover transition-all">
               <Download className="w-4 h-4" />
               Export
             </button>
             <button 
               onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-bg-deep text-[12px] font-bold hover:shadow-[0_0_15px_rgba(0,212,170,0.3)] transition-all"
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-accent text-bg-deep text-[12px] font-bold hover:bg-accent-bright hover:shadow-[0_0_15px_rgba(0,212,170,0.3)] transition-all"
             >
               <Plus className="w-4 h-4" />
               Add Resident
@@ -78,15 +78,15 @@ export default function ResidentsPage() {
               className="w-full pl-9 pr-4 py-2 rounded-lg bg-bg-deep border border-border text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-colors"
             />
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             {/* Risk Filter Dropdown */}
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-none">
               <button 
                 onClick={() => setIsRiskFilterOpen(!isRiskFilterOpen)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-bg-deep border border-border text-[13px] font-medium text-text-primary hover:border-accent/30 transition-colors cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-bg-deep border border-border text-[12px] sm:text-[13px] font-medium text-text-primary hover:border-accent/30 transition-colors cursor-pointer"
               >
                 <Filter className="w-4 h-4 text-text-muted" />
-                Filter by Risk
+                Risk
               </button>
               {isRiskFilterOpen && (
                 <div className="absolute top-full right-0 mt-2 w-48 glass-elevated rounded-xl border border-border/80 shadow-2xl z-20 py-2 animate-fade-in">
@@ -100,10 +100,10 @@ export default function ResidentsPage() {
             </div>
 
             {/* Status Filter Dropdown */}
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-none">
               <button 
                 onClick={() => setIsStatusFilterOpen(!isStatusFilterOpen)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-bg-deep border border-border text-[13px] font-medium text-text-primary hover:border-accent/30 transition-colors cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-bg-deep border border-border text-[12px] sm:text-[13px] font-medium text-text-primary hover:border-accent/30 transition-colors cursor-pointer"
               >
                 Status
               </button>

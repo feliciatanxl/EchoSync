@@ -29,7 +29,7 @@ export default function SettingsPage() {
         <div className="grid md:grid-cols-4 gap-6">
           
           {/* Sidebar Tabs */}
-          <div className="space-y-2">
+          <div className="flex md:flex-col gap-2 overflow-x-auto pb-2 md:pb-0 -mx-2 px-2 md:mx-0 md:px-0">
             {[
               { id: 'integrations', label: 'API Integrations', icon: Plug },
               { id: 'ai-models', label: 'AI Thresholds', icon: Sliders },
@@ -42,7 +42,7 @@ export default function SettingsPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${
+                  className={`flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-[12px] md:text-[13px] font-semibold transition-all whitespace-nowrap flex-shrink-0 md:w-full ${
                     isActive 
                       ? 'bg-accent/10 text-accent border border-accent/20' 
                       : 'text-text-muted hover:text-text-primary hover:bg-bg-surface border border-transparent'

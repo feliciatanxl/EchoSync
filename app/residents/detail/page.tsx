@@ -23,21 +23,21 @@ export default function ResidentDetailPage() {
   return (
     <div className="flex flex-col h-full bg-bg-deep font-sans">
       {/* Header */}
-      <div className="p-6 border-b border-border/40 bg-bg-surface/50 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link href="/residents" className="p-2 rounded-xl bg-bg-surface border border-border text-text-muted hover:text-text-primary transition-all">
+      <div className="p-4 sm:p-6 border-b border-border/40 bg-bg-surface/50 flex flex-col gap-4">
+        <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+          <Link href="/residents" className="p-2 rounded-xl bg-bg-surface border border-border text-text-muted hover:text-text-primary transition-all flex-shrink-0">
             <ChevronLeft className="w-5 h-5" />
           </Link>
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-accent to-cyan flex items-center justify-center text-2xl font-black text-bg-deep shadow-lg shadow-accent/20">
+          <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-accent to-cyan flex items-center justify-center text-lg sm:text-2xl font-black text-bg-deep shadow-lg shadow-accent/20 flex-shrink-0">
               HT
             </div>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-text-primary tracking-tight">Mdm. Ho Teck Ghee</h1>
-                <span className="px-2 py-1 rounded bg-alert-high/10 text-alert-high text-[10px] font-black uppercase tracking-widest border border-alert-high/20">High Risk</span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <h1 className="text-lg sm:text-2xl font-bold text-text-primary tracking-tight">Mdm. Ho Teck Ghee</h1>
+                <span className="px-2 py-0.5 sm:py-1 rounded bg-alert-high/10 text-alert-high text-[10px] font-black uppercase tracking-widest border border-alert-high/20 flex-shrink-0">High Risk</span>
               </div>
-              <div className="flex items-center gap-4 mt-1 text-[13px] text-text-muted">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1 text-[12px] sm:text-[13px] text-text-muted">
                 <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> Blk 213, #12-441</span>
                 <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> 82 Years Old</span>
                 <span className="flex items-center gap-1.5 text-success"><ShieldCheck className="w-3.5 h-3.5" /> System Active</span>
@@ -46,18 +46,18 @@ export default function ResidentDetailPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button className="px-5 py-2.5 rounded-xl bg-bg-surface border border-border text-[13px] font-bold text-text-primary hover:bg-bg-hover transition-all flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto sm:self-end">
+          <button className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 rounded-xl bg-bg-surface border border-border text-[13px] font-bold text-text-primary hover:bg-bg-hover transition-all flex items-center justify-center gap-2">
             <Phone className="w-4 h-4" />
             Contact Next-of-Kin
           </button>
-          <button className="p-2.5 rounded-xl bg-bg-surface border border-border text-text-muted hover:text-text-primary">
+          <button className="p-2.5 rounded-xl bg-bg-surface border border-border text-text-muted hover:text-text-primary flex-shrink-0">
             <MoreVertical className="w-5 h-5" />
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-8">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-8">
         <div className="max-w-7xl mx-auto space-y-8">
           
           {/* Top Row: Vitals & Mobility Summary */}
@@ -183,7 +183,7 @@ export default function ResidentDetailPage() {
                     { date: '21 Oct', time: '11:45 PM', event: 'Restless Sleep Pattern', detail: 'Elevated mobility detection', status: 'Logged' },
                     { date: '19 Oct', time: '07:22 PM', event: 'Delayed Meal Time Anomaly', detail: 'Activity shifted from Kitchen to Bedroom', status: 'Checked' }
                   ].map((log, i) => (
-                    <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-bg-deep border border-border/40 hover:border-border/80 transition-all group">
+                    <div key={i} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-bg-deep border border-border/40 hover:border-border/80 transition-all group">
                       <div className="flex items-center gap-4">
                         <div className="p-2.5 rounded-xl bg-bg-surface border border-border/40 text-text-muted">
                           <Clock className="w-4 h-4" />
