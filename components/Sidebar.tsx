@@ -12,6 +12,8 @@ import {
   ChevronLeft,
   Shield,
   History,
+  Radio,
+  Heart,
 } from 'lucide-react';
 
 interface NavItem {
@@ -20,14 +22,17 @@ interface NavItem {
   label: string;
   icon: React.ElementType;
   badge?: number;
+  section?: string;
 }
 
 const navItems: NavItem[] = [
-  { id: 'dashboard', href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'residents', href: '/residents', label: 'Residents', icon: Users, badge: 1247 },
-  { id: 'incidents', href: '/incidents', label: 'Triage Queue', icon: FileText, badge: 3 },
-  { id: 'history', href: '/incidents/history', label: 'Resolution Logs', icon: History },
-  { id: 'settings', href: '/settings', label: 'Settings', icon: Settings },
+  { id: 'dashboard', href: '/', label: 'Command Center', icon: LayoutDashboard, section: 'Operations' },
+  { id: 'scdf', href: '/dashboard/scdf', label: 'SCDF Dashboard', icon: Radio, section: 'Operations' },
+  { id: 'incidents', href: '/incidents', label: 'Triage Queue', icon: FileText, badge: 3, section: 'Operations' },
+  { id: 'cfr', href: '/cfr', label: 'CFR Interface', icon: Heart, section: 'Operations' },
+  { id: 'residents', href: '/residents', label: 'Residents', icon: Users, badge: 1247, section: 'Management' },
+  { id: 'history', href: '/incidents/history', label: 'Resolution Logs', icon: History, section: 'Management' },
+  { id: 'settings', href: '/settings', label: 'Settings', icon: Settings, section: 'Management' },
 ];
 
 export default function Sidebar() {
@@ -116,18 +121,24 @@ export default function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {!collapsed && (
-            <p className="px-3 mb-3 text-[10px] font-semibold tracking-[0.15em] uppercase text-text-muted">
-              Navigation
-            </p>
-          )}
-          {navItems.map((item) => {
+          {(() => {
+            let lastSection = '';
+            return navItems.map((item) => {
+              const showSection = !collapsed && item.section && item.section !== lastSection;
+              if (item.section) lastSection = item.section;
+              return (
+                <div key={item.id}>
+                  {showSection && (
+                    <p className="px-3 mb-2 mt-4 first:mt-0 text-[10px] font-semibold tracking-[0.15em] uppercase text-text-muted">
+                      {item.section}
+                    </p>
+                  )}
+                  {(() => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
 
             return (
               <Link
-                key={item.id}
                 id={`nav-${item.id}`}
                 href={item.href}
                 className={`relative w-full flex items-center gap-3 rounded-lg transition-all duration-200 cursor-pointer group ${
@@ -172,7 +183,11 @@ export default function Sidebar() {
                 )}
               </Link>
             );
-          })}
+                  })()}
+                </div>
+              );
+            });
+          })()}
         </nav>
 
         {/* Separator */}

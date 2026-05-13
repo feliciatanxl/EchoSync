@@ -1,4 +1,4 @@
-import { FileText, AlertTriangle, ShieldAlert, Bot, PhoneCall, ArrowRight, Thermometer, Volume2, Users } from 'lucide-react';
+import { FileText, AlertTriangle, ShieldAlert, Heart, PhoneCall, ArrowRight, Thermometer, Volume2, Users } from 'lucide-react';
 
 const mockIncidents = [
   {
@@ -9,7 +9,7 @@ const mockIncidents = [
     severity: 'critical',
     timeElapsed: '00:42',
     sensors: [{ icon: Thermometer, label: 'Thermal' }, { icon: Volume2, label: 'Acoustic' }],
-    status: 'EchoRover Dispatched',
+    status: 'CFR Dispatched',
   },
   {
     id: 'INC-2026-088',
@@ -115,8 +115,8 @@ export default function IncidentsPage() {
                   {inc.severity === 'critical' ? (
                     <>
                       <button className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-alert-high hover:bg-alert-high/90 text-white text-[12px] font-bold transition-colors">
-                        <Bot className="w-4 h-4" />
-                        Dispatch EchoRover
+                        <Heart className="w-4 h-4" />
+                        Dispatch CFR + AED
                       </button>
                       <button className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-bg-surface border border-border hover:bg-bg-hover text-text-primary text-[12px] font-semibold transition-colors">
                         <PhoneCall className="w-4 h-4 text-text-muted" />

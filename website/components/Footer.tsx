@@ -113,9 +113,14 @@ export default function Footer() {
       {/* Bottom Bar */}
       <div className="border-t border-white/8">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-[12px] text-white/30">
-            © {new Date().getFullYear()} EchoSync. All rights reserved. A Singapore Smart Nation Initiative.
-          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-2">
+            <p className="text-[12px] text-white/30">
+              © {new Date().getFullYear()} EchoSync. All rights reserved. A Singapore Smart Nation Initiative.
+            </p>
+            <span className="px-2 py-0.5 rounded border border-white/20 bg-white/5 text-white/50 text-[10px] font-semibold uppercase tracking-wider hidden sm:inline-block">
+              Hackathon Prototype • Demonstration Data
+            </span>
+          </div>
           <div className="flex items-center gap-4 text-[12px] text-white/30">
             <span>PDPA Compliant</span>
             <span>•</span>

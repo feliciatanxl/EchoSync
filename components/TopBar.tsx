@@ -15,8 +15,11 @@ import {
 
 const pageTitles: Record<string, string> = {
   '/': 'Command Center Overview',
+  '/dashboard/scdf': 'SCDF Operator Dashboard',
   '/residents': 'Resident Management',
-  '/incidents': 'Incident Reports Queue',
+  '/incidents': 'Incident Triage Queue',
+  '/incidents/history': 'Resolution Audit Logs',
+  '/cfr': 'CFR Mobile Interface',
   '/settings': 'System Configuration',
 };
 
@@ -55,6 +58,10 @@ export default function TopBar() {
             <span>EchoSync</span>
             <ChevronRight className="w-3 h-3" />
             <span className="text-text-secondary">Portal</span>
+            <div className="ml-2 px-2 py-0.5 rounded border border-alert-low/20 bg-alert-low/10 text-alert-low font-semibold flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-alert-low animate-pulse-glow" />
+              SIMULATION ENVIRONMENT
+            </div>
           </div>
           <h2 className="text-[13px] md:text-[15px] font-bold text-text-primary tracking-tight truncate">
             {title}
@@ -78,7 +85,7 @@ export default function TopBar() {
             type="text"
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
-            placeholder={typeof window !== 'undefined' && window.innerWidth >= 640 ? "Search residents, incidents..." : ""}
+            placeholder="Search residents, incidents..."
             className={`w-full pl-9 pr-3 py-2 text-[12px] rounded-lg bg-bg-secondary/60 border border-border text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-accent/30 focus:bg-bg-secondary transition-all duration-200 ${
               searchFocused || globalSearch.length > 0 ? 'opacity-100' : 'opacity-0 sm:opacity-100 cursor-pointer'
             }`}

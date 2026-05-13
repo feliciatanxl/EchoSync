@@ -12,7 +12,7 @@ import {
   Navigation, 
   PhoneCall, 
   Users, 
-  Truck, 
+  Heart, 
   CheckCircle2, 
   ChevronRight,
   Info,
@@ -22,7 +22,7 @@ import Link from 'next/link';
 
 export default function IncidentTriagePage() {
   const [activeStage, setActiveStage] = useState<'triage' | 'responding' | 'resolved'>('triage');
-  const [roverDispatched, setRoverDispatched] = useState(false);
+  const [cfrDispatched, setCfrDispatched] = useState(false);
   const [scdfEscalated, setScdfEscalated] = useState(false);
   const [caregiverNotified, setCaregiverNotified] = useState(false);
 
@@ -184,10 +184,10 @@ export default function IncidentTriagePage() {
                 <p className="text-[13px] text-text-primary underline">OPERATOR: Triggered Caregiver Notification (SMS/Call Sequence).</p>
               </div>
             )}
-            {roverDispatched && (
+            {cfrDispatched && (
               <div className="flex gap-4 animate-fade-in">
                 <span className="text-[11px] text-text-muted whitespace-nowrap">23:45:45</span>
-                <p className="text-[13px] text-success">SYSTEM: EchoRover #04 deployed from Lobby Dock. Estimated ETA: 45s.</p>
+                <p className="text-[13px] text-success">SYSTEM: CFR David Lim accepted. En route with AED. ETA 2 min.</p>
               </div>
             )}
             {scdfEscalated && (
@@ -203,7 +203,7 @@ export default function IncidentTriagePage() {
           <div className="p-6 bg-bg-deep/50 border-t border-border/40">
             <div className="flex items-center gap-3 text-[12px] text-text-muted italic">
               <Info className="w-4 h-4 text-accent" />
-              AI Suggestion: Resident has history of BP issues. Recommend Rover visual assessment before escalating to ambulance.
+              AI Suggestion: Resident has history of hypertension. Recommend immediate CFR response with AED before ambulance arrival.
             </div>
           </div>
         </div>
@@ -250,24 +250,24 @@ export default function IncidentTriagePage() {
                 </div>
               </button>
 
-              {/* Dispatch EchoRover */}
+              {/* Dispatch CFR + AED */}
               <button 
-                onClick={() => setRoverDispatched(true)}
-                disabled={roverDispatched}
+                onClick={() => setCfrDispatched(true)}
+                disabled={cfrDispatched}
                 className={`w-full group p-4 rounded-2xl border transition-all duration-300 flex items-center gap-4 ${
-                  roverDispatched 
+                  cfrDispatched 
                     ? 'bg-accent/10 border-accent/30 text-accent' 
                     : 'bg-bg-elevated border-border hover:border-accent hover:bg-bg-hover text-text-primary'
                 }`}
               >
-                <div className={`p-2.5 rounded-xl transition-colors ${roverDispatched ? 'bg-accent text-bg-deep' : 'bg-bg-surface group-hover:bg-accent/10 group-hover:text-accent text-text-muted'}`}>
-                  <Truck className="w-4 h-4" />
+                <div className={`p-2.5 rounded-xl transition-colors ${cfrDispatched ? 'bg-accent text-bg-deep' : 'bg-bg-surface group-hover:bg-accent/10 group-hover:text-accent text-text-muted'}`}>
+                  <Heart className="w-4 h-4" />
                 </div>
                 <div className="text-left">
-                  <p className="text-[13px] font-bold">Dispatch EchoRover</p>
-                  <p className="text-[10px] opacity-70 italic">{roverDispatched ? 'In Transit (ETA 45s)' : 'Autonomous Deployment'}</p>
+                  <p className="text-[13px] font-bold">Dispatch CFR + AED</p>
+                  <p className="text-[10px] opacity-70 italic">{cfrDispatched ? 'CFR Accepted (ETA 2 min)' : 'Nearest Community First Responder'}</p>
                 </div>
-                {roverDispatched && <CheckCircle2 className="w-4 h-4 ml-auto" />}
+                {cfrDispatched && <CheckCircle2 className="w-4 h-4 ml-auto" />}
               </button>
 
               {/* Escalate to SCDF */}
