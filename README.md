@@ -1,102 +1,214 @@
-# 🛡️ EchoSync: AI-Powered Community Wellbeing & Safety
+### 🚨 EchoSync — AI-Assisted Pre-Arrival Emergency Intelligence Platform
 
-EchoSync is a high-fidelity B2G (Business-to-Government) healthcare ecosystem designed to shift care from reactive response to proactive protection. It leverages secure IoT sensors, edge-computing, and cloud-based AI to protect Singapore's seniors while maintaining 100% PDPA compliance and a zero-stigma experience.
+EchoSync is an SCDF-aligned AI-assisted emergency coordination platform designed to improve pre-arrival response for unwitnessed medical emergencies in high-density HDB environments.
 
----
+The platform focuses on privacy-preserving anomaly detection, Community First Responder (CFR) coordination, AED routing workflows, and operational situational awareness before ambulance arrival.
 
-## 🏗️ Project Architecture
+EchoSync is designed as a software-first operational prototype for the SCDF Innovation Challenge 2026.
 
-The project is structured as a dual-app architecture to separate the public-facing marketing presence from the secure enterprise command center.
+────────────────────────────
 
-1.  **Marketing Website (`/website`)**: Built with Next.js, focused on procurement, hospital admins, and the general public.
-2.  **Enterprise Portal (Root `/`)**: A secure React/Next.js application for MOH/HDB operators and the Silver Generation Office.
+### 🏗️ Project Architecture
 
----
+EchoSync uses a dual-application architecture:
 
-## 🚀 Getting Started
+Portal Application (/)
+SCDF-style emergency coordination dashboard and responder management system.
 
-### 📋 Prerequisites
-- **Node.js**: v18.x or higher
-- **npm**: v9.x or higher
+Includes:
+
+* Live incident monitoring
+* AI confidence scoring
+* CFR coordination workflow
+* AED deployment tracking
+* Incident timeline visualization
+* Edge node health monitoring
+* HDB deployment simulation
+* Dispatcher situational awareness tools
+
+Public Website (/website)
+Public-facing presentation website explaining:
+
+* operational workflow
+* deployment strategy
+* privacy safeguards
+* HDB integration concept
+* AI explainability
+* pilot deployment feasibility
+
+────────────────────────────
+
+### 🚀 Getting Started
+
+📋 Prerequisites
+
+* Node.js v18+
+* npm v9+
+
+────────────────────────────
 
 ### 📥 Installation
 
-You need to install dependencies for both the Portal and the Website separately.
+Install Portal Dependencies
 
-**1. Install Portal Dependencies (Root)**
-```bash
-# Navigate to project root
+From the project root:
+
 npm install
-```
 
-**2. Install Website Dependencies**
-```bash
-# Navigate to website directory
+Install Website Dependencies
+
 cd website
 npm install
-```
 
----
+────────────────────────────
 
-## 💻 Running the Applications
+### 💻 Running The Applications
 
-To see the full ecosystem, you should run both applications simultaneously.
+Run both applications separately for the full EchoSync ecosystem.
 
-### Running the Enterprise Portal (Command Center)
-From the **root directory**:
-```bash
+────────────────────────────
+
+### 🖥️ Portal Application
+
+From project root:
+
 npm run dev
-```
-- **URL**: `http://localhost:3000`
-- **Target User**: MOH Operators, HDB Dispatchers.
 
-### Running the Marketing Website
-From the **website directory**:
-```bash
-cd website
-npm run dev
-```
-- **URL**: `http://localhost:3001` (or next available port)
-- **Target User**: Procurement officers, Hospital admins, General Public.
+URL:
+[http://localhost:3000](http://localhost:3000)
 
----
+Intended Users:
 
-## 🌟 Core Features
+* SCDF operators
+* emergency coordinators
+* dispatch simulation reviewers
+* hackathon judges
 
-### 🏢 B2G Enterprise Portal
-- **Estate Dashboard**: Real-time heatmaps of block-level health and active alert feeds.
-- **Incident Triage**: AI-fused evidence (Thermal + Acoustic) with 98% confidence scoring.
-- **Response Workflow**: One-click dispatch for EchoRovers, Volunteer notifications, and SCDF escalation.
-- **Resolution Logs**: Full audit logs and response time metrics for agency reporting.
+────────────────────────────
 
-### 🌐 Marketing Website
-- **EchoAI Assistant**: Integrated AI chatbot available site-wide to handle technical support.
-- **Hardware Showcase**: Deep dives into zero-stigma sensors and the EchoRover v2.4.
-- **Privacy First**: Detailed breakdown of PDPA compliance and edge-computing (no cameras/raw audio).
-- **Interactive FAQ**: Dynamic section for government agencies and caregivers.
+### 🌐 Website Application
 
----
+From /website:
 
-## 🛠️ Technology Stack
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS / Vanilla CSS
-- **Icons**: Lucide React
-- **Animations**: Framer Motion / CSS Keyframes
-- **State Management**: React Hooks (useState, useEffect)
+npm run dev -- --port 3001
 
----
+URL:
+[http://localhost:3001](http://localhost:3001)
 
-## 🔒 Security & Compliance
-- **PDPA Compliant**: Data is processed at the edge; no raw audio or video ever leaves the residential node.
-- **B2G Ready**: Designed with Government SSO (Singpass/CorpPass) UI integrations.
-- **Role-Based**: Prepared for Admin vs. Operator access levels.
+Purpose:
 
----
+* public concept showcase
+* deployment visualization
+* operational walkthrough
+* hackathon presentation support
 
-## 📄 License
-This project is proprietary and built for the **EchoSync Healthcare Ecosystem**.
+────────────────────────────
 
----
+### 🌟 Core Features
 
-*Built with ❤️ by the EchoSync Development Team.*
+🚨 SCDF Coordination Dashboard
+
+* Real-time incident queue
+* AI-assisted confidence scoring
+* Explainable alert reasoning
+* Incident escalation workflow
+* HDB deployment visualization
+* CFR responder coordination
+* AED tracking workflow
+* Operational timeline replay
+* System health monitoring
+
+📱 CFR Mobile Interface
+
+* Incoming emergency alerts
+* AED pickup workflow
+* Guided CPR action flow
+* Response completion logging
+* Mobile-first emergency UI
+
+🧠 AI & Simulation Layer
+
+* Simulated multi-modal anomaly detection
+* Confidence progression engine
+* Explainable AI classifications
+* Live workflow simulation
+* Fake real-time operational updates
+* Edge-processing architecture simulation
+
+🏢 HDB Deployment Simulation
+
+* Corridor-level deployment mockups
+* Ceiling sensor placement visualization
+* Lift lobby relay nodes
+* AED coordination points
+* Pilot deployment architecture
+
+────────────────────────────
+
+### 🔒 Privacy & Operational Safeguards
+
+EchoSync is designed as a privacy-first operational support system.
+
+Principles:
+
+* No raw audio storage
+* No camera surveillance
+* Edge-based processing
+* Human-in-the-loop verification
+* Operator override authority
+* Encrypted alert transmission
+* Opt-in deployment model
+* PDPA-aligned architecture
+
+────────────────────────────
+
+### 🛠️ Technology Stack
+
+Framework:
+
+* Next.js 16
+
+Language:
+
+* TypeScript
+
+Styling:
+
+* Tailwind CSS v4
+
+Icons:
+
+* Lucide React
+
+Animations:
+
+* CSS Keyframes
+
+State Management:
+
+* React Hooks
+
+Architecture:
+
+* Dual Next.js Applications
+
+────────────────────────────
+
+### ⚠️ Important Notes
+
+EchoSync is a hackathon simulation prototype and does not perform:
+
+* autonomous medical diagnosis
+* real SCDF dispatch integration
+* live biometric analysis
+* actual emergency escalation
+
+All workflows and operational scenarios are simulated for demonstration purposes.
+
+────────────────────────────
+
+### 📄 License
+
+This project was developed for the SCDF Innovation Challenge 2026 prototype showcase.
+
+Built by Team EchoSync.
