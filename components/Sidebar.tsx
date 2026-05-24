@@ -51,7 +51,7 @@ export default function Sidebar() {
     setIsLoggingOut(true);
     // Simulate secure session termination
     setTimeout(() => {
-      window.location.href = 'http://localhost:3001';
+      window.location.href = 'https://echosync-website-brown.vercel.app/';
     }, 1800);
   };
 

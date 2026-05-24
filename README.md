@@ -37,17 +37,17 @@ EchoSync uses a dual-application architecture:
 1.  Install Portal Dependencies From the project root: npm install
 2.  Install Website Dependencies cd website npm install
 
-## 💻 Running The Applications
+### Running the Applications
 
-Run both applications separately for the full EchoSync ecosystem.
+1.  **Main Portal (Port 3000):**
+    -   Run: `npm run dev`
+    -   URL: `https://echosync-portal.vercel.app/`
 
-### 🖥️ Portal Application
-
-From the project root:
-
-npm run dev
-
--   URL: http://localhost:3000
+2.  **Public Website (Port 3001):**
+    -   Open a new terminal.
+    -   Navigate: `cd website`
+    -   Run: `npm run dev -- -p 3001`
+    -   URL: `https://echosync-website-brown.vercel.app/`
 -   Intended Users: SCDF operators, emergency coordinators, dispatch simulation reviewers, hackathon judges.
 
 ### 🌐 Website Application
