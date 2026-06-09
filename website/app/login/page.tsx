@@ -24,7 +24,7 @@ export default function LoginPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     // Simulate authentication and redirect
-    window.location.href = 'https://echosync-portal.vercel.app/'; // Assuming main app is on port 3000
+    window.location.href = 'https://echosync-echosync.apps.innovate.sg-aie.com/dashboard-v2'; // Assuming main app is on port 3000
   };
 
   const handleReset = (e: React.FormEvent) => {
