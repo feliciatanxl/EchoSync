@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import {
@@ -37,6 +37,12 @@ interface OpsLogEntry {
   description: string;
   source: string;
 }
+
+type GlobalOpsLogEntry = OpsLogEntry & {
+  incidentId: string;
+  incidentType: string;
+  location: string;
+};
 
 interface Incident {
   id: string;
@@ -326,10 +332,10 @@ function IncidentCard({
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onToggleFlag(); }}
-          className={`p-1 rounded-md transition-colors ${
+          className={`p-1 rounded-md border transition-colors ${
             incident.flagged
-              ? 'text-amber-500 hover:bg-amber-100 bg-amber-50'
-              : 'text-slate-300 hover:text-slate-500 hover:bg-slate-100'
+              ? 'text-red-600 bg-red-50 border-red-200 hover:bg-red-100'
+              : 'text-red-300 bg-red-50/40 border-red-100 hover:bg-red-50'
           }`}
           title={incident.flagged ? 'Unflag' : 'Flag'}
         >
@@ -374,7 +380,7 @@ function NotificationToast({
   const sev = severityColor(incident.severity);
 
   const content = (
-    <div className={`fixed bottom-6 right-6 z-[9999] w-[380px] max-w-[calc(100vw-24px)] rounded-xl border shadow-2xl overflow-hidden transition-all duration-500 ${
+    <div className={`fixed bottom-4 right-4 z-[100] w-[min(380px,calc(100vw-32px))] max-h-[min(220px,calc(100dvh-96px))] rounded-xl border shadow-2xl overflow-hidden transition-all duration-500 2xl:bottom-6 2xl:right-6 2xl:w-[min(420px,calc(100vw-32px))] ${
       acknowledged ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'
     }`}>
       <div className={`h-0.5 ${acknowledged ? 'bg-emerald-500' : sev.dot}`} />
@@ -431,7 +437,7 @@ function NotificationToast({
 // Ops Log Panel (headerless container — header rendered inline)
 // ─────────────────────────────────────────────────────────
 
-function OpsLogPanel({ opsLog, incidentId, onOpenFullLog }: { opsLog: OpsLogEntry[] | null; incidentId: string | null; onOpenFullLog: () => void }) {
+function OpsLogPanel({ opsLog, onOpenFullLog }: { opsLog: GlobalOpsLogEntry[]; onOpenFullLog: () => void }) {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Sticky header */}
@@ -441,26 +447,19 @@ function OpsLogPanel({ opsLog, incidentId, onOpenFullLog }: { opsLog: OpsLogEntr
           <h2 className="text-[12px] font-bold text-slate-800">Ops Log</h2>
         </div>
         <div className="flex items-center gap-2">
-          {incidentId && <span className="text-[9px] font-mono text-slate-400">{incidentId}</span>}
-          {incidentId && (
-            <button onClick={onOpenFullLog} className="p-1 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors" title="View Full Log">
-              <ClipboardList className="w-3.5 h-3.5" />
-            </button>
-          )}
+          <span className="text-[9px] font-mono text-slate-400">GLOBAL</span>
+          <button onClick={onOpenFullLog} className="p-1 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors" title="View Full Log">
+            <ClipboardList className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
       {/* Scrollable timeline */}
       <div className="flex-1 overflow-y-auto px-3 py-2 flex flex-col">
-        {!opsLog ? (
-          <div className="flex-1 flex items-center justify-center text-xs text-slate-400 text-center px-4">
-            Select an incident to view its operational timeline
-          </div>
-        ) : (
-          opsLog.map((entry, i) => (
-            <div key={`${entry.time}-${i}`} className="flex gap-2.5 relative">
+        {opsLog.map((entry, i) => (
+            <div key={`${entry.incidentId}-${entry.time}-${i}`} className="flex gap-2.5 relative">
               <div className="flex flex-col items-center flex-shrink-0">
                 <div className={`w-2 h-2 rounded-full border-[1.5px] flex-shrink-0 z-10 mt-0.5 ${
-                  i === opsLog.length - 1 ? 'bg-teal-500 border-teal-500' : 'bg-white border-slate-300'
+                  i === 0 ? 'bg-teal-500 border-teal-500' : 'bg-white border-slate-300'
                 }`} />
                 {i < opsLog.length - 1 && (
                   <div className="w-px flex-1 bg-slate-200 min-h-[24px]" />
@@ -469,13 +468,13 @@ function OpsLogPanel({ opsLog, incidentId, onOpenFullLog }: { opsLog: OpsLogEntr
               <div className="pb-3 -mt-0.5 flex-1 min-w-0">
                 <div className="flex items-baseline gap-1.5 mb-0.5">
                   <span className="text-[9px] font-mono font-bold text-slate-400">{entry.time}</span>
+                  <span className="text-[9px] font-mono font-bold text-teal-600 bg-teal-50 px-1 py-0.5 rounded">{entry.incidentId}</span>
                   <span className="text-[11px] font-semibold text-slate-700">{entry.title}</span>
                 </div>
                 <p className="text-[10px] text-slate-500 leading-relaxed">{entry.description}</p>
               </div>
             </div>
-          ))
-        )}
+          ))}
       </div>
     </div>
   );
@@ -497,7 +496,7 @@ function IncidentDetailStrip({ incident }: { incident: Incident | null }) {
   const sev = severityColor(incident.severity);
 
   return (
-    <div className="bg-white border-t border-slate-200 px-4 py-3 flex flex-col gap-2 shrink-0">
+    <div className="bg-white border-t border-slate-200 px-4 py-3 flex flex-col gap-2 shrink-0 max-h-[38%] overflow-y-auto overflow-x-hidden">
       {/* Top Row: Info + Actions */}
       <div className="flex items-start md:items-center justify-between gap-3 flex-col md:flex-row">
         {/* Info area */}
@@ -568,9 +567,19 @@ function IncidentDetailStrip({ incident }: { incident: Incident | null }) {
 // Full Ops Log Workspace (replaces Map in Center Panel)
 // ─────────────────────────────────────────────────────────
 
-function FullOpsLogWorkspace({ incident, onClose, onAddEntry }: { incident: Incident; onClose: () => void; onAddEntry: (entry: OpsLogEntry) => void }) {
+function FullOpsLogWorkspace({
+  opsLog,
+  selectedIncident,
+  onClose,
+  onAddEntry,
+}: {
+  opsLog: GlobalOpsLogEntry[];
+  selectedIncident: Incident;
+  onClose: () => void;
+  onAddEntry: (incidentId: string, entry: OpsLogEntry) => void;
+}) {
   const [activePanel, setActivePanel] = useState<'none' | 'form' | 'entry'>('none');
-  const [selectedEntry, setSelectedEntry] = useState<OpsLogEntry | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<GlobalOpsLogEntry | null>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -581,7 +590,7 @@ function FullOpsLogWorkspace({ incident, onClose, onAddEntry }: { incident: Inci
     if (!title.trim() && !description.trim()) return;
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-    onAddEntry({
+    onAddEntry(selectedIncident.id, {
       time: timeStr,
       title: title.trim() || 'Manual Update',
       description: description.trim(),
@@ -600,12 +609,10 @@ function FullOpsLogWorkspace({ incident, onClose, onAddEntry }: { incident: Inci
     setSelectedEntry(null);
   };
 
-  const openEntry = (entry: OpsLogEntry) => {
+  const openEntry = (entry: GlobalOpsLogEntry) => {
     setSelectedEntry(entry);
     setActivePanel('entry');
   };
-
-  const sev = severityColor(incident.severity);
 
   return (
     <div className="h-full bg-slate-50 flex flex-col animate-in fade-in duration-300">
@@ -617,7 +624,7 @@ function FullOpsLogWorkspace({ incident, onClose, onAddEntry }: { incident: Inci
           </div>
           <div>
             <h2 className="text-[15px] font-bold text-slate-800 leading-tight">Full Operations Log</h2>
-            <p className="text-[11px] font-mono font-medium text-slate-500">{incident.id}</p>
+            <p className="text-[11px] font-mono font-medium text-slate-500">Global real-time event stream</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -641,9 +648,9 @@ function FullOpsLogWorkspace({ incident, onClose, onAddEntry }: { incident: Inci
         {/* LEFT: Timeline */}
         <div className="flex-1 overflow-y-auto bg-slate-50 flex flex-col p-6">
           <div className="flex-1">
-            {[...incident.opsLog].reverse().map((entry, i) => (
+            {opsLog.map((entry, i) => (
               <div 
-                key={`${entry.time}-${i}`} 
+                key={`${entry.incidentId}-${entry.time}-${i}`} 
                 className="flex gap-4 relative mb-6 cursor-pointer group"
                 onClick={() => openEntry(entry)}
               >
@@ -651,7 +658,7 @@ function FullOpsLogWorkspace({ incident, onClose, onAddEntry }: { incident: Inci
                   <div className={`w-3 h-3 rounded-full border-[2.5px] flex-shrink-0 z-10 mt-1.5 ${
                     i === 0 ? 'bg-teal-500 border-teal-500 ring-4 ring-teal-50' : 'bg-white border-slate-300 group-hover:border-teal-400'
                   } transition-colors`} />
-                  {i < incident.opsLog.length - 1 && (
+                  {i < opsLog.length - 1 && (
                     <div className="w-px flex-1 bg-slate-200 min-h-[40px] group-hover:bg-slate-300 transition-colors" />
                   )}
                 </div>
@@ -659,6 +666,7 @@ function FullOpsLogWorkspace({ incident, onClose, onAddEntry }: { incident: Inci
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-baseline gap-2.5">
                       <span className="text-[11px] font-mono font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded">{entry.time}</span>
+                      <span className="text-[11px] font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{entry.incidentId}</span>
                       <span className="text-[14px] font-bold text-slate-900">{entry.title}</span>
                     </div>
                   </div>
@@ -666,6 +674,9 @@ function FullOpsLogWorkspace({ incident, onClose, onAddEntry }: { incident: Inci
                   <div className="flex items-center gap-3">
                     <div className="text-[10px] font-bold text-slate-500 flex items-center gap-1 uppercase tracking-wider bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
                       <User className="w-3 h-3" /> {entry.source}
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-500 flex items-center gap-1 uppercase tracking-wider bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
+                      <MapPin className="w-3 h-3" /> {entry.incidentType}
                     </div>
                   </div>
                 </div>
@@ -786,11 +797,11 @@ function FullOpsLogWorkspace({ incident, onClose, onAddEntry }: { incident: Inci
                      <div className="space-y-2.5 bg-white border border-slate-100 rounded-lg p-3">
                        <div className="flex justify-between items-center">
                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Case ID</span>
-                         <span className="text-[12px] font-mono font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded">{incident.id}</span>
+                         <span className="text-[12px] font-mono font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded">{selectedEntry.incidentId}</span>
                        </div>
                        <div className="flex justify-between items-center">
                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Location</span>
-                         <span className="text-[12px] font-medium text-slate-800">{incident.location}</span>
+                         <span className="text-[12px] font-medium text-slate-800">{selectedEntry.location}</span>
                        </div>
                      </div>
                    </div>
@@ -830,6 +841,18 @@ export default function DashboardV2() {
 
   const selectedIncident = incidents.find(i => i.id === selectedId) || incidents[0];
   const notifIncident = incidents.find(i => i.severity === 'Critical') || incidents[0];
+  const allOpsLogEntries = useMemo<GlobalOpsLogEntry[]>(() => {
+    return incidents
+      .flatMap((inc) =>
+        inc.opsLog.map((entry) => ({
+          ...entry,
+          incidentId: inc.id,
+          incidentType: inc.type,
+          location: inc.location,
+        }))
+      )
+      .reverse();
+  }, [incidents]);
 
   const handleToggleFlag = useCallback((id: string) => {
     setIncidents(prev => prev.map(inc =>
@@ -849,17 +872,17 @@ export default function DashboardV2() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-white text-slate-900"
+      className="fixed inset-0 z-50 flex h-[100dvh] flex-col overflow-hidden bg-white text-slate-900"
       style={{ fontFamily: 'var(--font-inter, Inter, system-ui, sans-serif)' }}
     >
       {/* Top Nav — 48px */}
       <TopNav />
 
       {/* 3-column grid: Incidents | Map+Detail | OpsLog */}
-      <div className={`flex-1 grid overflow-hidden transition-all duration-300 ease-in-out ${isOpsLogOpen ? 'grid-cols-[400px_1fr]' : 'grid-cols-[400px_1fr_300px]'}`}>
+      <div className={`min-h-0 flex-1 grid overflow-hidden transition-all duration-300 ease-in-out ${isOpsLogOpen ? 'grid-cols-[clamp(320px,30vw,430px)_minmax(0,1fr)]' : 'grid-cols-[clamp(320px,30vw,430px)_minmax(0,1fr)_clamp(300px,24vw,420px)]'}`}>
 
         {/* ═══ LEFT: Incident List ═══ */}
-        <div className="bg-white border-r border-slate-200 flex flex-col overflow-hidden">
+        <div className="min-h-0 min-w-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden">
           {/* Sticky header */}
           <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
             <h2 className="text-[12px] font-bold text-slate-800 flex items-center gap-1.5">
@@ -912,14 +935,15 @@ export default function DashboardV2() {
         </div>
 
         {/* ═══ CENTER: Map + Detail Strip ═══ */}
-        <div className="flex flex-col overflow-hidden">
+        <div className="min-h-0 min-w-0 flex flex-col overflow-hidden">
           {/* Map or Full Ops Log Workspace fills remaining height */}
-          <div className="flex-1 min-h-0 bg-slate-100 flex flex-col relative">
+          <div className="flex-1 min-h-0 min-w-0 bg-slate-100 flex flex-col relative overflow-hidden">
             {isOpsLogOpen && selectedIncident ? (
               <FullOpsLogWorkspace
-                incident={selectedIncident}
+                opsLog={allOpsLogEntries}
+                selectedIncident={selectedIncident}
                 onClose={() => setIsOpsLogOpen(false)}
-                onAddEntry={(entry) => handleAddOpsLogEntry(selectedIncident.id, entry)}
+                onAddEntry={handleAddOpsLogEntry}
               />
             ) : (
               <IncidentMap
@@ -935,10 +959,9 @@ export default function DashboardV2() {
 
         {/* ═══ RIGHT: Ops Log ═══ */}
         {!isOpsLogOpen && (
-          <div className="flex flex-col overflow-hidden bg-white border-l border-slate-200">
+          <div className="min-h-0 min-w-0 flex flex-col overflow-hidden bg-white border-l border-slate-200">
             <OpsLogPanel
-              opsLog={selectedIncident ? selectedIncident.opsLog : null}
-              incidentId={selectedIncident ? selectedIncident.id : null}
+              opsLog={allOpsLogEntries}
               onOpenFullLog={() => setIsOpsLogOpen(true)}
             />
           </div>

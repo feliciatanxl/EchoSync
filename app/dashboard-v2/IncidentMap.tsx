@@ -211,7 +211,7 @@ export default function IncidentMap({
     const timeout = setTimeout(() => {
       const marker = markerRefs.current[selectedId];
       if (marker) marker.openPopup();
-    }, 1300);
+    }, 900);
     return () => clearTimeout(timeout);
   }, [selectedId]);
 
@@ -232,19 +232,42 @@ export default function IncidentMap({
           50% { transform: scale(2.2); opacity: 0; }
         }
         .leaflet-popup-content-wrapper {
-          border-radius: 14px !important;
+          border-radius: 20px !important;
           padding: 0 !important;
           box-shadow: 0 12px 48px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.06) !important;
           overflow: hidden !important;
           border: 1px solid #e2e8f0 !important;
+          max-width: min(420px, calc(100vw - 32px)) !important;
+          max-height: calc(100dvh - 300px) !important;
         }
         .leaflet-popup-content {
-          margin: 18px 20px !important;
-          width: auto !important;
-          min-width: 340px !important;
-          max-width: 420px !important;
+          margin: 12px 14px !important;
+          width: clamp(280px, 26vw, 420px) !important;
+          max-width: min(420px, calc(100vw - 48px)) !important;
+          max-height: calc(100dvh - 332px) !important;
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
           line-height: 1.4 !important;
-          font-size: 13px !important;
+          font-size: 12.5px !important;
+        }
+        @media (min-width: 1536px) and (min-height: 900px) {
+          .leaflet-popup-content {
+            margin: 14px 16px !important;
+            width: clamp(320px, 28vw, 460px) !important;
+            max-width: min(460px, calc(100vw - 48px)) !important;
+            max-height: calc(100dvh - 280px) !important;
+            font-size: 13px !important;
+          }
+        }
+        @media (max-width: 1023px) {
+          .leaflet-popup-content-wrapper {
+            max-width: calc(100vw - 32px) !important;
+          }
+          .leaflet-popup-content {
+            width: auto !important;
+            min-width: min(320px, calc(100vw - 64px)) !important;
+            max-width: calc(100vw - 64px) !important;
+          }
         }
         .leaflet-popup-tip-container {
           margin-top: -1px !important;
@@ -306,7 +329,7 @@ export default function IncidentMap({
                 if (ref) markerRefs.current[inc.id] = ref;
               }}
             >
-              <Popup minWidth={360} maxWidth={440} closeButton={true}>
+              <Popup minWidth={280} maxWidth={420} closeButton={true} autoPan keepInView>
                 <div dangerouslySetInnerHTML={{ __html: popupContent(inc) }} />
               </Popup>
             </Marker>
