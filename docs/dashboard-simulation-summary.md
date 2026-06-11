@@ -37,6 +37,13 @@ When a simulation button is clicked, the dashboard fetches `/api/simulate-alert`
 - Marker locations use registered EchoSync node coordinates instead of road-centre or GPS-style approximations.
 - Global Ops Log remains the shared command-centre timeline.
 
+## NIM AI Summary Layer
+
+- NIM is used only to generate short dispatcher-readable summaries from existing detector JSON.
+- Rule-based simulation remains the source of truth for confidence, risk, evidence, and recommended action.
+- A local fallback summary is used when NIM credentials or endpoint are unavailable.
+- No raw audio, raw video, NRIC, face data, or private conversation recordings are sent.
+
 ## Future Work
 
 - Add a dedicated incident detail drawer for expanded model explanations.

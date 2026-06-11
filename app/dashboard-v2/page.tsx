@@ -101,6 +101,10 @@ interface Incident {
     recommendedAction: string;
     reasoning: string[];
     aiReasoningLine?: string;
+    aiSummary?: {
+      summary: string;
+      source: 'NIM' | 'Fallback';
+    };
     detectorEvidence: {
       thermal: string;
       acoustic: string;
@@ -1044,6 +1048,15 @@ function IncidentDetailStrip({
             <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Recommended action</p>
             <p className="text-[10.5px] font-bold text-slate-800">{incident.simulation.recommendedAction}</p>
           </div>
+
+          {incident.simulation.aiSummary && (
+            <div className="rounded bg-white px-2 py-1.5 border border-slate-100">
+              <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                AI Summary <span className="font-mono normal-case">({incident.simulation.aiSummary.source})</span>
+              </p>
+              <p className="text-[10.5px] font-semibold text-slate-700">{incident.simulation.aiSummary.summary}</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -1486,6 +1499,41 @@ export default function DashboardV2() {
           recommendedAction: alert.recommendedAction,
         });
       }
+
+      fetch('/api/nim-alert-summary', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          caseId: alert.caseId,
+          caseType: alert.caseType,
+          location: simulatedIncident.location,
+          confidence: alert.confidence,
+          riskLevel: alert.riskLevel,
+          detectors: {
+            thermal: detectorFindings.thermal,
+            acoustic: detectorFindings.acoustic,
+            loadMat: detectorFindings.loadMat,
+            doorFridge: detectorFindings.doorFridge,
+          },
+          voiceCheckIn: detectorFindings.voice,
+          immobileTime: alert.immobileTime,
+          recommendedAction: alert.recommendedAction,
+        }),
+      })
+        .then((summaryResponse) => {
+          if (!summaryResponse.ok) throw new Error('NIM summary unavailable');
+          return summaryResponse.json() as Promise<{ summary: string; source: 'NIM' | 'Fallback' }>;
+        })
+        .then((aiSummary) => {
+          setIncidents((prev) => prev.map((inc) => (
+            inc.id === alert.caseId && inc.simulation
+              ? { ...inc, simulation: { ...inc.simulation, aiSummary } }
+              : inc
+          )));
+        })
+        .catch(() => {
+          // Optional summary layer only; rule-based simulation stays authoritative.
+        });
 
     } catch (error) {
       console.error(error);
