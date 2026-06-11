@@ -74,8 +74,8 @@ export default function AuthOtpPage() {
           throw new Error(data.error ?? 'Unable to verify OTP.');
         }
 
-        updateOnboarding({ completed: true, currentStep: 4 });
-        router.replace('/myResponder/dashboard');
+        updateOnboarding({ completed: false, currentStep: 5 });
+        router.replace('/myResponder/setup-step1');
       } catch (caughtError) {
         verifying.current = false;
         setStatus('error');

@@ -138,12 +138,12 @@ export default function IntroPage() {
             <button
               className="mr-btn mr-btn-singpass"
               type="button"
-              onClick={() => router.push('/myResponder/terms')}
+              onClick={() => alert('Singpass is currently unavailable in this demo. Please continue with mobile number.')}
             >
               <Shield size={20} />
               Continue with Singpass
             </button>
-            <button className="mr-btn mr-btn-outline" type="button" onClick={() => router.push('/myResponder/terms')}>
+            <button className="mr-btn mr-btn-outline" type="button" onClick={() => router.push('/myResponder/auth-input')}>
               Continue with mobile number
             </button>
           </>

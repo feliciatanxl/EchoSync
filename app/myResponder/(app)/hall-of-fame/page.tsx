@@ -1,153 +1,46 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { Award } from 'lucide-react';
 import { leaderboard } from '@/app/myResponder/data/mockLeaderboard';
 
 type Tier = 'platinum' | 'gold' | 'silver';
 
-const TIER_COLORS: Record<Tier, { bg: string; text: string }> = {
-  platinum: { bg: '#E5E4E2', text: '#3d3d3d' },
-  gold: { bg: '#FFD700', text: '#5c4813' },
-  silver: { bg: '#C0C0C0', text: '#3d3d3d' },
+const tierStyle: Record<Tier, { medal: string; bg: string }> = {
+  platinum: { medal: '#E5E4E2', bg: '#F8FAFC' },
+  gold: { medal: '#FFD700', bg: '#FFF8E1' },
+  silver: { medal: '#C0C0C0', bg: '#F1F5F9' },
 };
 
 export default function HallOfFamePage() {
-  const router = useRouter();
-  const [activeTier, setActiveTier] = useState<Tier>('platinum');
-
-  const entries = leaderboard[activeTier];
+  const [tier, setTier] = useState<Tier>('platinum');
 
   return (
-    <div className="mr-page mr-animate-fade-in" style={{ paddingBottom: 100 }}>
-      {/* Header */}
-      <div className="mr-header">
-        <button
-          onClick={() => router.back()}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            color: 'var(--scdf-blue)',
-            fontFamily: 'inherit',
-            fontWeight: 600,
-            fontSize: 15,
-            padding: '4px 0',
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-          Back
-        </button>
-        <span className="mr-header-title">Hall of Fame</span>
-        <div style={{ width: 60 }} />
-      </div>
-
-      {/* Hero Banner */}
-      <div
-        style={{
-          margin: '16px',
-          padding: '28px 20px',
-          borderRadius: 'var(--radius-lg)',
-          background: 'linear-gradient(135deg, #FFD700 0%, #FFA000 50%, #FF8F00 100%)',
-          textAlign: 'center',
-          boxShadow: '0 8px 32px rgba(255, 152, 0, 0.3)',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Decorative circles */}
-        <div style={{
-          position: 'absolute',
-          top: -20,
-          right: -20,
-          width: 100,
-          height: 100,
-          borderRadius: '50%',
-          background: 'rgba(255,255,255,0.15)',
-        }} />
-        <div style={{
-          position: 'absolute',
-          bottom: -30,
-          left: -10,
-          width: 80,
-          height: 80,
-          borderRadius: '50%',
-          background: 'rgba(255,255,255,0.1)',
-        }} />
-        <div style={{ fontSize: 48, marginBottom: 8, position: 'relative' }}>🏆</div>
-        <div style={{ fontSize: 20, fontWeight: 800, color: '#5c3a00', letterSpacing: -0.3, position: 'relative' }}>
-          Honouring our top responders
+    <div className="mr-page mr-animate-fade-in bg-[#EEF2F6]">
+      <header className="mr-header"><h1 className="mr-header-title">Hall of Fame</h1></header>
+      <section className="p-4">
+        <div className="grid grid-cols-3 rounded-2xl bg-white p-1 shadow-xs">
+          {(['platinum', 'gold', 'silver'] as Tier[]).map((item) => (
+            <button key={item} type="button" onClick={() => setTier(item)} className={`rounded-xl py-2 text-[12px] font-black uppercase ${tier === item ? 'bg-[#003B73] text-white' : 'text-slate-500'}`}>{item}</button>
+          ))}
         </div>
-        <div style={{ fontSize: 13, color: '#7a5000', marginTop: 4, fontWeight: 500, position: 'relative' }}>
-          Thank you for making a difference
+        <div className="mt-4 rounded-[28px] p-5 text-center shadow-xs" style={{ background: tierStyle[tier].bg }}>
+          <div className="mx-auto grid h-24 w-24 place-items-center rounded-full bg-white shadow-md">
+            <Award size={54} color={tierStyle[tier].medal} fill={tierStyle[tier].medal} />
+          </div>
+          <h2 className="mt-3 text-[22px] font-black capitalize text-slate-950">{tier} responders</h2>
+          <p className="text-[13px] font-semibold text-slate-500">Recognising our top Community First Responders</p>
         </div>
-      </div>
-
-      {/* Tier Tabs */}
-      <div className="mr-tabs">
-        {(['platinum', 'gold', 'silver'] as Tier[]).map((tier) => (
-          <button
-            key={tier}
-            className={`mr-tab ${activeTier === tier ? 'active' : ''}`}
-            onClick={() => setActiveTier(tier)}
-          >
-            {tier.charAt(0).toUpperCase() + tier.slice(1)}
-          </button>
+      </section>
+      <section className="space-y-2 px-4 pb-5">
+        {leaderboard[tier].map((entry) => (
+          <div key={entry.rank} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-xs">
+            <span className="grid h-10 w-10 place-items-center rounded-full text-[14px] font-black" style={{ background: tierStyle[tier].bg, color: '#003B73' }}>{entry.rank}</span>
+            <span className="min-w-0 flex-1 truncate text-[15px] font-bold text-slate-950">{entry.name}</span>
+            <span className="text-[13px] font-black text-[#003B73]">{entry.cases} Cases</span>
+          </div>
         ))}
-      </div>
-
-      {/* Leaderboard */}
-      <div
-        style={{
-          background: 'white',
-          margin: '12px 16px',
-          borderRadius: 'var(--radius-md)',
-          overflow: 'hidden',
-          boxShadow: 'var(--shadow-sm)',
-          animation: 'mr-fade-in 0.3s var(--ease-out)',
-        }}
-        key={activeTier}
-      >
-        {entries.map((entry) => {
-          const isTopThree = entry.rank <= 3;
-          const tierColor = TIER_COLORS[activeTier];
-          return (
-            <div
-              key={entry.rank}
-              className="mr-leaderboard-item"
-              style={{
-                animation: `mr-fade-in 0.3s var(--ease-out) ${entry.rank * 0.04}s both`,
-                ...(isTopThree ? { background: 'var(--gray-50)' } : {}),
-              }}
-            >
-              <div
-                className="mr-leaderboard-rank"
-                style={{
-                  background: tierColor.bg,
-                  color: tierColor.text,
-                  ...(isTopThree
-                    ? { width: 38, height: 38, fontSize: 16, boxShadow: 'var(--shadow-sm)' }
-                    : {}),
-                }}
-              >
-                {entry.rank}
-              </div>
-              <div className="mr-leaderboard-name" style={isTopThree ? { fontWeight: 700, fontSize: 16 } : {}}>
-                {entry.name}
-              </div>
-              <div className="mr-leaderboard-cases">
-                <span style={{ fontWeight: 800 }}>{entry.cases}</span>
-                <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--gray-500)', marginLeft: 4 }}>Cases</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      </section>
     </div>
   );
 }

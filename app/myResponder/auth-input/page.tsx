@@ -50,7 +50,7 @@ export default function AuthInputPage() {
     <main className="mr-page-onboarding mr-animate-fade-in" style={{ background: 'var(--gray-50)' }}>
       <header className="mr-header">
         <button
-          onClick={() => router.push('/myResponder/terms')}
+          onClick={() => router.push('/myResponder/intro')}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--gray-700)' }}
           aria-label="Go back"
           type="button"

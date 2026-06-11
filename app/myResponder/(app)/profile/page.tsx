@@ -1,257 +1,113 @@
 'use client';
 
-import { useAppState } from '@/app/myResponder/context/AppContext';
-import { useRouter } from 'next/navigation';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import { Award, Check, Edit3, ShieldCheck, X } from 'lucide-react';
+import { useApp } from '@/app/myResponder/context/AppContext';
 
-const AVATARS = ['👨🚒', '👩🚒', '👨⚕️', '👩⚕️', '🧑', '👩', '🐼', '🦊', '🐘', '🦁', '🐕', '🐱'];
+const avatars = ['SC', 'DF', 'CPR', 'AED', 'FR', 'MED', 'FIR', 'RES', 'HDB', '911', '995', 'VOL', 'SG', 'LIF', 'EMS'];
 
 export default function ProfilePage() {
-  const { state, updateUser } = useAppState();
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'cfr' | 'account'>('cfr');
+  const { state, updateUser } = useApp();
+  const [tab, setTab] = useState<'cfr' | 'account'>('cfr');
+  const [avatarOpen, setAvatarOpen] = useState(false);
   const [displayName, setDisplayName] = useState(state.user.displayName);
   const [email, setEmail] = useState(state.user.email);
-  const [showToast, setShowToast] = useState(false);
-
-  const avatarEmoji = AVATARS[state.user.avatar] || AVATARS[0];
-
-  // Generate a stable CFR ID
-  const cfrId = useMemo(() => {
-    const digits = Math.floor(100000 + Math.random() * 900000);
-    return `CFR-2026-${digits}`;
-  }, []);
-
-  const maskNric = (nric: string) => {
-    if (!nric || nric.length < 4) return '****';
-    return '●●●●' + nric.slice(-4);
-  };
-
-  const handleSave = () => {
-    updateUser({ displayName, email });
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2500);
-  };
 
   return (
-    <div className="mr-page mr-animate-fade-in" style={{ paddingBottom: 100 }}>
-      {/* Header */}
-      <div className="mr-header">
-        <button
-          onClick={() => router.back()}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            color: 'var(--scdf-blue)',
-            fontFamily: 'inherit',
-            fontWeight: 600,
-            fontSize: 15,
-            padding: '4px 0',
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-          Back
-        </button>
-        <span className="mr-header-title">Profile</span>
-        <div style={{ width: 60 }} />
+    <div className="mr-page mr-animate-fade-in bg-[#EEF2F6]">
+      <header className="mr-header">
+        <h1 className="mr-header-title">Profile</h1>
+      </header>
+      <div className="mx-4 mt-4 grid grid-cols-2 rounded-2xl bg-white p-1 shadow-xs">
+        <button type="button" onClick={() => setTab('cfr')} className={`rounded-xl py-3 text-[14px] font-black ${tab === 'cfr' ? 'bg-[#003B73] text-white' : 'text-slate-500'}`}>My CFR ID!</button>
+        <button type="button" onClick={() => setTab('account')} className={`rounded-xl py-3 text-[14px] font-black ${tab === 'account' ? 'bg-[#003B73] text-white' : 'text-slate-500'}`}>My Account</button>
       </div>
 
-      {/* Tabs */}
-      <div className="mr-tabs">
-        <button
-          className={`mr-tab ${activeTab === 'cfr' ? 'active' : ''}`}
-          onClick={() => setActiveTab('cfr')}
-        >
-          My CFR ID
-        </button>
-        <button
-          className={`mr-tab ${activeTab === 'account' ? 'active' : ''}`}
-          onClick={() => setActiveTab('account')}
-        >
-          My Account
-        </button>
-      </div>
-
-      {/* TAB 1: CFR ID */}
-      {activeTab === 'cfr' && (
-        <div style={{ animation: 'mr-fade-in 0.3s var(--ease-out)' }}>
-          <div className="mr-cfr-card">
-            {/* Badge text */}
-            <div style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', opacity: 0.7, marginBottom: 20 }}>
-              Singapore Civil Defence Force
+      {tab === 'cfr' ? (
+        <section className="mr-page-content">
+          <div className="overflow-hidden rounded-[28px] bg-[#003B73] p-5 text-white shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/55">SCDF</p>
+                <h2 className="mt-1 text-[18px] font-black">Community First Responder</h2>
+              </div>
+              <ShieldCheck color="#FFD700" size={35} />
             </div>
-
-            {/* Avatar */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-              <div
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  background: 'rgba(255,255,255,0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 48,
-                  border: '3px solid rgba(255,255,255,0.3)',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-                }}
-              >
-                {avatarEmoji}
+            <div className="my-6 flex justify-center">
+              <div className="grid h-24 w-24 place-items-center rounded-full border-4 border-white/35 bg-white/15 text-[26px] font-black">
+                {avatars[state.user.avatar] ?? avatars[0]}
               </div>
             </div>
-
-            {/* Name */}
-            <div style={{ textAlign: 'center', fontSize: 18, fontWeight: 700, letterSpacing: 0.3, marginBottom: 4 }}>
-              {state.user.name}
-            </div>
-            <div style={{ textAlign: 'center', fontSize: 13, opacity: 0.8, marginBottom: 16 }}>
-              Community First Responder
-            </div>
-
-            {/* Divider */}
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.2)', margin: '0 -8px 16px' }} />
-
-            {/* CFR ID */}
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, opacity: 0.6, letterSpacing: 1, marginBottom: 4 }}>CFR ID</div>
-              <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 2, fontFamily: 'monospace' }}>{cfrId}</div>
-            </div>
-
-            {/* Security Banner */}
-            <div
-              style={{
-                marginTop: 20,
-                padding: '10px 14px',
-                background: 'rgba(255,255,255,0.1)',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: 11,
-                lineHeight: 1.4,
-                textAlign: 'center',
-                opacity: 0.8,
-              }}
-            >
+            <p className="text-center text-[18px] font-black tracking-wide">{state.user.name || 'TAN XIU LI, FELICIA'}</p>
+            <p className="mt-1 text-center text-[12px] font-semibold text-white/65">CFR-2026-268969</p>
+            <div className="mt-6 rounded-2xl bg-white/10 p-4 text-center text-[12px] font-semibold leading-relaxed text-white/80">
               Please cooperate with our volunteer Community First Responder who is here to help.
             </div>
-
-            {/* SCDF Logo Text */}
-            <div style={{ textAlign: 'center', marginTop: 16, fontSize: 10, fontWeight: 700, letterSpacing: 3, opacity: 0.5, textTransform: 'uppercase' }}>
-              SCDF
-            </div>
           </div>
-        </div>
-      )}
-
-      {/* TAB 2: My Account */}
-      {activeTab === 'account' && (
-        <div className="mr-page-content" style={{ animation: 'mr-fade-in 0.3s var(--ease-out)' }}>
-          {/* Avatar Section */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 24 }}>
-            <div
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: '50%',
-                background: 'var(--scdf-light-blue)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 48,
-                border: '3px solid var(--scdf-blue)',
-                marginBottom: 12,
-                boxShadow: '0 4px 14px rgba(0,59,115,0.15)',
-              }}
-            >
-              {avatarEmoji}
+        </section>
+      ) : (
+        <section className="mr-page-content">
+          <div className="rounded-2xl bg-white p-4 shadow-xs">
+            <div className="mb-5 flex items-center gap-4">
+              <button type="button" onClick={() => setAvatarOpen(true)} className="relative grid h-20 w-20 place-items-center rounded-full border-4 border-[#003B73] bg-[#E8F0FE] text-[22px] font-black text-[#003B73]">
+                {avatars[state.user.avatar] ?? avatars[0]}
+                <span className="absolute -bottom-1 -right-1 grid h-8 w-8 place-items-center rounded-full bg-[#003B73] text-white"><Edit3 size={15} /></span>
+              </button>
+              <div>
+                <p className="text-[17px] font-black text-slate-950">{state.user.name}</p>
+                <p className="text-[12px] font-semibold text-slate-400">Verified account</p>
+              </div>
             </div>
-            <button
-              className="mr-btn mr-btn-secondary mr-btn-sm"
-              onClick={() => router.push('/myResponder/setup-step2')}
-              style={{ width: 'auto', padding: '8px 20px' }}
-            >
-              Choose avatar
+            <div className="space-y-4">
+              <label className="block">
+                <span className="mr-input-label">Display Name</span>
+                <input className="mr-input" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+              </label>
+              <label className="block">
+                <span className="mr-input-label">Email</span>
+                <input className="mr-input" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="your@email.com" />
+              </label>
+              {[
+                ['Name', state.user.name],
+                ['NRIC', state.user.nric || 'S1234567A'],
+                ['Mobile', state.user.phone || '+6581234567'],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <p className="mr-input-label">{label}</p>
+                  <p className="rounded-lg bg-slate-50 px-4 py-3 text-[15px] font-bold text-slate-600">{value}</p>
+                </div>
+              ))}
+            </div>
+            <button className="mr-btn mr-btn-primary mt-5" type="button" onClick={() => updateUser({ displayName, email })}>
+              Save Changes
             </button>
           </div>
-
-          {/* Form Fields */}
-          <div className="mr-input-group">
-            <label className="mr-input-label">Display Name</label>
-            <input
-              className="mr-input"
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-            />
-          </div>
-
-          <div className="mr-input-group">
-            <label className="mr-input-label">Email</label>
-            <input
-              className="mr-input"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
-            />
-          </div>
-
-          <div className="mr-input-group">
-            <label className="mr-input-label">Name</label>
-            <input className="mr-input" type="text" value={state.user.name} readOnly />
-          </div>
-
-          <div className="mr-input-group">
-            <label className="mr-input-label">NRIC</label>
-            <input className="mr-input" type="text" value={maskNric(state.user.nric)} readOnly />
-          </div>
-
-          <div className="mr-input-group">
-            <label className="mr-input-label">Mobile</label>
-            <input className="mr-input" type="text" value={state.user.phone} readOnly />
-          </div>
-
-          {/* Save Button */}
-          <button className="mr-btn mr-btn-primary mr-mt-16" onClick={handleSave}>
-            Save Changes
-          </button>
-        </div>
+        </section>
       )}
 
-      {/* Toast */}
-      {showToast && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 16,
-            left: 16,
-            right: 16,
-            background: 'var(--scdf-green)',
-            color: 'white',
-            padding: '12px 24px',
-            borderRadius: 'var(--radius-full)',
-            fontSize: 14,
-            fontWeight: 600,
-            boxShadow: 'var(--shadow-lg)',
-            zIndex: 1100,
-            animation: 'mr-scale-in 0.3s var(--ease-spring)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-          }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 6L9 17l-5-5" />
-          </svg>
-          Profile updated successfully!
+      {avatarOpen ? (
+        <div className="mr-modal-backdrop">
+          <div className="w-full max-w-[340px] rounded-3xl bg-white p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-[18px] font-black text-slate-950">Choose Avatar</h2>
+              <button type="button" onClick={() => setAvatarOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-slate-100"><X size={16} /></button>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              {avatars.map((avatar, index) => (
+                <button
+                  type="button"
+                  key={avatar}
+                  onClick={() => updateUser({ avatar: index })}
+                  className={`relative aspect-square rounded-full border-4 bg-[#E8F0FE] text-[13px] font-black text-[#003B73] ${state.user.avatar === index ? 'border-[#003B73]' : 'border-transparent'}`}
+                >
+                  {avatar}
+                  {state.user.avatar === index ? <Check className="absolute -right-1 -top-1 rounded-full bg-[#003B73] p-0.5 text-white" size={20} /> : null}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

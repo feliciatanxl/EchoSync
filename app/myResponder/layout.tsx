@@ -12,7 +12,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#DFE5EC',
+  themeColor: '#070B19',
 };
 
 export default function MyResponderLayout({
@@ -21,8 +21,8 @@ export default function MyResponderLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <section className="fixed inset-0 z-[9999] min-h-screen w-screen overflow-hidden bg-[#DFE5EC] md:flex md:items-center md:justify-center">
-      <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-[#EEF2F6] md:h-[852px] md:max-w-[393px] md:rounded-[30px] md:shadow-2xl">
+    <section className="fixed inset-0 z-[9999] flex h-screen w-screen items-center justify-center overflow-hidden bg-[#070B19] p-0 md:p-4">
+      <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-[#F4F6F9] md:h-[844px] md:max-w-[390px] md:rounded-[44px] md:border-[12px] md:border-slate-900 md:shadow-2xl">
         <div className="mr-app flex h-full min-h-0 w-full flex-col overflow-hidden">
           <AppProvider>{children}</AppProvider>
         </div>

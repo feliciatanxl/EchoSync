@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { useState } from 'react';
+import { ArrowLeft, Flame, Heart, MapPin, X, Zap } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { mockIncidents, type Incident } from '@/app/myResponder/data/mockIncidents';
 
 const MapView = dynamic(() => import('./MapView'), { ssr: false });
@@ -12,128 +13,98 @@ export default function MapPage() {
   const [selected, setSelected] = useState<Incident | null>(null);
 
   return (
-    <div className="mr-animate-fade-in" style={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* Header */}
-      <header className="mr-header" style={{ flexShrink: 0 }}>
-        <div className="mr-flex mr-items-center mr-gap-8">
-          <button
-            onClick={() => router.back()}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gray-700)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
-          </button>
-          <span className="mr-header-title">Cases Today</span>
-        </div>
-        <div className="mr-flex mr-items-center mr-gap-8">
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-            fontSize: 12,
-            fontWeight: 600,
-            color: '#1565C0',
-            background: '#E8F0FE',
-            padding: '4px 10px',
-            borderRadius: 'var(--radius-full)',
-          }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#1565C0' }} />
-            Cardiac
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-slate-100">
+      <header className="absolute left-3 right-3 top-3 z-[500] flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="grid h-10 w-10 place-items-center rounded-full bg-white/95 text-slate-700 shadow-md"
+          aria-label="Go back"
+        >
+          <ArrowLeft size={21} />
+        </button>
+        <div className="flex items-center gap-2 rounded-full bg-white/95 px-3 py-2 shadow-md">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8F0FE] px-2 py-1 text-[11px] font-black text-[#1565C0]">
+            <Heart size={12} fill="currentColor" /> Cardiac
           </span>
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-            fontSize: 12,
-            fontWeight: 600,
-            color: '#E53935',
-            background: '#FFEBEE',
-            padding: '4px 10px',
-            borderRadius: 'var(--radius-full)',
-          }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#E53935' }} />
-            Fire
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#FFEBEE] px-2 py-1 text-[11px] font-black text-[#E53935]">
+            <Flame size={12} fill="currentColor" /> Fire
           </span>
         </div>
       </header>
 
-      {/* Map */}
-      <div className="mr-map-container" style={{ flex: 1 }}>
-        <MapView
-          incidents={mockIncidents}
-          onSelectIncident={setSelected}
-        />
+      <div className="min-h-0 flex-1">
+        <MapView incidents={mockIncidents} onSelectIncident={setSelected} />
       </div>
 
-      {/* Drawer */}
-      {selected && (
+      {selected ? (
         <>
-          <div className="mr-drawer-backdrop" onClick={() => setSelected(null)} />
-          <div className="mr-drawer">
-            <div className="mr-drawer-handle" />
-            <button className="mr-drawer-close" onClick={() => setSelected(null)}>✕</button>
+          <button
+            type="button"
+            aria-label="Close incident details"
+            className="absolute inset-0 z-[600] bg-black/20"
+            onClick={() => setSelected(null)}
+          />
+          <section className="absolute inset-x-0 bottom-0 z-[700] rounded-t-[28px] bg-white p-5 shadow-[0_-18px_42px_rgba(15,23,42,0.22)]">
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200" />
+            {selected.isEchoSyncAlert ? (
+              <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 shadow-[0_0_26px_rgba(251,191,36,0.45)]">
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-[#003B73] px-3 py-1.5 text-[12px] font-black text-white">
+                  <Zap size={14} fill="#FFD700" color="#FFD700" />
+                  EchoSync AI Verified
+                </div>
+              </div>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
+              className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-500"
+              aria-label="Dismiss details"
+            >
+              <X size={18} />
+            </button>
 
-            <div style={{ marginTop: 8 }}>
-              {/* Type badge */}
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '5px 12px',
-                borderRadius: 'var(--radius-full)',
-                fontSize: 13,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                background: selected.type === 'cardiac' ? '#E8F0FE' : '#FFEBEE',
-                color: selected.type === 'cardiac' ? '#1565C0' : '#E53935',
-                marginBottom: 12,
-              }}>
-                {selected.type === 'cardiac' ? '💙 Cardiac Arrest' : '🔥 Fire'}
-              </span>
+            <div className="flex items-start gap-3 pr-9">
+              <div
+                className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-white ${
+                  selected.type === 'cardiac' ? 'bg-[#1565C0]' : 'bg-[#E53935]'
+                }`}
+              >
+                {selected.type === 'cardiac' ? <Heart size={24} fill="currentColor" /> : <Flame size={24} fill="currentColor" />}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                  {selected.type === 'cardiac' ? 'Cardiac arrest alert' : 'Fire alert'}
+                </p>
+                <h1 className="mt-1 text-[18px] font-black leading-tight text-slate-950">{selected.address}</h1>
+                {selected.preArrivalIntel ? (
+                  <p className="mt-2 rounded-xl border border-amber-100 bg-amber-50 p-3 text-[12px] font-semibold leading-relaxed text-amber-900">
+                    {selected.preArrivalIntel}
+                  </p>
+                ) : null}
+              </div>
+            </div>
 
-              <p className="mr-title-md" style={{ marginTop: 8 }}>{selected.address}</p>
-              <p className="mr-body-sm" style={{ color: 'var(--gray-500)', marginTop: 4 }}>
-                Postal Code: {selected.postalCode}
-              </p>
-              <p className="mr-body-sm" style={{ color: 'var(--gray-500)', marginTop: 2 }}>
-                {selected.timestamp}
-              </p>
-
-              {/* Status */}
-              <div style={{
-                marginTop: 16,
-                padding: '12px 16px',
-                borderRadius: 'var(--radius-sm)',
-                background: selected.status === 'active' ? '#FFF3F3' : 'var(--gray-50)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-              }}>
-                {selected.status === 'active' && (
-                  <span style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: '50%',
-                    background: '#E53935',
-                    animation: 'mr-pulse 1.5s infinite',
-                    flexShrink: 0,
-                  }} />
-                )}
-                <p style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: selected.status === 'active' ? '#E53935' : 'var(--gray-500)',
-                }}>
-                  {selected.status === 'active'
-                    ? 'This emergency is happening now.'
-                    : 'This emergency is resolved.'}
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl bg-slate-50 p-3">
+                <p className="text-[11px] font-bold uppercase text-slate-400">Postal code</p>
+                <p className="mt-1 text-[15px] font-black text-slate-900">{selected.postalCode}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-3">
+                <p className="text-[11px] font-bold uppercase text-slate-400">Status</p>
+                <p className={`mt-1 text-[15px] font-black ${selected.status === 'active' ? 'text-[#E53935]' : 'text-slate-500'}`}>
+                  {selected.status === 'active' ? 'Active now' : 'Resolved'}
                 </p>
               </div>
             </div>
-          </div>
+
+            <div className="mt-4 flex items-center gap-2 rounded-2xl bg-slate-50 p-3 text-[13px] font-semibold text-slate-600">
+              <MapPin size={17} className="shrink-0 text-[#003B73]" />
+              <span>{selected.timestamp}</span>
+            </div>
+          </section>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

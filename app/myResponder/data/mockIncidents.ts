@@ -8,6 +8,8 @@ export interface Incident {
   timestamp: string;
   status: 'active' | 'resolved';
   description?: string;
+  isEchoSyncAlert?: boolean;
+  preArrivalIntel?: string;
 }
 
 export const mockIncidents: Incident[] = [
@@ -109,6 +111,8 @@ export const mockIncidents: Incident[] = [
     timestamp: '10 Jun 2026, 17:45',
     status: 'active',
     description: 'This emergency is happening now.',
+    isEchoSyncAlert: true,
+    preArrivalIntel: 'Ambient Acoustic sensors detected high-impact fall followed by sustained smoke alarm signature and rising thermal anomaly near the service corridor.',
   },
   {
     id: 'F003',
