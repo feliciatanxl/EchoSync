@@ -31,6 +31,12 @@ interface Incident {
   lastUpdated: string;
   lat: number;
   lng: number;
+  nodeId?: string;
+  block?: string;
+  unit?: string;
+  postalCode?: string;
+  locationSource?: string;
+  locationAccuracy?: string;
   description: string;
   evidence: string[];
   opsLog: OpsLogEntry[];
@@ -106,6 +112,13 @@ function popupContent(inc: Incident): string {
   };
   const iconSvg = svgs[inc.type] || svgs['Unresponsive Resident'];
   const closeIconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+  const locationMetaHtml = inc.locationSource || inc.locationAccuracy
+    ? `
+      <div style="margin-top:6px;font-size:10px;line-height:1.35;color:#64748b;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        ${inc.locationSource || ''}${inc.locationSource && inc.locationAccuracy ? ' · ' : ''}${inc.locationAccuracy || ''}
+      </div>
+    `
+    : '';
   
   const evidenceHtml = inc.evidence && inc.evidence.length > 0 
     ? `
@@ -135,6 +148,7 @@ function popupContent(inc: Incident): string {
             <svg style="flex-shrink:0;margin-top:2px;color:#94a3b8;" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
             <span style="min-width:0;overflow-wrap:anywhere;">${inc.location}</span>
           </div>
+          ${locationMetaHtml}
         </div>
         <div style="display:flex;flex-shrink:0;align-items:center;gap:8px;">
           <span style="flex-shrink:0;font-size:10px;font-weight:700;text-transform:uppercase;padding:4px 12px;border-radius:99px;letter-spacing:0.05em;white-space:nowrap;${sevBadge[inc.severity]}">${inc.severity}</span>

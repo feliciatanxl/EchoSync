@@ -10,6 +10,8 @@ import {
   AlertTriangle, Flame, HeartPulse, Wind, Activity,
   Megaphone, X, Plus
 } from 'lucide-react';
+import type { EchoSyncScenarioId, EchoSyncSimulationResult } from '@/lib/echosync-simulator';
+import { resolveIncidentLocation, toIncidentLocationFields } from '@/lib/verified-node-locations';
 
 // Dynamic import of Leaflet map (SSR-safe)
 const IncidentMap = dynamic(() => import('./IncidentMap'), {
@@ -47,6 +49,14 @@ type GlobalOpsLogEntry = OpsLogEntry & {
 
 type BroadcastPriority = 'Critical' | 'High' | 'Normal';
 
+type SimulationToastState = {
+  caseId: string;
+  caseType: string;
+  confidence: number;
+  riskLevel: Severity;
+  recommendedAction: string;
+};
+
 const broadcastRecipients = [
   'Dispatchers',
   'SCDF Units',
@@ -54,6 +64,12 @@ const broadcastRecipients = [
   'Caregivers',
   'Operations Supervisors',
 ] as const;
+
+const simulationControls: { id: EchoSyncScenarioId; label: string }[] = [
+  { id: 'critical-no-response', label: 'Critical No Response' },
+  { id: 'false-alarm-filtered', label: 'False Alarm Filtered' },
+  { id: 'needs-dispatcher-review', label: 'Needs Review' },
+];
 
 interface Incident {
   id: string;
@@ -67,9 +83,32 @@ interface Incident {
   lastUpdated: string;
   lat: number;
   lng: number;
+  nodeId?: string;
+  block?: string;
+  unit?: string;
+  postalCode?: string;
+  locationSource?: string;
+  locationAccuracy?: string;
   description: string;
   evidence: string[];
   opsLog: OpsLogEntry[];
+  simulation?: {
+    confidence: number;
+    immobileTime: string;
+    detectionToAlert: string;
+    riskLevel: Severity;
+    voiceResult: string;
+    recommendedAction: string;
+    reasoning: string[];
+    aiReasoningLine?: string;
+    detectorEvidence: {
+      thermal: string;
+      acoustic: string;
+      loadMat: string;
+      doorFridge: string;
+      voice: string;
+    };
+  };
 }
 
 // ─────────────────────────────────────────────────────────
@@ -78,23 +117,101 @@ interface Incident {
 
 const initialIncidents: Incident[] = [
   {
+    id: 'INC-2026-090',
+    type: 'False Alarm Filtered',
+    ...toIncidentLocationFields(resolveIncidentLocation('INC-2026-090')!),
+    elapsedTime: '18 sec',
+    severity: 'Low',
+    flagged: false,
+    status: 'Resolved',
+    assignedUnit: 'Monitor Only',
+    lastUpdated: '21:05',
+    description: 'Impact detected. Resident confirmed they are okay.',
+    evidence: ['Impact only', 'Resident okay', 'Movement normal', 'Routine normal'],
+    simulation: {
+      confidence: 38,
+      immobileTime: '18 sec',
+      detectionToAlert: '9 sec',
+      riskLevel: 'Low',
+      voiceResult: 'okay',
+      recommendedAction: 'Monitor only. No SCDF escalation.',
+      reasoning: ['Impact only + normal movement + resident confirmed okay.'],
+      aiReasoningLine: 'Impact only + normal movement + resident confirmed okay.',
+      detectorEvidence: {
+        thermal: 'normal movement detected',
+        acoustic: 'short impact only',
+        loadMat: 'normal',
+        doorFridge: 'routine activity normal',
+        voice: 'resident said okay',
+      },
+    },
+    opsLog: [],
+  },
+  {
+    id: 'INC-2026-091',
+    type: 'Needs Dispatcher Review',
+    ...toIncidentLocationFields(resolveIncidentLocation('INC-2026-091')!),
+    elapsedTime: '4 min 6 sec',
+    severity: 'High',
+    flagged: false,
+    status: 'Active',
+    assignedUnit: 'Dispatcher Review',
+    lastUpdated: '21:05',
+    description: 'Weak signals detected. Dispatcher review required.',
+    evidence: ['Low presence', 'No movement 4 min 6 sec', 'Bed exit no return', 'Routine deviation', 'Voice unclear'],
+    simulation: {
+      confidence: 76,
+      immobileTime: '4 min 6 sec',
+      detectionToAlert: '14 sec',
+      riskLevel: 'High',
+      voiceResult: 'unclear',
+      recommendedAction: 'Dispatcher review before CFR escalation.',
+      reasoning: ['Low presence + no movement for 4 min 6 sec + bed exit no return + unclear voice response.'],
+      aiReasoningLine: 'Low presence + no movement for 4 min 6 sec + bed exit no return + unclear voice response.',
+      detectorEvidence: {
+        thermal: 'low stationary presence',
+        acoustic: 'no major impact',
+        loadMat: 'bed exit, no return',
+        doorFridge: 'routine deviation',
+        voice: 'unclear after 2 attempts',
+      },
+    },
+    opsLog: [],
+  },
+  {
     id: 'INC-2026-089',
-    type: 'Medical',
-    location: 'Blk 124 Tampines Ave 4, #04-12',
+    type: 'Possible Fall / Medical Distress',
     elapsedTime: '00:08:22',
     severity: 'Critical',
     flagged: true,
     status: 'Dispatched',
     assignedUnit: 'AMB-14',
     lastUpdated: '19:50',
-    lat: 1.3521,
-    lng: 103.9448,
-    description: 'Suspected heart attack. Elderly resident collapsed in kitchen. AI audio check-in detected distress sounds and no verbal response.',
+    ...toIncidentLocationFields(resolveIncidentLocation('INC-2026-089')!),
+    description: 'Possible fall detected. No response after voice check-in.',
     evidence: [
-      'Impact sound detected (72dB)',
-      'No movement for 8 min',
-      'Voice check-in failed'
+      'Thermal anomaly',
+      'No movement 8 min 22 sec',
+      'Impact detected',
+      'Voice check-in failed',
     ],
+    simulation: {
+      confidence: 91,
+      immobileTime: '8 min 22 sec',
+      detectionToAlert: '11 sec',
+      riskLevel: 'Critical',
+      voiceResult: 'no-response',
+      recommendedAction: 'Dispatcher review, notify CFR, prepare SCDF escalation.',
+      reasoning: ['Thermal anomaly + no movement for 8 min 22 sec + impact detected + voice check-in failed.'],
+      aiReasoningLine: 'Thermal anomaly + no movement for 8 min 22 sec + impact detected + voice check-in failed.',
+      detectorEvidence: {
+        thermal: 'floor-level presence detected',
+        acoustic: '72dB impact detected',
+        loadMat: 'no return detected',
+        doorFridge: 'routine activity missing',
+        voice: 'failed after 2 attempts',
+      },
+    },
     opsLog: [
       { time: '19:42', title: '995 Call Received', description: 'Caller reports elderly male collapsed in kitchen. No pulse detected by neighbour.', source: '995 call record' },
       { time: '19:43', title: 'Dispatcher Assigned', description: 'Dispatcher Tan W.L. handling case. Priority 1 classification confirmed.', source: 'Command Centre' },
@@ -107,15 +224,13 @@ const initialIncidents: Incident[] = [
   {
     id: 'INC-2026-088',
     type: 'Fire',
-    location: 'Blk 302 Ang Mo Kio Ave 3, #11-08',
     elapsedTime: '00:14:05',
     severity: 'High',
     flagged: false,
     status: 'On Scene',
     assignedUnit: 'ENG-07',
     lastUpdated: '19:48',
-    lat: 1.3691,
-    lng: 103.8454,
+    ...toIncidentLocationFields(resolveIncidentLocation('INC-2026-088')!),
     description: 'Kitchen fire reported. Smoke detected near service yard. Neighbours on floors 10-12 have been alerted for precautionary evacuation.',
     evidence: [
       'Smoke pattern detected',
@@ -134,15 +249,13 @@ const initialIncidents: Incident[] = [
   {
     id: 'INC-2026-087',
     type: 'Fall Detection',
-    location: 'Blk 518 Jurong West St 52, #03-44',
     elapsedTime: '00:22:10',
     severity: 'Medium',
     flagged: false,
     status: 'En Route',
     assignedUnit: 'AMB-22',
     lastUpdated: '19:41',
-    lat: 1.3404,
-    lng: 103.7058,
+    ...toIncidentLocationFields(resolveIncidentLocation('INC-2026-087')!),
     description: 'Fall impact detected in living room. Resident has not responded to voice check-in. EchoSync edge sensors confirmed prolonged immobility.',
     evidence: [
       'Acoustic impact (78dB)',
@@ -161,15 +274,13 @@ const initialIncidents: Incident[] = [
   {
     id: 'INC-2026-086',
     type: 'Unresponsive Resident',
-    location: 'Blk 411 Bedok North Ave 2, #08-15',
     elapsedTime: '00:35:00',
     severity: 'Medium',
     flagged: true,
     status: 'Active',
     assignedUnit: 'Unassigned',
     lastUpdated: '19:30',
-    lat: 1.3236,
-    lng: 103.9273,
+    ...toIncidentLocationFields(resolveIncidentLocation('INC-2026-086')!),
     description: 'No movement detected after repeated audio check-ins. Caregiver unable to reach resident by phone. Last known activity was 4 hours ago.',
     evidence: [
       '0 movement for 4 hours',
@@ -188,15 +299,13 @@ const initialIncidents: Incident[] = [
   {
     id: 'INC-2026-085',
     type: 'Gas Leak',
-    location: 'Blk 789 Woodlands Crescent, #06-22',
     elapsedTime: '00:05:30',
     severity: 'High',
     flagged: false,
     status: 'Dispatched',
     assignedUnit: 'HAZMAT-02',
     lastUpdated: '19:49',
-    lat: 1.4360,
-    lng: 103.7860,
+    ...toIncidentLocationFields(resolveIncidentLocation('INC-2026-085')!),
     description: 'Possible gas leak reported. Strong smell detected by multiple residents on floors 5-7. Residents advised to evacuate while SCDF unit is dispatched.',
     evidence: [
       'Multiple public reports',
@@ -244,6 +353,93 @@ function typeIcon(type: string) {
     case 'Unresponsive Resident': return <AlertTriangle className="w-4 h-4" />;
     case 'Gas Leak': return <Wind className="w-4 h-4" />;
     default: return <AlertTriangle className="w-4 h-4" />;
+  }
+}
+
+function riskToSeverity(riskLevel: EchoSyncSimulationResult['riskLevel']): Severity {
+  return riskLevel;
+}
+
+function statusFromRisk(riskLevel: Severity): IncidentStatus {
+  if (riskLevel === 'Low') return 'Resolved';
+  if (riskLevel === 'Medium') return 'Active';
+  if (riskLevel === 'High') return 'Active';
+  return 'Dispatched';
+}
+
+function assignedUnitFromRisk(riskLevel: Severity) {
+  if (riskLevel === 'Critical') return 'CFR + SCDF Pending';
+  if (riskLevel === 'High') return 'Dispatcher Review';
+  return 'Unassigned';
+}
+
+function currentDashboardTime() {
+  return new Date().toLocaleTimeString('en-US', {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getOperationalSummary(scenario: EchoSyncScenarioId) {
+  switch (scenario) {
+    case 'critical-no-response':
+      return 'Possible fall detected. No response after voice check-in.';
+    case 'false-alarm-filtered':
+      return 'Impact detected. Resident confirmed they are okay.';
+    case 'needs-dispatcher-review':
+      return 'Weak signals detected. Dispatcher review required.';
+  }
+}
+
+function getAiReasoningLine(scenario: EchoSyncScenarioId, immobileTime: string) {
+  switch (scenario) {
+    case 'critical-no-response':
+      return `Thermal anomaly + no movement for ${immobileTime} + impact detected + voice check-in failed.`;
+    case 'false-alarm-filtered':
+      return 'Impact only + normal movement + resident confirmed okay.';
+    case 'needs-dispatcher-review':
+      return `Low presence + no movement for ${immobileTime} + bed exit no return + unclear voice response.`;
+  }
+}
+
+function getEvidenceChips(scenario: EchoSyncScenarioId, immobileTime: string) {
+  switch (scenario) {
+    case 'critical-no-response':
+      return ['Thermal anomaly', `No movement ${immobileTime}`, 'Impact detected', 'Load mat no return', 'Voice check-in failed'];
+    case 'false-alarm-filtered':
+      return ['Impact only', 'Resident okay', 'Movement normal', 'Routine normal'];
+    case 'needs-dispatcher-review':
+      return ['Low presence', `No movement ${immobileTime}`, 'Bed exit no return', 'Routine deviation', 'Voice unclear'];
+  }
+}
+
+function getDetectorFindings(alert: EchoSyncSimulationResult, scenario: EchoSyncScenarioId) {
+  switch (scenario) {
+    case 'critical-no-response':
+      return {
+        thermal: 'floor-level presence detected',
+        acoustic: `${alert.detectors.acoustic.impactDb}dB impact detected`,
+        loadMat: 'no return detected',
+        doorFridge: 'routine activity missing',
+        voice: `failed after ${alert.voiceCheckIn.attempts} attempts`,
+      };
+    case 'false-alarm-filtered':
+      return {
+        thermal: 'normal movement detected',
+        acoustic: 'short impact only',
+        loadMat: 'normal',
+        doorFridge: 'routine activity normal',
+        voice: 'resident said okay',
+      };
+    case 'needs-dispatcher-review':
+      return {
+        thermal: 'low stationary presence',
+        acoustic: 'no major impact',
+        loadMat: 'bed exit, no return',
+        doorFridge: 'routine deviation',
+        voice: `unclear after ${alert.voiceCheckIn.attempts} attempts`,
+      };
   }
 }
 
@@ -633,6 +829,47 @@ function BroadcastToast({
   return createPortal(content, document.body);
 }
 
+function SimulationAlertToast({
+  toast,
+  onDismiss,
+}: {
+  toast: SimulationToastState;
+  onDismiss: () => void;
+}) {
+  const content = (
+    <div className="fixed bottom-4 right-4 z-[100] w-[min(420px,calc(100vw-32px))] rounded-xl border border-red-100 bg-white shadow-2xl overflow-hidden">
+      <div className="h-0.5 bg-red-500" />
+      <div className="p-3.5">
+        <div className="flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[12px] font-bold text-slate-800 leading-snug">
+              EchoSync {toast.riskLevel} alert generated.
+            </p>
+            <p className="mt-1 text-[11px] text-slate-600 leading-relaxed">
+              {toast.caseId} · {toast.caseType} · {toast.confidence}% confidence
+            </p>
+            <p className="mt-1 text-[10px] font-semibold text-slate-500 leading-snug">
+              {toast.recommendedAction}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onDismiss}
+            aria-label="Dismiss simulation alert"
+            className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(content, document.body);
+}
+
 function OpsLogPanel({ opsLog, onOpenFullLog }: { opsLog: GlobalOpsLogEntry[]; onOpenFullLog: () => void }) {
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -680,7 +917,15 @@ function OpsLogPanel({ opsLog, onOpenFullLog }: { opsLog: GlobalOpsLogEntry[]; o
 // Incident Detail Strip (compact, attached below map)
 // ─────────────────────────────────────────────────────────
 
-function IncidentDetailStrip({ incident }: { incident: Incident | null }) {
+function IncidentDetailStrip({
+  incident,
+  onRunSimulation,
+  simulationLoading,
+}: {
+  incident: Incident | null;
+  onRunSimulation: (scenario: EchoSyncScenarioId) => void;
+  simulationLoading: EchoSyncScenarioId | null;
+}) {
   if (!incident) {
     return (
       <div className="bg-white border-t border-slate-200 px-4 py-4 flex items-center justify-center text-slate-500 text-[12px] h-[68px]">
@@ -747,14 +992,61 @@ function IncidentDetailStrip({ incident }: { incident: Incident | null }) {
       {/* Bottom Row: Evidence Summary */}
       {incident.evidence && incident.evidence.length > 0 && (
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs bg-amber-50/50 p-2.5 rounded-md border border-amber-100 shadow-sm">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 flex-shrink-0 flex items-center gap-1.5">
-             <AlertTriangle className="w-3.5 h-3.5" /> AI Alert Reasoning:
-          </span>
-          <span className="text-[11.5px] font-semibold text-slate-800 leading-snug">
-            {incident.evidence.join(' + ')}
-          </span>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 flex-shrink-0 flex items-center gap-1.5">
+               <AlertTriangle className="w-3.5 h-3.5" /> AI Alert Reasoning:
+            </span>
+            <span className="min-w-0 text-[11.5px] font-semibold text-slate-800 leading-snug">
+              {incident.simulation?.aiReasoningLine || incident.evidence.join(' + ')}
+            </span>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+            {simulationControls.map((control) => (
+              <button
+                key={control.id}
+                type="button"
+                onClick={() => onRunSimulation(control.id)}
+                disabled={simulationLoading === control.id}
+                className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+              >
+                {simulationLoading === control.id ? 'Loading...' : control.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
+
+      {incident.simulation && (
+        <div className="grid gap-2 rounded-md border border-slate-100 bg-slate-50/70 p-2.5">
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            {[
+              { label: 'Confidence', value: `${incident.simulation.confidence}%` },
+              { label: 'Immobile', value: incident.simulation.immobileTime },
+              { label: 'Detect-to-alert', value: incident.simulation.detectionToAlert },
+              { label: 'Risk', value: incident.simulation.riskLevel },
+            ].map((metric) => (
+              <div key={metric.label} className="min-w-0 rounded bg-white px-2 py-1.5 border border-slate-100">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">{metric.label}</p>
+                <p className="truncate text-[10px] font-bold text-slate-800">{metric.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-1.5 text-[10.5px] text-slate-700 md:grid-cols-2">
+            <p><span className="font-bold text-slate-500">Thermal presence:</span> {incident.simulation.detectorEvidence.thermal}</p>
+            <p><span className="font-bold text-slate-500">Acoustic impact/distress:</span> {incident.simulation.detectorEvidence.acoustic}</p>
+            <p><span className="font-bold text-slate-500">Under-mattress load mat:</span> {incident.simulation.detectorEvidence.loadMat}</p>
+            <p><span className="font-bold text-slate-500">Door/fridge sensors:</span> {incident.simulation.detectorEvidence.doorFridge}</p>
+            <p className="md:col-span-2"><span className="font-bold text-slate-500">Voice check-in:</span> {incident.simulation.detectorEvidence.voice}</p>
+          </div>
+
+          <div className="rounded bg-white px-2 py-1.5 border border-slate-100">
+            <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Recommended action</p>
+            <p className="text-[10.5px] font-bold text-slate-800">{incident.simulation.recommendedAction}</p>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -1025,6 +1317,8 @@ export default function DashboardV2() {
   const [isOpsLogOpen, setIsOpsLogOpen] = useState(false);
   const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
   const [broadcastToast, setBroadcastToast] = useState<{ acknowledged: number; total: number; complete: boolean } | null>(null);
+  const [simulationLoading, setSimulationLoading] = useState<EchoSyncScenarioId | null>(null);
+  const [simulationToast, setSimulationToast] = useState<SimulationToastState | null>(null);
   const [mounted, setMounted] = useState(false);
   const broadcastTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -1108,6 +1402,96 @@ export default function DashboardV2() {
       setTimeout(() => setBroadcastToast({ acknowledged: 4, total: 5, complete: false }), 1800),
       setTimeout(() => setBroadcastToast({ acknowledged: 5, total: 5, complete: true }), 2900),
     ];
+  }, []);
+
+  const handleRunSimulation = useCallback(async (scenario: EchoSyncScenarioId) => {
+    setSimulationLoading(scenario);
+
+    try {
+      const response = await fetch(`/api/simulate-alert?scenario=${scenario}`);
+      if (!response.ok) throw new Error('Simulation API failed');
+
+      const alert = await response.json() as EchoSyncSimulationResult;
+      const severity = riskToSeverity(alert.riskLevel);
+      const resolvedLocation = resolveIncidentLocation(alert.caseId) || resolveIncidentLocation(alert.location);
+      const now = currentDashboardTime();
+      const evidenceChips = getEvidenceChips(scenario, alert.immobileTime);
+      const detectorFindings = getDetectorFindings(alert, scenario);
+      const aiReasoningLine = getAiReasoningLine(scenario, alert.immobileTime);
+      const simulatedIncident: Incident = {
+        id: alert.caseId,
+        type: alert.caseType,
+        elapsedTime: alert.immobileTime,
+        severity,
+        flagged: severity === 'Critical',
+        status: statusFromRisk(severity),
+        assignedUnit: assignedUnitFromRisk(severity),
+        lastUpdated: now,
+        ...(resolvedLocation
+          ? toIncidentLocationFields(resolvedLocation)
+          : {
+              location: alert.location,
+              lat: 1.3521,
+              lng: 103.8198,
+              locationSource: 'Manual address geocode',
+              locationAccuracy: 'Address verified, block-level estimate',
+            }),
+        description: getOperationalSummary(scenario),
+        evidence: evidenceChips,
+        opsLog: [],
+        simulation: {
+          confidence: alert.confidence,
+          immobileTime: alert.immobileTime,
+          detectionToAlert: alert.detectionToAlert,
+          riskLevel: severity,
+          voiceResult: alert.voiceCheckIn.result,
+          recommendedAction: alert.recommendedAction,
+          reasoning: alert.reasoning,
+          aiReasoningLine,
+          detectorEvidence: detectorFindings,
+        },
+      };
+
+      setIncidents((prev) => {
+        const existingIndex = prev.findIndex((inc) => inc.id === alert.caseId);
+        if (existingIndex === -1) return [simulatedIncident, ...prev];
+
+        return prev.map((inc) => (
+          inc.id === alert.caseId
+            ? { ...inc, ...simulatedIncident, flagged: inc.flagged || simulatedIncident.flagged }
+            : inc
+        ));
+      });
+
+      setBroadcastOpsLog((prev) => [
+        ...alert.opsLogEvents.map((entry) => ({
+          ...entry,
+          time: now,
+          incidentId: alert.caseId,
+          incidentType: alert.caseType,
+          location: alert.location,
+        })),
+        ...prev,
+      ]);
+
+      setSelectedId(alert.caseId);
+      setIsOpsLogOpen(false);
+
+      if (severity === 'Critical' || severity === 'High') {
+        setSimulationToast({
+          caseId: alert.caseId,
+          caseType: alert.caseType,
+          confidence: alert.confidence,
+          riskLevel: severity,
+          recommendedAction: alert.recommendedAction,
+        });
+      }
+
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setSimulationLoading(null);
+    }
   }, []);
 
   if (!mounted) return null;
@@ -1199,7 +1583,13 @@ export default function DashboardV2() {
             )}
           </div>
           {/* Detail strip attached below map - hidden when full log is open */}
-          {!isOpsLogOpen && <IncidentDetailStrip incident={selectedIncident} />}
+          {!isOpsLogOpen && (
+            <IncidentDetailStrip
+              incident={selectedIncident}
+              onRunSimulation={handleRunSimulation}
+              simulationLoading={simulationLoading}
+            />
+          )}
         </div>
 
         {/* ═══ RIGHT: Ops Log ═══ */}
@@ -1235,6 +1625,13 @@ export default function DashboardV2() {
           acknowledged={broadcastToast.acknowledged}
           total={broadcastToast.total}
           complete={broadcastToast.complete}
+        />
+      )}
+
+      {simulationToast && (
+        <SimulationAlertToast
+          toast={simulationToast}
+          onDismiss={() => setSimulationToast(null)}
         />
       )}
 
