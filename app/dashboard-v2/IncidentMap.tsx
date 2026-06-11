@@ -4,7 +4,6 @@ import { useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Map as MapIcon } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────
 // Types
@@ -49,11 +48,14 @@ function createIcon(severity: Severity, isSelected: boolean): L.DivIcon {
     Low: { bg: '#22c55e', ring: 'rgba(34,197,94,0.35)' },
   };
   const c = colors[severity];
-  const dotSize = isSelected ? 18 : 12;
-  const outerSize = dotSize + 14;
-  const pulse = isSelected
-    ? `<span style="position:absolute;inset:-4px;border-radius:50%;background:${c.ring};animation:marker-pulse 2s ease-in-out infinite;pointer-events:none;"></span>`
+  const dotSize = isSelected ? 26 : 18;
+  const outerSize = dotSize + 22;
+  const pulse = isSelected || severity === 'Critical'
+    ? `<span style="position:absolute;inset:${isSelected ? '4px' : '6px'};border-radius:50%;background:${c.ring};animation:marker-pulse 2s ease-in-out infinite;pointer-events:none;"></span>`
     : '';
+  const shadow = isSelected
+    ? `0 0 0 6px ${c.ring},0 8px 18px rgba(15,23,42,0.36)`
+    : '0 0 0 4px rgba(255,255,255,0.9),0 4px 12px rgba(15,23,42,0.3)';
 
   return L.divIcon({
     className: '',
@@ -66,8 +68,8 @@ function createIcon(severity: Severity, isSelected: boolean): L.DivIcon {
         <div style="
           width:${dotSize}px;height:${dotSize}px;border-radius:50%;
           background:${c.bg};
-          border:2.5px solid white;
-          box-shadow:0 2px 10px rgba(0,0,0,0.25);
+          border:${isSelected ? 3 : 2.5}px solid white;
+          box-shadow:${shadow};
           position:relative;z-index:2;
         "></div>
       </div>
@@ -103,63 +105,65 @@ function popupContent(inc: Incident): string {
     'Gas Leak': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>'
   };
   const iconSvg = svgs[inc.type] || svgs['Unresponsive Resident'];
+  const closeIconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
   
   const evidenceHtml = inc.evidence && inc.evidence.length > 0 
     ? `
-      <div style="margin-top:14px;padding-top:12px;border-top:1px dashed #cbd5e1;">
-        <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;display:flex;align-items:center;gap:4px;">
+      <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #cbd5e1;min-width:0;overflow:hidden;">
+        <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;display:flex;align-items:center;gap:4px;min-width:0;overflow-wrap:anywhere;white-space:normal;">
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           Detection Evidence
         </div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;">
-          ${inc.evidence.map(ev => `<span style="background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;font-size:10px;font-weight:500;padding:3px 8px;border-radius:6px;">${ev}</span>`).join('')}
+        <div style="display:flex;flex-wrap:wrap;gap:8px;overflow:hidden;min-width:0;max-width:100%;">
+          ${inc.evidence.map(ev => `<span style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;font-size:10px;font-weight:500;padding:4px 8px;border-radius:6px;">${ev}</span>`).join('')}
         </div>
       </div>
     `
     : '';
 
   return `
-    <div style="font-family:Inter,system-ui,-apple-system,sans-serif;width:100%;">
+    <div style="font-family:Inter,system-ui,-apple-system,sans-serif;width:100%;overflow-x:hidden;">
       <!-- Header -->
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;padding-right:44px;">
-        <div style="display:flex;align-items:center;gap:10px;color:${inc.severity === 'Critical' ? '#b91c1c' : '#0f172a'};">
-          ${iconSvg}
-          <span style="font-size:16px;font-weight:800;letter-spacing:-0.02em;">${inc.type}</span>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;min-width:0;overflow:visible;">
+        <div style="min-width:0;flex:1;">
+          <div style="display:flex;align-items:center;gap:10px;color:${inc.severity === 'Critical' ? '#b91c1c' : '#0f172a'};min-width:0;">
+            <span style="display:flex;flex-shrink:0;">${iconSvg}</span>
+            <span style="font-size:18px;font-weight:800;letter-spacing:-0.02em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${inc.type}</span>
+          </div>
+          <div style="font-size:11px;font-family:'SF Mono',ui-monospace,monospace;color:#94a3b8;margin-top:6px;margin-bottom:5px;overflow-wrap:anywhere;">${inc.id}</div>
+          <div style="font-size:13px;color:#334155;font-weight:500;display:flex;align-items:flex-start;gap:6px;line-height:1.5;min-width:0;">
+            <svg style="flex-shrink:0;margin-top:2px;color:#94a3b8;" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span style="min-width:0;overflow-wrap:anywhere;">${inc.location}</span>
+          </div>
         </div>
-        <span style="font-size:10px;font-weight:700;text-transform:uppercase;padding:4px 12px;border-radius:99px;letter-spacing:0.05em;${sevBadge[inc.severity]}">${inc.severity}</span>
-      </div>
-
-      <!-- Case ID + Location -->
-      <div style="margin-bottom:12px;">
-        <div style="font-size:11px;font-family:'SF Mono',ui-monospace,monospace;color:#94a3b8;margin-bottom:5px;">${inc.id}</div>
-        <div style="font-size:13px;color:#334155;font-weight:500;display:flex;align-items:flex-start;gap:6px;line-height:1.5;">
-          <svg style="flex-shrink:0;margin-top:2px;color:#94a3b8;" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span>${inc.location}</span>
+        <div style="display:flex;flex-shrink:0;align-items:center;gap:8px;">
+          <span style="flex-shrink:0;font-size:10px;font-weight:700;text-transform:uppercase;padding:4px 12px;border-radius:99px;letter-spacing:0.05em;white-space:nowrap;${sevBadge[inc.severity]}">${inc.severity}</span>
+          <button type="button" class="incident-popup-close" aria-label="Close incident popup">${closeIconSvg}</button>
         </div>
       </div>
 
       <!-- Description -->
-      <div style="font-size:12.5px;color:#475569;line-height:1.65;margin-bottom:14px;padding:12px 14px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">
+      <div style="font-size:12.5px;color:#475569;line-height:1.55;margin-bottom:12px;padding:10px 12px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;min-width:0;overflow-wrap:anywhere;white-space:normal;">
         ${inc.description}
       </div>
 
       <!-- 2x2 Stats Grid -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
-        <div style="background:#f1f5f9;padding:10px 12px;border-radius:8px;">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;font-size:11px;min-width:0;overflow:hidden;">
+        <div style="background:#f1f5f9;padding:9px 10px;border-radius:10px;min-width:0;overflow:hidden;">
           <div style="color:#94a3b8;font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">Elapsed</div>
-          <div style="color:#1e293b;font-weight:700;font-family:'SF Mono',ui-monospace,monospace;">${inc.elapsedTime}</div>
+          <div style="color:#1e293b;font-weight:700;font-family:'SF Mono',ui-monospace,monospace;overflow-wrap:anywhere;">${inc.elapsedTime}</div>
         </div>
-        <div style="background:#f1f5f9;padding:10px 12px;border-radius:8px;">
+        <div style="background:#f1f5f9;padding:9px 10px;border-radius:10px;min-width:0;overflow:hidden;">
           <div style="color:#94a3b8;font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">Assigned Unit</div>
-          <div style="color:#1e293b;font-weight:700;">${inc.assignedUnit}</div>
+          <div style="color:#1e293b;font-weight:700;overflow-wrap:anywhere;white-space:normal;">${inc.assignedUnit}</div>
         </div>
-        <div style="background:#f1f5f9;padding:10px 12px;border-radius:8px;">
+        <div style="background:#f1f5f9;padding:9px 10px;border-radius:10px;min-width:0;overflow:hidden;">
           <div style="color:#94a3b8;font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">Priority</div>
-          <div style="font-weight:700;${sevBadge[inc.severity].replace('background:', 'color:').split(';')[1]}">${inc.severity}</div>
+          <div style="font-weight:700;overflow-wrap:anywhere;${sevBadge[inc.severity].replace('background:', 'color:').split(';')[1]}">${inc.severity}</div>
         </div>
-        <div style="padding:10px 12px;border-radius:8px;text-align:center;${statusStyle[inc.status] || 'background:#f1f5f9;color:#334155;'}">
+        <div style="padding:9px 10px;border-radius:10px;text-align:center;min-width:0;overflow:hidden;${statusStyle[inc.status] || 'background:#f1f5f9;color:#334155;'}">
           <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;opacity:0.7;">Status</div>
-          <div style="font-weight:800;font-size:11px;text-transform:uppercase;">${inc.status}</div>
+          <div style="font-weight:800;font-size:11px;text-transform:uppercase;overflow-wrap:anywhere;">${inc.status}</div>
         </div>
       </div>
       
@@ -181,11 +185,32 @@ function FlyToController({ incident }: { incident: Incident | null }) {
       map.flyTo([incident.lat, incident.lng], 17, { duration: 1.2 });
       prevId.current = incident.id;
     } else if (!incident && prevId.current !== null) {
-      map.flyTo([1.3521, 103.8198], 11.5, { duration: 1.2 });
+      map.flyTo([1.3521, 103.8198], 12, { duration: 1.2 });
       map.closePopup();
       prevId.current = null;
     }
   }, [incident, map]);
+
+  return null;
+}
+
+function PopupCloseHandler({ onClose }: { onClose: () => void }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest('.incident-popup-close')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      map.closePopup();
+      onClose();
+    };
+
+    container.addEventListener('click', handleClick);
+    return () => container.removeEventListener('click', handleClick);
+  }, [map, onClose]);
 
   return null;
 }
@@ -217,15 +242,6 @@ export default function IncidentMap({
 
   return (
     <div className="w-full h-full relative overflow-hidden">
-      <div className="absolute top-3 right-3 z-[400]">
-        <button
-          onClick={() => onSelectIncident(null)}
-          className="bg-white border border-slate-200 shadow-md rounded-md px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5"
-        >
-          <MapIcon className="w-3.5 h-3.5 text-slate-500" />
-          Overview
-        </button>
-      </div>
       <style>{`
         @keyframes marker-pulse {
           0%, 100% { transform: scale(1); opacity: 0.5; }
@@ -235,27 +251,32 @@ export default function IncidentMap({
           border-radius: 20px !important;
           padding: 0 !important;
           box-shadow: 0 12px 48px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.06) !important;
-          overflow: hidden !important;
+          overflow-x: hidden !important;
+          overflow-y: hidden !important;
           border: 1px solid #e2e8f0 !important;
-          max-width: min(420px, calc(100vw - 32px)) !important;
+          background: #ffffff !important;
+          max-width: min(360px, calc(100vw - 32px)) !important;
           max-height: calc(100dvh - 300px) !important;
         }
         .leaflet-popup-content {
-          margin: 12px 14px !important;
-          width: clamp(280px, 26vw, 420px) !important;
-          max-width: min(420px, calc(100vw - 48px)) !important;
-          max-height: calc(100dvh - 332px) !important;
+          margin: 16px !important;
+          width: 328px !important;
+          max-width: calc(100vw - 64px) !important;
+          max-height: calc(100dvh - 300px) !important;
           overflow-y: auto !important;
           overflow-x: hidden !important;
           line-height: 1.4 !important;
           font-size: 12.5px !important;
         }
         @media (min-width: 1536px) and (min-height: 900px) {
+          .leaflet-popup-content-wrapper {
+            max-width: min(420px, calc(100vw - 32px)) !important;
+          }
           .leaflet-popup-content {
-            margin: 14px 16px !important;
-            width: clamp(320px, 28vw, 460px) !important;
-            max-width: min(460px, calc(100vw - 48px)) !important;
-            max-height: calc(100dvh - 280px) !important;
+            margin: 16px !important;
+            width: 388px !important;
+            max-width: calc(100vw - 64px) !important;
+            max-height: calc(100dvh - 300px) !important;
             font-size: 13px !important;
           }
         }
@@ -271,30 +292,36 @@ export default function IncidentMap({
         }
         .leaflet-popup-tip-container {
           margin-top: -1px !important;
+          pointer-events: none !important;
         }
         .leaflet-popup-tip {
           box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
           border: 1px solid #e2e8f0 !important;
+          background: #ffffff !important;
+          pointer-events: none !important;
         }
         .leaflet-popup-close-button {
-          top: 12px !important;
-          right: 12px !important;
-          width: 30px !important;
-          height: 30px !important;
-          font-size: 18px !important;
-          font-weight: 600 !important;
-          color: #64748b !important;
+          display: none !important;
+        }
+        .incident-popup-close {
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
+          width: 32px !important;
+          height: 32px !important;
+          flex-shrink: 0 !important;
           border-radius: 9999px !important;
           background: #f1f5f9 !important;
-          line-height: 30px !important;
+          color: #64748b !important;
+          border: 0 !important;
           padding: 0 !important;
+          font-size: 18px !important;
+          font-weight: 600 !important;
+          line-height: 32px !important;
+          cursor: pointer !important;
           transition: all 0.15s ease !important;
-          z-index: 10 !important;
         }
-        .leaflet-popup-close-button:hover {
+        .incident-popup-close:hover {
           color: #475569 !important;
           background: #e2e8f0 !important;
         }
@@ -305,16 +332,17 @@ export default function IncidentMap({
       `}</style>
       <MapContainer
         center={[1.3521, 103.8198]}
-        zoom={11.5}
+        zoom={12}
         className="w-full h-full"
         zoomControl={false}
         attributionControl={false}
       >
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+          url="https://www.onemap.gov.sg/maps/tiles/Default/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.onemap.gov.sg/">OneMap</a>'
         />
         <FlyToController incident={selectedIncident} />
+        <PopupCloseHandler onClose={() => onSelectIncident(null)} />
         {incidents.map((inc) => {
           const isSelected = inc.id === selectedId;
           return (
@@ -329,7 +357,7 @@ export default function IncidentMap({
                 if (ref) markerRefs.current[inc.id] = ref;
               }}
             >
-              <Popup minWidth={280} maxWidth={420} closeButton={true} autoPan keepInView>
+              <Popup minWidth={360} maxWidth={420} closeButton={false} autoPan keepInView>
                 <div dangerouslySetInnerHTML={{ __html: popupContent(inc) }} />
               </Popup>
             </Marker>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import {
@@ -42,7 +42,18 @@ type GlobalOpsLogEntry = OpsLogEntry & {
   incidentId: string;
   incidentType: string;
   location: string;
+  priority?: BroadcastPriority;
 };
+
+type BroadcastPriority = 'Critical' | 'High' | 'Normal';
+
+const broadcastRecipients = [
+  'Dispatchers',
+  'SCDF Units',
+  'CFR Responders',
+  'Caregivers',
+  'Operations Supervisors',
+] as const;
 
 interface Incident {
   id: string;
@@ -240,7 +251,13 @@ function typeIcon(type: string) {
 // Top Navigation Bar (48px)
 // ─────────────────────────────────────────────────────────
 
-function TopNav() {
+function TopNav({
+  onOpenBroadcast,
+  hasUnacknowledgedBroadcast,
+}: {
+  onOpenBroadcast: () => void;
+  hasUnacknowledgedBroadcast: boolean;
+}) {
   return (
     <header className="h-12 bg-white border-b border-slate-200 flex items-center justify-between px-4 flex-shrink-0 z-30">
       <div className="flex items-center gap-5">
@@ -267,9 +284,15 @@ function TopNav() {
         <button className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title="Chats">
           <MessageSquare className="w-4 h-4" />
         </button>
-        <button className="relative p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title="Broadcast">
+        <button
+          onClick={onOpenBroadcast}
+          className="relative p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          title="Broadcast"
+        >
           <Megaphone className="w-4 h-4" />
-          <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full ring-2 ring-white" />
+          {hasUnacknowledgedBroadcast && (
+            <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full ring-2 ring-white" />
+          )}
         </button>
         <button className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title="Ops Log">
           <ClipboardList className="w-4 h-4" />
@@ -436,6 +459,179 @@ function NotificationToast({
 // ─────────────────────────────────────────────────────────
 // Ops Log Panel (headerless container — header rendered inline)
 // ─────────────────────────────────────────────────────────
+
+function BroadcastAlertModal({
+  onClose,
+  onSend,
+}: {
+  onClose: () => void;
+  onSend: (payload: {
+    title: string;
+    message: string;
+    priority: BroadcastPriority;
+    recipients: string[];
+    requireAcknowledgement: boolean;
+  }) => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [message, setMessage] = useState('');
+  const [priority, setPriority] = useState<BroadcastPriority>('Critical');
+  const [selectedRecipients, setSelectedRecipients] = useState<string[]>([
+    'Dispatchers',
+    'SCDF Units',
+    'CFR Responders',
+  ]);
+  const [requireAcknowledgement, setRequireAcknowledgement] = useState(true);
+
+  const toggleRecipient = (recipient: string) => {
+    setSelectedRecipients((prev) =>
+      prev.includes(recipient)
+        ? prev.filter((item) => item !== recipient)
+        : [...prev, recipient]
+    );
+  };
+
+  const handleSend = () => {
+    if (!message.trim()) return;
+    onSend({
+      title: title.trim(),
+      message: message.trim(),
+      priority,
+      recipients: selectedRecipients,
+      requireAcknowledgement,
+    });
+  };
+
+  const content = (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/30 px-4">
+      <div className="w-[min(520px,calc(100vw-32px))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <h2 className="text-[15px] font-bold text-slate-800 flex items-center gap-2">
+            <Megaphone className="w-4 h-4 text-teal-600" />
+            Broadcast Alert
+          </h2>
+          <button onClick={onClose} className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Alert Title</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Critical update for active incidents"
+              className="w-full text-[12px] p-2.5 border border-slate-200 rounded-md focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Message</label>
+            <textarea
+              rows={4}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Type the broadcast message to all responders and operators..."
+              className="w-full text-[12px] p-2.5 border border-slate-200 rounded-md focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 resize-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Priority</label>
+            <select
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as BroadcastPriority)}
+              className="w-full text-[12px] p-2.5 border border-slate-200 rounded-md focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 bg-white"
+            >
+              <option>Critical</option>
+              <option>High</option>
+              <option>Normal</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Recipients</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {broadcastRecipients.map((recipient) => (
+                <label key={recipient} className="flex items-center gap-2 text-[12px] font-medium text-slate-700 bg-slate-50 border border-slate-100 rounded-md px-2.5 py-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedRecipients.includes(recipient)}
+                    onChange={() => toggleRecipient(recipient)}
+                    className="h-3.5 w-3.5 accent-teal-600"
+                  />
+                  {recipient}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <label className="flex items-center gap-2 text-[12px] font-medium text-slate-700">
+            <input
+              type="checkbox"
+              checked={requireAcknowledgement}
+              onChange={(e) => setRequireAcknowledgement(e.target.checked)}
+              className="h-3.5 w-3.5 accent-teal-600"
+            />
+            Require all recipients to acknowledge this alert
+          </label>
+        </div>
+
+        <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2">
+          <button onClick={onClose} className="flex-1 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold text-[12px] py-2 rounded-md transition-colors shadow-sm">
+            Cancel
+          </button>
+          <button onClick={handleSend} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold text-[12px] py-2 rounded-md transition-colors shadow-sm">
+            Send Broadcast
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(content, document.body);
+}
+
+function BroadcastToast({
+  acknowledged,
+  total,
+  complete,
+}: {
+  acknowledged: number;
+  total: number;
+  complete: boolean;
+}) {
+  const content = (
+    <div className="fixed bottom-4 right-4 z-[100] w-[min(420px,calc(100vw-32px))] rounded-xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
+      <div className={`h-0.5 ${complete ? 'bg-emerald-500' : 'bg-teal-500'}`} />
+      <div className="p-3.5">
+        <div className="flex items-start gap-2">
+          {complete ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+          ) : (
+            <Megaphone className="w-4 h-4 text-teal-600 flex-shrink-0 mt-0.5" />
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-[12px] font-semibold text-slate-800 leading-snug">
+              {complete
+                ? 'Broadcast acknowledged by all recipients.'
+                : 'Broadcast alert sent. Awaiting acknowledgements.'}
+            </p>
+            <p className="text-[10px] font-mono font-bold text-slate-500 mt-1">
+              {acknowledged} / {total} acknowledged
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(content, document.body);
+}
 
 function OpsLogPanel({ opsLog, onOpenFullLog }: { opsLog: GlobalOpsLogEntry[]; onOpenFullLog: () => void }) {
   return (
@@ -821,14 +1017,24 @@ function FullOpsLogWorkspace({
 
 export default function DashboardV2() {
   const [incidents, setIncidents] = useState<Incident[]>(initialIncidents);
+  const [broadcastOpsLog, setBroadcastOpsLog] = useState<GlobalOpsLogEntry[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'All' | 'Critical' | 'Flagged' | 'Unflagged' | 'Active'>('All');
   const [notifAcknowledged, setNotifAcknowledged] = useState(false);
   const [notifDismissed, setNotifDismissed] = useState(false);
   const [isOpsLogOpen, setIsOpsLogOpen] = useState(false);
+  const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
+  const [broadcastToast, setBroadcastToast] = useState<{ acknowledged: number; total: number; complete: boolean } | null>(null);
   const [mounted, setMounted] = useState(false);
+  const broadcastTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    return () => {
+      broadcastTimers.current.forEach((timer) => clearTimeout(timer));
+    };
+  }, []);
 
   const filteredIncidents = incidents.filter(inc => {
     if (filter === 'All') return true;
@@ -842,7 +1048,7 @@ export default function DashboardV2() {
   const selectedIncident = incidents.find(i => i.id === selectedId) || incidents[0];
   const notifIncident = incidents.find(i => i.severity === 'Critical') || incidents[0];
   const allOpsLogEntries = useMemo<GlobalOpsLogEntry[]>(() => {
-    return incidents
+    const incidentOpsLog = incidents
       .flatMap((inc) =>
         inc.opsLog.map((entry) => ({
           ...entry,
@@ -852,7 +1058,9 @@ export default function DashboardV2() {
         }))
       )
       .reverse();
-  }, [incidents]);
+
+    return [...broadcastOpsLog, ...incidentOpsLog];
+  }, [broadcastOpsLog, incidents]);
 
   const handleToggleFlag = useCallback((id: string) => {
     setIncidents(prev => prev.map(inc =>
@@ -868,6 +1076,40 @@ export default function DashboardV2() {
     ));
   }, []);
 
+  const handleSendBroadcast = useCallback((payload: {
+    title: string;
+    message: string;
+    priority: BroadcastPriority;
+    recipients: string[];
+    requireAcknowledgement: boolean;
+  }) => {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+
+    setBroadcastOpsLog((prev) => [
+      {
+        time: timeStr,
+        title: 'Broadcast Alert Sent',
+        description: payload.message,
+        source: 'Command Centre Broadcast',
+        incidentId: 'GLOBAL',
+        incidentType: 'Broadcast Alert',
+        location: 'Global Operations',
+        priority: payload.priority,
+      },
+      ...prev,
+    ]);
+
+    setIsBroadcastOpen(false);
+    setBroadcastToast({ acknowledged: 0, total: 5, complete: false });
+    broadcastTimers.current.forEach((timer) => clearTimeout(timer));
+    broadcastTimers.current = [
+      setTimeout(() => setBroadcastToast({ acknowledged: 2, total: 5, complete: false }), 900),
+      setTimeout(() => setBroadcastToast({ acknowledged: 4, total: 5, complete: false }), 1800),
+      setTimeout(() => setBroadcastToast({ acknowledged: 5, total: 5, complete: true }), 2900),
+    ];
+  }, []);
+
   if (!mounted) return null;
 
   return (
@@ -876,7 +1118,10 @@ export default function DashboardV2() {
       style={{ fontFamily: 'var(--font-inter, Inter, system-ui, sans-serif)' }}
     >
       {/* Top Nav — 48px */}
-      <TopNav />
+      <TopNav
+        onOpenBroadcast={() => setIsBroadcastOpen(true)}
+        hasUnacknowledgedBroadcast={!broadcastToast || !broadcastToast.complete}
+      />
 
       {/* 3-column grid: Incidents | Map+Detail | OpsLog */}
       <div className={`min-h-0 flex-1 grid overflow-hidden transition-all duration-300 ease-in-out ${isOpsLogOpen ? 'grid-cols-[clamp(320px,30vw,430px)_minmax(0,1fr)]' : 'grid-cols-[clamp(320px,30vw,430px)_minmax(0,1fr)_clamp(300px,24vw,420px)]'}`}>
@@ -975,6 +1220,21 @@ export default function DashboardV2() {
           acknowledged={notifAcknowledged}
           onAcknowledge={() => setNotifAcknowledged(true)}
           onDismiss={() => setNotifDismissed(true)}
+        />
+      )}
+
+      {isBroadcastOpen && (
+        <BroadcastAlertModal
+          onClose={() => setIsBroadcastOpen(false)}
+          onSend={handleSendBroadcast}
+        />
+      )}
+
+      {broadcastToast && (
+        <BroadcastToast
+          acknowledged={broadcastToast.acknowledged}
+          total={broadcastToast.total}
+          complete={broadcastToast.complete}
         />
       )}
 
