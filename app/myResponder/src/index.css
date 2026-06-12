@@ -1,0 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* mobile view */
+body {
+  margin: 0;
+  background: #e5e7eb;
+}
+
+#root {
+  max-width: 430px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: #eef2f8;
+}
+
+@layer base {
+  :root {
+    --background: 220 30% 95%;
+    --foreground: 224 60% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 60% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 60% 10%;
+    --primary: 224 72% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 30% 90%;
+    --secondary-foreground: 224 60% 20%;
+    --muted: 220 20% 92%;
+    --muted-foreground: 220 15% 50%;
+    --accent: 224 72% 95%;
+    --accent-foreground: 224 72% 35%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 20% 88%;
+    --input: 220 20% 88%;
+    --ring: 224 72% 45%;
+    --radius: 0.75rem;
+    --font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --navy-dark: 224 72% 18%;
+    --navy: 224 72% 28%;
+    --navy-mid: 224 72% 38%;
+    --blue-bright: 224 72% 55%;
+    --red-emergency: 0 80% 50%;
+  }
+
+  .dark {
+    --background: 224 30% 8%;
+    --foreground: 0 0% 95%;
+    --card: 224 25% 12%;
+    --card-foreground: 0 0% 95%;
+    --popover: 224 25% 12%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 224 72% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 224 20% 18%;
+    --secondary-foreground: 0 0% 85%;
+    --muted: 224 20% 16%;
+    --muted-foreground: 220 15% 55%;
+    --accent: 224 30% 20%;
+    --accent-foreground: 224 72% 75%;
+    --destructive: 0 62.8% 40%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 224 20% 20%;
+    --input: 224 20% 20%;
+    --ring: 224 72% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-body;
+  }
+}
+
+/* Mobile app container */
+.app-container {
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Bottom nav safe area */
+.pb-nav {
+  padding-bottom: 80px;
+}

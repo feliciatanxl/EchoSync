@@ -1,0 +1,56 @@
+{
+  "name": "UserSettings",
+  "type": "object",
+  "properties": {
+    "bypass_silent": {
+      "type": "boolean",
+      "default": false
+    },
+    "alert_cardiac": {
+      "type": "boolean",
+      "default": true
+    },
+    "alert_fire": {
+      "type": "boolean",
+      "default": true
+    },
+    "silent_hours": {
+      "type": "boolean",
+      "default": false
+    },
+    "sms_alerts": {
+      "type": "boolean",
+      "default": false
+    },
+    "transport_mode": {
+      "type": "string",
+      "enum": [
+        "walk",
+        "cycle",
+        "vehicle"
+      ],
+      "default": "walk"
+    },
+    "push_scdf": {
+      "type": "boolean",
+      "default": true
+    },
+    "push_courses": {
+      "type": "boolean",
+      "default": true
+    },
+    "push_community": {
+      "type": "boolean",
+      "default": true
+    },
+    "push_feedback": {
+      "type": "boolean",
+      "default": true
+    },
+    "email_surveys": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": []
+}

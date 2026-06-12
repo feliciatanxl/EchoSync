@@ -1,0 +1,39 @@
+{
+  "name": "UserProfile",
+  "type": "object",
+  "properties": {
+    "nric_name": {
+      "type": "string",
+      "description": "Full name as in NRIC/FIN"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Display name shown in app"
+    },
+    "mobile": {
+      "type": "string",
+      "description": "Mobile number"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email address"
+    },
+    "avatar_id": {
+      "type": "string",
+      "description": "Selected avatar identifier"
+    },
+    "occupation": {
+      "type": "string",
+      "description": "Occupation/employment status"
+    },
+    "cardiac_cases": {
+      "type": "number",
+      "default": 0
+    },
+    "fire_cases": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": []
+}

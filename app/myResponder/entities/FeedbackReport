@@ -1,0 +1,36 @@
+{
+  "name": "FeedbackReport",
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string",
+      "enum": [
+        "fire_hazard",
+        "aed_fault",
+        "app_issue",
+        "general"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "photo_url": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "submitted",
+        "in_review",
+        "resolved"
+      ],
+      "default": "submitted"
+    }
+  },
+  "required": [
+    "category"
+  ]
+}
