@@ -57,6 +57,12 @@ type SimulationToastState = {
   recommendedAction: string;
 };
 
+type VlmVerificationResult = {
+  visualSummary: string;
+  source: 'Fallback' | 'VLM';
+  model: string;
+};
+
 const broadcastRecipients = [
   'Dispatchers',
   'SCDF Units',
@@ -930,6 +936,49 @@ function IncidentDetailStrip({
   onRunSimulation: (scenario: EchoSyncScenarioId) => void;
   simulationLoading: EchoSyncScenarioId | null;
 }) {
+  const [vlmLoading, setVlmLoading] = useState(false);
+  const [vlmResult, setVlmResult] = useState<VlmVerificationResult | null>(null);
+  const [vlmError, setVlmError] = useState(false);
+
+  useEffect(() => {
+    setVlmLoading(false);
+    setVlmResult(null);
+    setVlmError(false);
+  }, [incident?.id]);
+
+  const handleRunVisualVerification = async () => {
+    if (!incident?.simulation) return;
+
+    setVlmLoading(true);
+    setVlmError(false);
+
+    try {
+      const response = await fetch('/api/vlm-verify', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          caseId: incident.id,
+          caseType: incident.type,
+          title: incident.type,
+          location: incident.location,
+          confidence: incident.simulation.confidence,
+          riskLevel: incident.simulation.riskLevel,
+          priority: incident.severity,
+          sensorSummary: incident.simulation.aiReasoningLine || incident.evidence.join(' + '),
+        }),
+      });
+
+      if (!response.ok) throw new Error('VLM verification unavailable');
+
+      setVlmResult(await response.json() as VlmVerificationResult);
+    } catch {
+      setVlmResult(null);
+      setVlmError(true);
+    } finally {
+      setVlmLoading(false);
+    }
+  };
+
   if (!incident) {
     return (
       <div className="bg-white border-t border-slate-200 px-4 py-4 flex items-center justify-center text-slate-500 text-[12px] h-[68px]">
@@ -1047,6 +1096,42 @@ function IncidentDetailStrip({
           <div className="rounded bg-white px-2 py-1.5 border border-slate-100">
             <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Recommended action</p>
             <p className="text-[10.5px] font-bold text-slate-800">{incident.simulation.recommendedAction}</p>
+          </div>
+
+          <div className="rounded bg-white px-2 py-1.5 border border-slate-100">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Optional Visual Verification</p>
+                <p className="text-[10px] font-medium text-slate-500">Activated only after sensor anomaly detection.</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleRunVisualVerification}
+                disabled={vlmLoading}
+                className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+              >
+                {vlmLoading ? 'Verifying...' : 'Run Visual Verification'}
+              </button>
+            </div>
+            {vlmLoading && (
+              <p className="mt-1.5 text-[10.5px] font-semibold text-slate-500">Visual verification running...</p>
+            )}
+            {vlmError && (
+              <p className="mt-1.5 text-[10.5px] font-semibold text-slate-600">
+                Visual verification is unavailable. The dashboard remains on sensor fusion and confidence scoring.
+              </p>
+            )}
+            {vlmResult && (
+              <div className="mt-1.5 space-y-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10.5px] font-semibold text-slate-700">{vlmResult.visualSummary}</span>
+                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-slate-500">
+                    {vlmResult.source === 'Fallback' ? 'Fallback Mode' : 'VLM Verified'}
+                  </span>
+                </div>
+                <p className="text-[9px] font-mono font-semibold text-slate-400">Model: {vlmResult.model}</p>
+              </div>
+            )}
           </div>
 
           {incident.simulation.aiSummary && (
