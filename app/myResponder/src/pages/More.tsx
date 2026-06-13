@@ -1,6 +1,5 @@
-// @ts-nocheck
 import { Link } from 'react-router-dom';
-import { ChevronRight, Settings, HelpCircle, Heart, Trophy, MessageSquare } from 'lucide-react';
+import { ChevronRight, Settings, HelpCircle, Heart, Trophy, MessageSquare, Zap } from 'lucide-react';
 import { AVATARS } from '@/lib/mockData';
 
 const DEMO_USER = {
@@ -26,6 +25,7 @@ export default function More() {
   const general = [
     { label: 'Settings', icon: <Settings className="w-5 h-5 text-gray-500" />, to: '/settings' },
     { label: 'About app', icon: '📱', to: '/about', emoji: true },
+    { label: 'Trigger Alert (Demo)', icon: <Zap className="w-5 h-5 text-red-500" />, to: '/trigger-alert' },
   ];
 
   return (

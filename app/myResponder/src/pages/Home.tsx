@@ -1,15 +1,60 @@
 // @ts-nocheck
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Bell, BellOff, ChevronRight, Eye, Heart, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MOCK_STATS, MOCK_NEWS, MOCK_COURSES } from '@/lib/mockData';
+import { base44 } from '@/api/base44Client';
+import EmergencyAlertPopup from '@/components/EmergencyAlertPopup';
+import ActiveResponseScreen from '@/components/ActiveResponseScreen';
 
 export default function Home() {
   const [alertOn, setAlertOn] = useState(false);
+  const [activeAlert, setActiveAlert] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadAlert = async () => {
+      const alerts = await base44.entities.EmergencyAlert.list();
+      setActiveAlert(
+        alerts.find((alert) => alert.status === 'pending')
+          || alerts.find((alert) => alert.status === 'accepted')
+          || null
+      );
+    };
+
+    loadAlert();
+    window.addEventListener('focus', loadAlert);
+    return () => window.removeEventListener('focus', loadAlert);
+  }, []);
+
+  const respondToAlert = async (status) => {
+    if (!activeAlert) return;
+    const updatedAlert = await base44.entities.EmergencyAlert.update(activeAlert.id, { status });
+    if (status === 'accepted') {
+      setActiveAlert(updatedAlert);
+      navigate('/active-response');
+      return;
+    }
+    setActiveAlert(null);
+  };
 
   return (
     <div className="min-h-screen bg-[#eef2f8]">
+      {activeAlert?.status === 'pending' && (
+        <EmergencyAlertPopup
+          alert={activeAlert}
+          onAccept={() => respondToAlert('accepted')}
+          onDecline={() => respondToAlert('declined')}
+        />
+      )}
+      {activeAlert?.status === 'accepted' && (
+        <ActiveResponseScreen
+          alert={activeAlert}
+          onCancel={() => setActiveAlert(null)}
+          onParamedicsArrived={() => setActiveAlert(null)}
+        />
+      )}
       {/* Blue header */}
       <div className="bg-gradient-to-b from-[#1a3a8f] to-[#2b5ce6] px-4 pt-10 pb-6 relative overflow-hidden">
         {/* Decorative circles */}
