@@ -14,6 +14,7 @@ export type { ReactNode } from "react";
 import {
   ShieldCheck,
   Lock,
+  Check,
   CheckCircle2,
   Pause,
   Bell,
@@ -29,6 +30,7 @@ export {
   Shield,
   ShieldCheck,
   Lock,
+  Check,
   CheckCircle2,
   AlertTriangle,
   Phone,
@@ -122,13 +124,13 @@ export function Checkbox({
       aria-checked={checked}
       onClick={() => onCheckedChange?.(!checked)}
       className={cx(
-        "mt-0.5 h-5 w-5 shrink-0 rounded border border-slate-300 bg-white text-white",
-        checked && "border-slate-900 bg-slate-900",
+        "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-300 bg-white text-white",
+        checked && "!border-slate-900 !bg-slate-900",
         className,
       )}
       {...props}
     >
-      {checked ? <CheckCircle2 className="h-4 w-4" /> : null}
+      {checked ? <Check className="h-4 w-4 stroke-[3]" /> : null}
     </button>
   );
 }
@@ -637,7 +639,6 @@ export function BottomNav({
           );
         })}
       </div>
-      <div className="h-20 shrink-0" aria-hidden="true" />
     </>
   );
 }

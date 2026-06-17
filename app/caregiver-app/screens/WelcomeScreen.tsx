@@ -32,7 +32,7 @@ export function WelcomeScreen({ go }: { go: (s: ScreenId) => void }) {
 
       <div className="space-y-3">
         <Button
-          className="w-full h-12 bg-red-700 hover:bg-red-800 text-white"
+          className="w-full h-12 !bg-[#e60012] hover:!bg-[#c90010] text-white"
           onClick={() => go("notifications")}
         >
           <Fingerprint className="w-4 h-4 mr-2" />
