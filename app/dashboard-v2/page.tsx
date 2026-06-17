@@ -57,12 +57,6 @@ type SimulationToastState = {
   recommendedAction: string;
 };
 
-type VlmVerificationResult = {
-  visualSummary: string;
-  source: 'Fallback' | 'VLM';
-  model: string;
-};
-
 const broadcastRecipients = [
   'Dispatchers',
   'SCDF Units',
@@ -148,11 +142,11 @@ const initialIncidents: Incident[] = [
       reasoning: ['Impact only + normal movement + resident confirmed okay.'],
       aiReasoningLine: 'Impact only + normal movement + resident confirmed okay.',
       detectorEvidence: {
-        thermal: 'normal movement detected',
-        acoustic: 'short impact only',
+        thermal: 'PIR + motion sensors show normal movement',
+        acoustic: 'sound sensor detected short impact only',
         loadMat: 'normal',
-        doorFridge: 'routine activity normal',
-        voice: 'resident said okay',
+        doorFridge: 'ultrasonic presence stable',
+        voice: 'mic + speaker check-in: resident said okay',
       },
     },
     opsLog: [],
@@ -168,7 +162,7 @@ const initialIncidents: Incident[] = [
     assignedUnit: 'Dispatcher Review',
     lastUpdated: '21:05',
     description: 'Weak signals detected. Dispatcher review required.',
-    evidence: ['Low presence', 'No movement 4 min 6 sec', 'Bed exit no return', 'Routine deviation', 'Voice unclear'],
+    evidence: ['Low PIR/motion activity', 'No movement 4 min 6 sec', 'Load mat no return', 'Ultrasonic routine deviation', 'Mic/speaker response unclear'],
     simulation: {
       confidence: 76,
       immobileTime: '4 min 6 sec',
@@ -176,14 +170,14 @@ const initialIncidents: Incident[] = [
       riskLevel: 'High',
       voiceResult: 'unclear',
       recommendedAction: 'Dispatcher review before CFR escalation.',
-      reasoning: ['Low presence + no movement for 4 min 6 sec + bed exit no return + unclear voice response.'],
-      aiReasoningLine: 'Low presence + no movement for 4 min 6 sec + bed exit no return + unclear voice response.',
+      reasoning: ['Low PIR/motion activity + no movement for 4 min 6 sec + load mat no return + unclear mic/speaker response.'],
+      aiReasoningLine: 'Low PIR/motion activity + no movement for 4 min 6 sec + load mat no return + unclear mic/speaker response.',
       detectorEvidence: {
-        thermal: 'low stationary presence',
-        acoustic: 'no major impact',
-        loadMat: 'bed exit, no return',
-        doorFridge: 'routine deviation',
-        voice: 'unclear after 2 attempts',
+        thermal: 'PIR + motion sensors show low activity',
+        acoustic: 'sound sensor found no major impact',
+        loadMat: 'mattress load sensor: no return',
+        doorFridge: 'ultrasonic presence routine deviation',
+        voice: 'mic + speaker unclear after 2 attempts',
       },
     },
     opsLog: [],
@@ -200,10 +194,10 @@ const initialIncidents: Incident[] = [
     ...toIncidentLocationFields(resolveIncidentLocation('INC-2026-089')!),
     description: 'Possible fall detected. No response after voice check-in.',
     evidence: [
-      'Thermal anomaly',
+      'PIR/motion anomaly',
       'No movement 8 min 22 sec',
-      'Impact detected',
-      'Voice check-in failed',
+      'Sound impact detected',
+      'Mic/speaker check-in failed',
     ],
     simulation: {
       confidence: 91,
@@ -212,14 +206,14 @@ const initialIncidents: Incident[] = [
       riskLevel: 'Critical',
       voiceResult: 'no-response',
       recommendedAction: 'Dispatcher review, notify CFR, prepare SCDF escalation.',
-      reasoning: ['Thermal anomaly + no movement for 8 min 22 sec + impact detected + voice check-in failed.'],
-      aiReasoningLine: 'Thermal anomaly + no movement for 8 min 22 sec + impact detected + voice check-in failed.',
+      reasoning: ['PIR/motion anomaly + no movement for 8 min 22 sec + sound impact detected + mic/speaker check-in failed.'],
+      aiReasoningLine: 'PIR/motion anomaly + no movement for 8 min 22 sec + sound impact detected + mic/speaker check-in failed.',
       detectorEvidence: {
-        thermal: 'floor-level presence detected',
-        acoustic: '72dB impact detected',
-        loadMat: 'no return detected',
-        doorFridge: 'routine activity missing',
-        voice: 'failed after 2 attempts',
+        thermal: 'PIR + motion sensors show floor-level presence',
+        acoustic: 'sound sensor detected 72dB impact',
+        loadMat: 'mattress load sensor: no return detected',
+        doorFridge: 'ultrasonic presence indicates routine activity missing',
+        voice: 'mic + speaker failed after 2 attempts',
       },
     },
     opsLog: [
@@ -244,7 +238,7 @@ const initialIncidents: Incident[] = [
     description: 'Kitchen fire reported. Smoke detected near service yard. Neighbours on floors 10-12 have been alerted for precautionary evacuation.',
     evidence: [
       'Smoke pattern detected',
-      'Rapid thermal increase',
+      'Rapid heat/smoke pattern',
       'Multiple 995 cross-reports'
     ],
     opsLog: [
@@ -270,11 +264,11 @@ const initialIncidents: Incident[] = [
     evidence: [
       'Acoustic impact (78dB)',
       'Sustained floor vibration',
-      'Thermal posture anomaly'
+      'PIR/motion posture anomaly'
     ],
     opsLog: [
       { time: '19:30', title: 'EchoSync Alert', description: 'Edge AI detected heavy fall — acoustic impact 78dB + sustained floor vibration.', source: 'EchoSync Sensor' },
-      { time: '19:31', title: 'AI Confidence Verified', description: '88% confidence score. Thermal signature shows horizontal posture >90s.', source: 'EchoSync Edge' },
+      { time: '19:31', title: 'AI Confidence Verified', description: '88% confidence score. PIR/motion pattern shows horizontal posture >90s.', source: 'EchoSync Edge' },
       { time: '19:32', title: 'Voice Check-In Failed', description: 'Automated voice check-in attempted. No verbal response from resident.', source: 'EchoSync Gateway' },
       { time: '19:33', title: 'Operator Verified', description: 'Dispatcher confirmed alert. Dispatch initiated as welfare/medical.', source: 'Command Centre' },
       { time: '19:35', title: 'SCDF Unit Dispatched', description: 'AMB-22 dispatched from Jurong Fire Station.', source: 'Dispatch system' },
@@ -395,22 +389,22 @@ function getOperationalSummary(scenario: EchoSyncScenarioId) {
 function getAiReasoningLine(scenario: EchoSyncScenarioId, immobileTime: string) {
   switch (scenario) {
     case 'critical-no-response':
-      return `Thermal anomaly + no movement for ${immobileTime} + impact detected + voice check-in failed.`;
+      return `PIR/motion anomaly + no movement for ${immobileTime} + sound impact detected + mic/speaker check-in failed.`;
     case 'false-alarm-filtered':
       return 'Impact only + normal movement + resident confirmed okay.';
     case 'needs-dispatcher-review':
-      return `Low presence + no movement for ${immobileTime} + bed exit no return + unclear voice response.`;
+      return `Low PIR/motion activity + no movement for ${immobileTime} + load mat no return + unclear mic/speaker response.`;
   }
 }
 
 function getEvidenceChips(scenario: EchoSyncScenarioId, immobileTime: string) {
   switch (scenario) {
     case 'critical-no-response':
-      return ['Thermal anomaly', `No movement ${immobileTime}`, 'Impact detected', 'Load mat no return', 'Voice check-in failed'];
+      return ['PIR/motion anomaly', `No movement ${immobileTime}`, 'Sound impact detected', 'Load mat no return', 'Mic/speaker failed'];
     case 'false-alarm-filtered':
       return ['Impact only', 'Resident okay', 'Movement normal', 'Routine normal'];
     case 'needs-dispatcher-review':
-      return ['Low presence', `No movement ${immobileTime}`, 'Bed exit no return', 'Routine deviation', 'Voice unclear'];
+      return ['Low PIR/motion activity', `No movement ${immobileTime}`, 'Load mat no return', 'Ultrasonic routine deviation', 'Mic/speaker unclear'];
   }
 }
 
@@ -418,27 +412,27 @@ function getDetectorFindings(alert: EchoSyncSimulationResult, scenario: EchoSync
   switch (scenario) {
     case 'critical-no-response':
       return {
-        thermal: 'floor-level presence detected',
-        acoustic: `${alert.detectors.acoustic.impactDb}dB impact detected`,
-        loadMat: 'no return detected',
-        doorFridge: 'routine activity missing',
-        voice: `failed after ${alert.voiceCheckIn.attempts} attempts`,
+        thermal: 'PIR + motion sensors show floor-level presence',
+        acoustic: `sound sensor detected ${alert.detectors.acoustic.impactDb}dB impact`,
+        loadMat: 'mattress load sensor: no return detected',
+        doorFridge: 'ultrasonic presence indicates routine activity missing',
+        voice: `mic + speaker failed after ${alert.voiceCheckIn.attempts} attempts`,
       };
     case 'false-alarm-filtered':
       return {
-        thermal: 'normal movement detected',
-        acoustic: 'short impact only',
+        thermal: 'PIR + motion sensors show normal movement',
+        acoustic: 'sound sensor detected short impact only',
         loadMat: 'normal',
-        doorFridge: 'routine activity normal',
-        voice: 'resident said okay',
+        doorFridge: 'ultrasonic presence stable',
+        voice: 'mic + speaker check-in: resident said okay',
       };
     case 'needs-dispatcher-review':
       return {
-        thermal: 'low stationary presence',
-        acoustic: 'no major impact',
-        loadMat: 'bed exit, no return',
-        doorFridge: 'routine deviation',
-        voice: `unclear after ${alert.voiceCheckIn.attempts} attempts`,
+        thermal: 'PIR + motion sensors show low activity',
+        acoustic: 'sound sensor found no major impact',
+        loadMat: 'mattress load sensor: no return',
+        doorFridge: 'ultrasonic presence routine deviation',
+        voice: `mic + speaker unclear after ${alert.voiceCheckIn.attempts} attempts`,
       };
   }
 }
@@ -926,53 +920,6 @@ function IncidentDetailStrip({
   onRunSimulation: (scenario: EchoSyncScenarioId) => void;
   simulationLoading: EchoSyncScenarioId | null;
 }) {
-  const [vlmLoading, setVlmLoading] = useState(false);
-  const [vlmResult, setVlmResult] = useState<VlmVerificationResult | null>(null);
-  const [vlmError, setVlmError] = useState(false);
-
-  useEffect(() => {
-    const resetTimer = setTimeout(() => {
-      setVlmLoading(false);
-      setVlmResult(null);
-      setVlmError(false);
-    }, 0);
-
-    return () => clearTimeout(resetTimer);
-  }, [incident?.id]);
-
-  const handleRunVisualVerification = async () => {
-    if (!incident?.simulation) return;
-
-    setVlmLoading(true);
-    setVlmError(false);
-
-    try {
-      const response = await fetch('/api/vlm-verify', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          caseId: incident.id,
-          caseType: incident.type,
-          title: incident.type,
-          location: incident.location,
-          confidence: incident.simulation.confidence,
-          riskLevel: incident.simulation.riskLevel,
-          priority: incident.severity,
-          sensorSummary: incident.simulation.aiReasoningLine || incident.evidence.join(' + '),
-        }),
-      });
-
-      if (!response.ok) throw new Error('VLM verification unavailable');
-
-      setVlmResult(await response.json() as VlmVerificationResult);
-    } catch {
-      setVlmResult(null);
-      setVlmError(true);
-    } finally {
-      setVlmLoading(false);
-    }
-  };
-
   if (!incident) {
     return (
       <div className="bg-white border-t border-slate-200 px-4 py-4 flex items-center justify-center text-slate-500 text-[12px] h-[68px]">
@@ -1080,11 +1027,11 @@ function IncidentDetailStrip({
           </div>
 
           <div className="grid gap-1.5 text-[10.5px] text-slate-700 md:grid-cols-2">
-            <p><span className="font-bold text-slate-500">Thermal presence:</span> {incident.simulation.detectorEvidence.thermal}</p>
-            <p><span className="font-bold text-slate-500">Acoustic impact/distress:</span> {incident.simulation.detectorEvidence.acoustic}</p>
-            <p><span className="font-bold text-slate-500">Under-mattress load mat:</span> {incident.simulation.detectorEvidence.loadMat}</p>
-            <p><span className="font-bold text-slate-500">Door/fridge sensors:</span> {incident.simulation.detectorEvidence.doorFridge}</p>
-            <p className="md:col-span-2"><span className="font-bold text-slate-500">Voice check-in:</span> {incident.simulation.detectorEvidence.voice}</p>
+            <p><span className="font-bold text-slate-500">PIR + motion sensors:</span> {incident.simulation.detectorEvidence.thermal}</p>
+            <p><span className="font-bold text-slate-500">Sound sensor:</span> {incident.simulation.detectorEvidence.acoustic}</p>
+            <p><span className="font-bold text-slate-500">Mattress load sensor:</span> {incident.simulation.detectorEvidence.loadMat}</p>
+            <p><span className="font-bold text-slate-500">Ultrasonic sensor:</span> {incident.simulation.detectorEvidence.doorFridge}</p>
+            <p className="md:col-span-2"><span className="font-bold text-slate-500">Mic + speaker check-in:</span> {incident.simulation.detectorEvidence.voice}</p>
           </div>
 
           <div className="rounded bg-white px-2 py-1.5 border border-slate-100">
@@ -1093,39 +1040,11 @@ function IncidentDetailStrip({
           </div>
 
           <div className="rounded bg-white px-2 py-1.5 border border-slate-100">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Optional Visual Verification</p>
-                <p className="text-[10px] font-medium text-slate-500">Activated only after sensor anomaly detection.</p>
-              </div>
-              <button
-                type="button"
-                onClick={handleRunVisualVerification}
-                disabled={vlmLoading}
-                className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
-              >
-                {vlmLoading ? 'Verifying...' : 'Run Visual Verification'}
-              </button>
-            </div>
-            {vlmLoading && (
-              <p className="mt-1.5 text-[10.5px] font-semibold text-slate-500">Visual verification running...</p>
-            )}
-            {vlmError && (
-              <p className="mt-1.5 text-[10.5px] font-semibold text-slate-600">
-                Visual verification is unavailable. The dashboard remains on sensor fusion and confidence scoring.
-              </p>
-            )}
-            {vlmResult && (
-              <div className="mt-1.5 space-y-1">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10.5px] font-semibold text-slate-700">{vlmResult.visualSummary}</span>
-                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-slate-500">
-                    {vlmResult.source === 'Fallback' ? 'Fallback Mode' : 'VLM Verified'}
-                  </span>
-                </div>
-                <p className="text-[9px] font-mono font-semibold text-slate-400">Model: {vlmResult.model}</p>
-              </div>
-            )}
+            <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">GB10 AI sensor explanation</p>
+            <p className="text-[10.5px] font-semibold text-slate-700">
+              Generated from fused sensor-only triggers: mic/speaker, ultrasonic, PIR, motion, sound impact, and mattress load signals.
+            </p>
+            <p className="mt-1 text-[9px] font-mono font-semibold text-slate-400">Source: GB10 NIM / sensor fusion</p>
           </div>
 
           {incident.simulation.aiSummary && (
