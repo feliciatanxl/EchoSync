@@ -188,8 +188,8 @@ const initialIncidents: Incident[] = [
     elapsedTime: '00:08:22',
     severity: 'Critical',
     flagged: true,
-    status: 'Dispatched',
-    assignedUnit: 'AMB-14',
+    status: 'Active',
+    assignedUnit: 'Emergency operator review',
     lastUpdated: '19:50',
     ...toIncidentLocationFields(resolveIncidentLocation('INC-2026-089')!),
     description: 'Possible fall detected. No response after voice check-in.',
@@ -205,7 +205,7 @@ const initialIncidents: Incident[] = [
       detectionToAlert: '11 sec',
       riskLevel: 'Critical',
       voiceResult: 'no-response',
-      recommendedAction: 'Dispatcher review, notify CFR, prepare SCDF escalation.',
+      recommendedAction: 'Emergency operator review. Suggest CFR/AED coordination via myResponder-style workflow.',
       reasoning: ['PIR/motion anomaly + no movement for 8 min 22 sec + sound impact detected + mic/speaker check-in failed.'],
       aiReasoningLine: 'PIR/motion anomaly + no movement for 8 min 22 sec + sound impact detected + mic/speaker check-in failed.',
       detectorEvidence: {
@@ -457,11 +457,11 @@ function TopNav({
           </div>
           <div className="leading-none">
             <span className="text-[13px] font-bold text-slate-900 tracking-tight">EchoSync</span>
-            <span className="text-[9px] text-slate-400 font-medium block -mt-0.5">Command Center</span>
+            <span className="text-[9px] text-slate-400 font-medium block -mt-0.5">Triage Dashboard</span>
           </div>
         </div>
         <div className="hidden md:block h-5 w-px bg-slate-200" />
-        <h1 className="hidden md:block text-[13px] font-semibold text-slate-500">Emergency Operations Dashboard</h1>
+        <h1 className="hidden md:block text-[13px] font-semibold text-slate-500">AI-assisted pre-arrival intelligence</h1>
       </div>
       <div className="flex items-center gap-0.5">
         <button className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title="Search">
@@ -932,55 +932,47 @@ function IncidentDetailStrip({
 
   return (
     <div className="bg-white border-t border-slate-200 px-4 py-3 flex flex-col gap-2 shrink-0 max-h-[38%] overflow-y-auto overflow-x-hidden">
-      {/* Top Row: Info + Actions */}
-      <div className="flex items-start md:items-center justify-between gap-3 flex-col md:flex-row">
-        {/* Info area */}
-        <div className="min-w-0 flex-1 flex flex-wrap items-center gap-2">
-          {/* Identity */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className={`w-7 h-7 rounded-md ${sev.bg} ${sev.text} flex items-center justify-center shadow-sm border border-white/50`}>
-              {typeIcon(incident.type)}
-            </div>
-            <div className="min-w-0 flex flex-col">
-              <p className="text-[12px] font-bold text-slate-900 leading-tight">{incident.type} <span className="text-slate-400 font-mono font-medium text-[10px] ml-1">{incident.id}</span></p>
-              <p className="text-[10px] font-medium text-slate-500">{incident.location}</p>
-            </div>
-          </div>
-
-          <div className="w-px h-5 bg-slate-200 flex-shrink-0 mx-1 hidden sm:block" />
-
-          {/* Stat Pills */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {[
-              { label: 'Unit', value: incident.assignedUnit || 'None' },
-              { label: 'Priority', value: incident.severity },
-              { label: 'Elapsed', value: incident.elapsedTime },
-              { label: 'Updated', value: incident.lastUpdated },
-              { label: 'Status', value: incident.status },
-            ].map((item) => (
-              <div key={item.label} className="bg-slate-50 rounded px-2 py-0.5 border border-slate-100 flex items-baseline gap-1.5">
-                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">{item.label}</span>
-                <span className="text-[10px] font-bold text-slate-700">{item.value}</span>
-              </div>
-            ))}
-          </div>
+      {/* Top Row: Incident identity */}
+      <div className="flex min-w-0 items-center gap-2">
+        <div className={`w-7 h-7 rounded-md ${sev.bg} ${sev.text} flex items-center justify-center shadow-sm border border-white/50 flex-shrink-0`}>
+          {typeIcon(incident.type)}
         </div>
-
-        {/* Action buttons */}
-        <div className="shrink-0 flex items-center gap-1.5 self-end md:self-auto">
-          <button className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white text-[10px] font-semibold transition-colors shadow-sm">
-            <Send className="w-3.5 h-3.5" /> Dispatch
-          </button>
-          <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold transition-colors border border-slate-200 shadow-sm">
-            <MessageSquare className="w-3.5 h-3.5 text-slate-500" /> Chat
-          </button>
-          <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold transition-colors border border-slate-200 shadow-sm">
-            <Radio className="w-3.5 h-3.5 text-slate-500" /> Broadcast
-          </button>
-          <button className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold transition-colors shadow-sm ml-1">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Resolve
-          </button>
+        <div className="min-w-0 flex flex-col">
+          <p className="min-w-0 truncate text-[12px] font-bold text-slate-900 leading-tight">{incident.type} <span className="text-slate-400 font-mono font-medium text-[10px] ml-1">{incident.id}</span></p>
+          <p className="min-w-0 truncate text-[10px] font-medium text-slate-500">{incident.location}</p>
         </div>
+      </div>
+
+      {/* Stat Pills */}
+      <div className="grid min-w-0 grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-1.5">
+        {[
+          { label: 'Unit', value: incident.assignedUnit || 'None' },
+          { label: 'Priority', value: incident.severity },
+          { label: 'Elapsed', value: incident.elapsedTime },
+          { label: 'Updated', value: incident.lastUpdated },
+          { label: 'Status', value: incident.status },
+        ].map((item) => (
+          <div key={item.label} className="min-w-0 bg-slate-50 rounded px-2 py-1 border border-slate-100">
+            <span className="block text-[8px] font-bold uppercase tracking-wider text-slate-400">{item.label}</span>
+            <span className="block text-[10px] font-bold text-slate-700 leading-tight break-words">{item.value}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Action buttons */}
+      <div className="w-full min-w-0 flex flex-wrap items-center gap-1.5">
+        <button className="min-w-0 whitespace-nowrap flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white text-[10px] font-semibold transition-colors shadow-sm">
+          <Send className="w-3.5 h-3.5 flex-shrink-0" /> Send for operator review
+        </button>
+        <button className="min-w-0 whitespace-nowrap flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold transition-colors border border-slate-200 shadow-sm">
+          <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 text-slate-500" /> Notify caregiver
+        </button>
+        <button className="min-w-0 whitespace-nowrap flex items-center gap-1 px-2 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold transition-colors border border-slate-200 shadow-sm">
+          <Radio className="w-3.5 h-3.5 flex-shrink-0 text-slate-500" /> Suggest CFR/AED coordination
+        </button>
+        <button className="min-w-0 whitespace-nowrap flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold transition-colors shadow-sm">
+          <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> Escalate verified alert
+        </button>
       </div>
 
       {/* Bottom Row: Evidence Summary */}
@@ -988,7 +980,7 @@ function IncidentDetailStrip({
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs bg-amber-50/50 p-2.5 rounded-md border border-amber-100 shadow-sm">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 flex-shrink-0 flex items-center gap-1.5">
-               <AlertTriangle className="w-3.5 h-3.5" /> AI Alert Reasoning:
+               <AlertTriangle className="w-3.5 h-3.5" /> Why this alert was raised:
             </span>
             <span className="min-w-0 text-[11.5px] font-semibold text-slate-800 leading-snug">
               {incident.simulation?.aiReasoningLine || incident.evidence.join(' + ')}
@@ -1565,7 +1557,7 @@ export default function DashboardV2() {
           <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
             <h2 className="text-[12px] font-bold text-slate-800 flex items-center gap-1.5">
               <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-              Incidents
+              Triage Queue
             </h2>
             <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">
               {filteredIncidents.length}
