@@ -345,16 +345,6 @@ function severityColor(s: Severity) {
   }
 }
 
-function statusColor(s: IncidentStatus) {
-  switch (s) {
-    case 'Active': return 'text-red-600 bg-red-50';
-    case 'Dispatched': return 'text-blue-600 bg-blue-50';
-    case 'En Route': return 'text-cyan-600 bg-cyan-50';
-    case 'On Scene': return 'text-emerald-600 bg-emerald-50';
-    case 'Resolved': return 'text-slate-500 bg-slate-100';
-  }
-}
-
 function typeIcon(type: string) {
   switch (type) {
     case 'Medical': return <HeartPulse className="w-4 h-4" />;
@@ -941,9 +931,13 @@ function IncidentDetailStrip({
   const [vlmError, setVlmError] = useState(false);
 
   useEffect(() => {
-    setVlmLoading(false);
-    setVlmResult(null);
-    setVlmError(false);
+    const resetTimer = setTimeout(() => {
+      setVlmLoading(false);
+      setVlmResult(null);
+      setVlmError(false);
+    }, 0);
+
+    return () => clearTimeout(resetTimer);
   }, [incident?.id]);
 
   const handleRunVisualVerification = async () => {
@@ -1420,7 +1414,10 @@ export default function DashboardV2() {
   const [mounted, setMounted] = useState(false);
   const broadcastTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const mountedTimer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(mountedTimer);
+  }, []);
 
   useEffect(() => {
     return () => {

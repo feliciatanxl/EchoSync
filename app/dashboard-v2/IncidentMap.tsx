@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -10,7 +9,7 @@ import 'leaflet/dist/leaflet.css';
 // ─────────────────────────────────────────────────────────
 
 type Severity = 'Critical' | 'High' | 'Medium' | 'Low';
-type IncidentStatus = 'Active' | 'Dispatched' | 'En Route' | 'On Scene' | 'Resolved';
+type IncidentStatus = 'Active' | 'Dispatched' | 'Operator Review' | 'En Route' | 'On Scene' | 'Resolved';
 
 interface OpsLogEntry {
   time: string;
@@ -97,6 +96,7 @@ function popupContent(inc: Incident): string {
   const statusStyle: Record<string, string> = {
     Active: 'background:#fef2f2;color:#dc2626;',
     Dispatched: 'background:#eff6ff;color:#2563eb;',
+    'Operator Review': 'background:#eff6ff;color:#2563eb;',
     'En Route': 'background:#ecfeff;color:#0891b2;',
     'On Scene': 'background:#ecfdf5;color:#059669;',
     Resolved: 'background:#f8fafc;color:#64748b;',
@@ -190,45 +190,6 @@ function popupContent(inc: Incident): string {
 // FlyTo controller
 // ─────────────────────────────────────────────────────────
 
-function FlyToController({ incident }: { incident: Incident | null }) {
-  const map = useMap();
-  const prevId = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (incident && incident.id !== prevId.current) {
-      map.flyTo([incident.lat, incident.lng], 17, { duration: 1.2 });
-      prevId.current = incident.id;
-    } else if (!incident && prevId.current !== null) {
-      map.flyTo([1.3521, 103.8198], 12, { duration: 1.2 });
-      map.closePopup();
-      prevId.current = null;
-    }
-  }, [incident, map]);
-
-  return null;
-}
-
-function PopupCloseHandler({ onClose }: { onClose: () => void }) {
-  const map = useMap();
-
-  useEffect(() => {
-    const container = map.getContainer();
-    const handleClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (!target?.closest('.incident-popup-close')) return;
-      event.preventDefault();
-      event.stopPropagation();
-      map.closePopup();
-      onClose();
-    };
-
-    container.addEventListener('click', handleClick);
-    return () => container.removeEventListener('click', handleClick);
-  }, [map, onClose]);
-
-  return null;
-}
-
 // ─────────────────────────────────────────────────────────
 // Exported Map Component
 // ─────────────────────────────────────────────────────────
@@ -243,16 +204,94 @@ export default function IncidentMap({
   onSelectIncident: (id: string | null) => void;
 }) {
   const selectedIncident = incidents.find(i => i.id === selectedId) || null;
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
   const markerRefs = useRef<Record<string, L.Marker>>({});
+  const onSelectIncidentRef = useRef(onSelectIncident);
 
   useEffect(() => {
-    if (!selectedId) return;
-    const timeout = setTimeout(() => {
-      const marker = markerRefs.current[selectedId];
-      if (marker) marker.openPopup();
-    }, 900);
-    return () => clearTimeout(timeout);
-  }, [selectedId]);
+    onSelectIncidentRef.current = onSelectIncident;
+  }, [onSelectIncident]);
+
+  useEffect(() => {
+    const container = containerRef.current as (HTMLDivElement & { _leaflet_id?: number }) | null;
+    if (!container || mapRef.current) return;
+
+    if (container._leaflet_id) {
+      delete container._leaflet_id;
+    }
+
+    const map = L.map(container, {
+      center: [1.3521, 103.8198],
+      zoom: 12,
+      zoomControl: false,
+      attributionControl: false,
+    });
+
+    L.tileLayer('https://www.onemap.gov.sg/maps/tiles/Default/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.onemap.gov.sg/">OneMap</a>',
+    }).addTo(map);
+
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest('.incident-popup-close')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      map.closePopup();
+      onSelectIncidentRef.current(null);
+    };
+
+    container.addEventListener('click', handleClick);
+    mapRef.current = map;
+    const resizeTimer = setTimeout(() => map.invalidateSize(), 0);
+
+    return () => {
+      clearTimeout(resizeTimer);
+      container.removeEventListener('click', handleClick);
+      markerRefs.current = {};
+      map.remove();
+      mapRef.current = null;
+      if (container._leaflet_id) {
+        delete container._leaflet_id;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    Object.values(markerRefs.current).forEach((marker) => marker.remove());
+    markerRefs.current = {};
+
+    incidents.forEach((inc) => {
+      const marker = L.marker([inc.lat, inc.lng], {
+        icon: createIcon(inc.severity, inc.id === selectedId),
+      })
+        .bindPopup(popupContent(inc), {
+          minWidth: 360,
+          maxWidth: 420,
+          closeButton: false,
+          autoPan: true,
+          keepInView: true,
+        })
+        .on('click', () => onSelectIncidentRef.current(inc.id))
+        .addTo(map);
+
+      markerRefs.current[inc.id] = marker;
+    });
+
+    if (selectedIncident) {
+      map.flyTo([selectedIncident.lat, selectedIncident.lng], 17, { duration: 1.2 });
+      const popupTimer = setTimeout(() => {
+        markerRefs.current[selectedIncident.id]?.openPopup();
+      }, 900);
+      return () => clearTimeout(popupTimer);
+    }
+
+    map.closePopup();
+    map.flyTo([1.3521, 103.8198], 12, { duration: 1.2 });
+  }, [incidents, selectedId, selectedIncident]);
 
   return (
     <div className="w-full h-full relative overflow-hidden">
@@ -344,40 +383,7 @@ export default function IncidentMap({
           background: #f8fafc !important;
         }
       `}</style>
-      <MapContainer
-        center={[1.3521, 103.8198]}
-        zoom={12}
-        className="w-full h-full"
-        zoomControl={false}
-        attributionControl={false}
-      >
-        <TileLayer
-          url="https://www.onemap.gov.sg/maps/tiles/Default/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.onemap.gov.sg/">OneMap</a>'
-        />
-        <FlyToController incident={selectedIncident} />
-        <PopupCloseHandler onClose={() => onSelectIncident(null)} />
-        {incidents.map((inc) => {
-          const isSelected = inc.id === selectedId;
-          return (
-            <Marker
-              key={inc.id}
-              position={[inc.lat, inc.lng]}
-              icon={createIcon(inc.severity, isSelected)}
-              eventHandlers={{
-                click: () => onSelectIncident(inc.id),
-              }}
-              ref={(ref) => {
-                if (ref) markerRefs.current[inc.id] = ref;
-              }}
-            >
-              <Popup minWidth={360} maxWidth={420} closeButton={false} autoPan keepInView>
-                <div dangerouslySetInnerHTML={{ __html: popupContent(inc) }} />
-              </Popup>
-            </Marker>
-          );
-        })}
-      </MapContainer>
+      <div ref={containerRef} className="w-full h-full" />
     </div>
   );
 }
