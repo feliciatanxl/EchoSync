@@ -1313,7 +1313,7 @@ function FullOpsLogWorkspace({
 export default function DashboardV2() {
   const [incidents, setIncidents] = useState<Incident[]>(initialIncidents);
   const [broadcastOpsLog, setBroadcastOpsLog] = useState<GlobalOpsLogEntry[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>('INC-2026-089');
   const [filter, setFilter] = useState<'All' | 'Critical' | 'Flagged' | 'Unflagged' | 'Active'>('All');
   const [notifAcknowledged, setNotifAcknowledged] = useState(false);
   const [notifDismissed, setNotifDismissed] = useState(false);
