@@ -115,6 +115,19 @@ interface Incident {
   };
 }
 
+type SensorApiEvent = {
+  nodeId?: string;
+  resident?: string;
+  location?: string;
+  eventType?: string;
+  riskLevel?: string;
+  confidence?: number;
+  sensorData?: unknown;
+  voiceCheckIn?: unknown;
+  aiSummary?: string;
+  receivedAt?: string;
+};
+
 // ─────────────────────────────────────────────────────────
 // Mock Data
 // ─────────────────────────────────────────────────────────
@@ -358,13 +371,97 @@ function statusFromRisk(riskLevel: Severity): IncidentStatus {
   if (riskLevel === 'Low') return 'Resolved';
   if (riskLevel === 'Medium') return 'Active';
   if (riskLevel === 'High') return 'Active';
-  return 'Dispatched';
+  return 'Active';
 }
 
 function assignedUnitFromRisk(riskLevel: Severity) {
-  if (riskLevel === 'Critical') return 'CFR + SCDF Pending';
-  if (riskLevel === 'High') return 'Dispatcher Review';
+  if (riskLevel === 'Critical') return 'Urgent operator review';
+  if (riskLevel === 'High') return 'Operator review';
   return 'Unassigned';
+}
+
+function normalizeSeverity(value?: string): Severity | null {
+  const normalized = value?.toLowerCase();
+  if (normalized === 'critical') return 'Critical';
+  if (normalized === 'high') return 'High';
+  if (normalized === 'medium') return 'Medium';
+  if (normalized === 'low') return 'Low';
+  return null;
+}
+
+function describeUnknown(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(String);
+  if (value && typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>).map(([key, item]) => `${key}: ${String(item)}`);
+  }
+  return value == null ? [] : [String(value)];
+}
+
+function voiceResult(value: unknown) {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return String(record.result ?? record.status ?? record.response ?? 'Not recorded');
+  }
+  return 'Not recorded';
+}
+
+function liveEventToIncident(event: SensorApiEvent, index: number): Incident | null {
+  const severity = normalizeSeverity(event.riskLevel);
+  if (severity !== 'High' && severity !== 'Critical') return null;
+
+  const resolvedLocation = (event.nodeId ? resolveIncidentLocation(event.nodeId) : null)
+    || (event.location ? resolveIncidentLocation(event.location) : null);
+  const evidence = describeUnknown(event.sensorData);
+  const voice = voiceResult(event.voiceCheckIn);
+  const confidence = Math.round(event.confidence ?? 0);
+  const received = event.receivedAt ? new Date(event.receivedAt) : new Date();
+  const noResponse = /no[- ]?response|unresponsive|failed/i.test(voice);
+  const recommendedAction = noResponse || severity === 'Critical'
+    ? 'Urgent operator review. Consider myResponder CFR/AED coordination and escalate to SCDF if emergency signs are confirmed or there is no response.'
+    : 'Operator review. Consider myResponder CFR/AED coordination; notify the caregiver while verification is in progress.';
+
+  return {
+    id: `${event.nodeId || 'LIVE'}-${event.receivedAt || index}`,
+    type: event.eventType || 'Sensor anomaly',
+    ...(resolvedLocation
+      ? toIncidentLocationFields(resolvedLocation)
+      : {
+          location: event.location || 'Registered HDB unit unavailable',
+          lat: 1.3521,
+          lng: 103.8198,
+          locationSource: 'Registered HDB address',
+          locationAccuracy: 'Unit registration pending verification',
+        }),
+    elapsedTime: 'Live',
+    severity,
+    flagged: severity === 'Critical',
+    status: 'Active',
+    assignedUnit: assignedUnitFromRisk(severity),
+    lastUpdated: received.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' }),
+    description: event.aiSummary || `${event.eventType || 'Anomaly'} detected for ${event.resident || 'registered resident'}.`,
+    evidence: evidence.length ? evidence : ['Sensor trigger received', `AI calculated score: ${confidence}%`],
+    opsLog: [],
+    nodeId: event.nodeId,
+    simulation: {
+      confidence,
+      immobileTime: 'Not provided',
+      detectionToAlert: 'Live',
+      riskLevel: severity,
+      voiceResult: voice,
+      recommendedAction,
+      reasoning: evidence,
+      aiReasoningLine: [...evidence, `AI calculated score ${confidence}%`].join(' + '),
+      aiSummary: event.aiSummary ? { summary: event.aiSummary, source: 'NIM' } : undefined,
+      detectorEvidence: {
+        thermal: evidence.join('; ') || 'Trigger details not provided',
+        acoustic: 'See trigger evidence',
+        loadMat: 'See trigger evidence',
+        doorFridge: 'See trigger evidence',
+        voice,
+      },
+    },
+  };
 }
 
 function currentDashboardTime() {
@@ -923,7 +1020,7 @@ function IncidentDetailStrip({
   if (!incident) {
     return (
       <div className="bg-white border-t border-slate-200 px-4 py-4 flex items-center justify-center text-slate-500 text-[12px] h-[68px]">
-        Select an incident from the list to view dispatch details and actions.
+        Select an incident to review detection evidence and pre-arrival actions.
       </div>
     );
   }
@@ -939,14 +1036,14 @@ function IncidentDetailStrip({
         </div>
         <div className="min-w-0 flex flex-col">
           <p className="min-w-0 truncate text-[12px] font-bold text-slate-900 leading-tight">{incident.type} <span className="text-slate-400 font-mono font-medium text-[10px] ml-1">{incident.id}</span></p>
-          <p className="min-w-0 truncate text-[10px] font-medium text-slate-500">{incident.location}</p>
+          <p className="min-w-0 truncate text-[10px] font-medium text-slate-500">Registered HDB unit: {incident.location}</p>
         </div>
       </div>
 
       {/* Stat Pills */}
       <div className="grid min-w-0 grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-1.5">
         {[
-          { label: 'Unit', value: incident.assignedUnit || 'None' },
+          { label: 'Routing', value: incident.assignedUnit || 'None' },
           { label: 'Priority', value: incident.severity },
           { label: 'Elapsed', value: incident.elapsedTime },
           { label: 'Updated', value: incident.lastUpdated },
@@ -971,9 +1068,16 @@ function IncidentDetailStrip({
           <Radio className="w-3.5 h-3.5 flex-shrink-0 text-slate-500" /> Suggest CFR/AED coordination
         </button>
         <button className="min-w-0 whitespace-nowrap flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold transition-colors shadow-sm">
-          <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> Escalate verified alert
+          <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> SCDF escalation if urgent / no response
         </button>
       </div>
+
+      {(incident.severity === 'High' || incident.severity === 'Critical') && (
+        <div className="rounded-md border border-teal-100 bg-teal-50/70 px-2.5 py-2">
+          <p className="text-[9px] font-bold uppercase tracking-wider text-teal-700">myResponder operator review / CFR-AED coordination</p>
+          <p className="mt-0.5 text-[10.5px] text-slate-700">EchoSync can send this high-confidence detection for operator review. Public responder coordination is operator-led, not automatically dispatched.</p>
+        </div>
+      )}
 
       {/* Bottom Row: Evidence Summary */}
       {incident.evidence && incident.evidence.length > 0 && (
@@ -1004,12 +1108,13 @@ function IncidentDetailStrip({
 
       {incident.simulation && (
         <div className="grid gap-2 rounded-md border border-slate-100 bg-slate-50/70 p-2.5">
-          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
             {[
               { label: 'Confidence', value: `${incident.simulation.confidence}%` },
               { label: 'Immobile', value: incident.simulation.immobileTime },
               { label: 'Detect-to-alert', value: incident.simulation.detectionToAlert },
               { label: 'Risk', value: incident.simulation.riskLevel },
+              { label: 'Voice result', value: incident.simulation.voiceResult },
             ].map((metric) => (
               <div key={metric.label} className="min-w-0 rounded bg-white px-2 py-1.5 border border-slate-100">
                 <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">{metric.label}</p>
@@ -1042,7 +1147,7 @@ function IncidentDetailStrip({
           {incident.simulation.aiSummary && (
             <div className="rounded bg-white px-2 py-1.5 border border-slate-100">
               <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
-                AI Summary <span className="font-mono normal-case">({incident.simulation.aiSummary.source})</span>
+                GB10 AI Summary <span className="font-mono normal-case">({incident.simulation.aiSummary.source})</span>
               </p>
               <p className="text-[10.5px] font-semibold text-slate-700">{incident.simulation.aiSummary.summary}</p>
             </div>
@@ -1324,6 +1429,7 @@ export default function DashboardV2() {
   const [simulationToast, setSimulationToast] = useState<SimulationToastState | null>(null);
   const [mounted, setMounted] = useState(false);
   const broadcastTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const liveDataActive = useRef(false);
 
   useEffect(() => {
     const mountedTimer = setTimeout(() => setMounted(true), 0);
@@ -1335,6 +1441,38 @@ export default function DashboardV2() {
       broadcastTimers.current.forEach((timer) => clearTimeout(timer));
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    const loadLiveAlerts = async () => {
+      try {
+        const response = await fetch('/api/sensor-alert', { cache: 'no-store' });
+        if (!response.ok) return;
+        const payload = await response.json() as { events?: SensorApiEvent[] };
+        const liveIncidents = (payload.events || [])
+          .map(liveEventToIncident)
+          .filter((incident): incident is Incident => incident !== null);
+        if (active && liveIncidents.length) {
+          liveDataActive.current = true;
+          setIncidents(liveIncidents);
+          setSelectedId((current) => liveIncidents.some((incident) => incident.id === current) ? current : liveIncidents[0].id);
+        } else if (active && liveDataActive.current) {
+          liveDataActive.current = false;
+          setIncidents(initialIncidents);
+          setSelectedId('INC-2026-089');
+        }
+      } catch {
+        // Existing demo incidents remain visible when the live endpoint is unavailable.
+      }
+    };
+    void loadLiveAlerts();
+    const timer = setInterval(loadLiveAlerts, 5000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
+  
 
   const filteredIncidents = incidents.filter(inc => {
     if (filter === 'All') return true;

@@ -26,7 +26,7 @@ export function PauseScreen({
 }) {
   return (
     <>
-      <TopBar title="Pause normal monitoring" onBack={() => go("node")} />
+      <TopBar title="Pause low-risk monitoring" onBack={() => go("node")} />
       <ScreenScroll>
         <Card className="border-slate-200">
           <CardContent className="p-4">
@@ -70,7 +70,7 @@ export function PauseScreen({
           <CardContent className="p-3 flex gap-2 items-start">
             <AlertTriangle className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" />
             <p className="text-xs text-amber-800">
-              Critical alerts such as impact + no response will still be detected.
+              Critical alerts, no-response alerts, and high-risk events remain active.
             </p>
           </CardContent>
         </Card>

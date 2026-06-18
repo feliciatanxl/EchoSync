@@ -11,7 +11,33 @@ import ActiveResponseScreen from '@/components/ActiveResponseScreen';
 export default function Home() {
   const [alertOn, setAlertOn] = useState(false);
   const [activeAlert, setActiveAlert] = useState(null);
+  const [liveAlert, setLiveAlert] = useState<any>(null);
+  const [verificationStatus, setVerificationStatus] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetchMyResponderAlert() {
+      try {
+        const response = await fetch("/api/myresponder-alert", {
+          cache: "no-store",
+        });
+
+        const data = await response.json();
+
+        if (data.latest) {
+          setLiveAlert(data.latest);
+        }
+      } catch (error) {
+        console.error("Failed to fetch myResponder alert", error);
+      }
+    }
+
+    fetchMyResponderAlert();
+
+    const interval = setInterval(fetchMyResponderAlert, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const loadAlert = async () => {
@@ -151,6 +177,62 @@ export default function Home() {
 
       {/* Content */}
       <div className="px-4 py-4 space-y-5">
+        {liveAlert && (
+          <div className="bg-white border-2 border-amber-300 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-gray-900">EchoSync Verification Alert</h2>
+                  <p className="text-xs text-gray-500">{liveAlert.eventType || 'Resident check-in required'}</p>
+                </div>
+              </div>
+              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800 capitalize">
+                {liveAlert.riskLevel || 'Medium'}
+              </span>
+            </div>
+
+            <div className="mt-4 space-y-2 rounded-xl bg-gray-50 p-3 text-sm text-gray-700">
+              <p><span className="font-semibold text-gray-900">Risk:</span> {liveAlert.riskLevel || 'Low / Medium'}</p>
+              <p><span className="font-semibold text-gray-900">Location:</span> {liveAlert.location || 'Registered HDB unit'}</p>
+              <p><span className="font-semibold text-gray-900">Recommended action:</span> myResponder operator verification</p>
+              <p className="text-xs text-gray-500">Notify caregiver / acknowledge / escalate only if unable to verify</p>
+            </div>
+
+            <div className="mt-4 grid gap-2">
+              <button
+                type="button"
+                onClick={() => setVerificationStatus('Caregiver notified')}
+                className="w-full rounded-xl bg-[#1e3a8a] px-4 py-2.5 text-sm font-bold text-white"
+              >
+                Notify caregiver
+              </button>
+              <button
+                type="button"
+                onClick={() => setVerificationStatus('Alert acknowledged for operator verification')}
+                className="w-full rounded-xl border border-[#1e3a8a] bg-white px-4 py-2.5 text-sm font-bold text-[#1e3a8a]"
+              >
+                Acknowledge
+              </button>
+              <button
+                type="button"
+                onClick={() => setVerificationStatus('Unable to verify - sent for operator escalation review')}
+                className="w-full rounded-xl border border-amber-400 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-800"
+              >
+                Unable to verify - escalate for review
+              </button>
+            </div>
+
+            {verificationStatus && (
+              <p className="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-[#1e3a8a]">
+                {verificationStatus}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Guidelines banner */}
         <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 flex items-center gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />

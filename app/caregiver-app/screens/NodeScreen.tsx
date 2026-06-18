@@ -171,12 +171,19 @@ export function NodeScreen({
           <NodeControl
             icon={<Clock className="w-5 h-5" />}
             title="Update check-in schedule"
+            onClick={() =>
+              canRestart &&
+              setNodeLog({
+                title: "Check-in schedule updated",
+                sub: "The resident's next routine voice check-in has been scheduled.",
+              })
+            }
             locked={!canRestart}
             lockHint="Primary caregiver only"
           />
           <NodeControl
             icon={<Pause className="w-5 h-5" />}
-            title="Pause normal monitoring"
+            title="Pause low-risk monitoring"
             onClick={() => canPause && go("pause")}
             locked={!canPause}
             lockHint="Primary caregiver only"
@@ -207,7 +214,7 @@ export function NodeScreen({
             <Shield className="w-4 h-4 text-slate-600 mt-0.5 shrink-0" />
             <p className="text-xs text-slate-700">
               Caregiver controls are limited to prevent accidental delay during emergencies.
-              Critical impact + no-response alerts remain active even when normal monitoring is
+              Critical alerts, no-response alerts, and high-risk events remain active even when low-risk monitoring is
               paused.
             </p>
           </CardContent>

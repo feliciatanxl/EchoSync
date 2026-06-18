@@ -27,17 +27,20 @@ import {
   ToneBadge,
   type ReactNode
 } from "../shared";
+import type { CaregiverLiveAlert } from "../CaregiverApp";
 
 export function AlertScreen({
   go,
   risk,
   setRisk,
   role,
+  liveAlert,
 }: {
   go: (s: ScreenId) => void;
   risk: "medium" | "high";
   setRisk: (r: "medium" | "high") => void;
   role: Role;
+  liveAlert: CaregiverLiveAlert | null;
 }) {
   const [seconds, setSeconds] = useState(58);
   useEffect(() => {
@@ -47,7 +50,14 @@ export function AlertScreen({
   const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
   const ss = String(seconds % 60).padStart(2, "0");
   const isHigh = risk === "high";
-  const confidence = isHigh ? 91 : 78;
+  const confidence = Math.round(liveAlert?.confidence ?? (isHigh ? 91 : 78));
+  const alertRisk = liveAlert?.riskLevel?.toLowerCase();
+  const displayedRisk = alertRisk === 'low' ? 'Low' : alertRisk === 'medium' ? 'Medium' : isHigh ? 'High' : 'Medium';
+  const liveEvidence = Array.isArray(liveAlert?.sensorData)
+    ? liveAlert.sensorData.map(String)
+    : liveAlert?.sensorData && typeof liveAlert.sensorData === 'object'
+      ? Object.entries(liveAlert.sensorData as Record<string, unknown>).map(([key, value]) => `${key}: ${String(value)}`)
+      : [];
   const timedOut = seconds === 0;
   const canVerify = can(role, "verify");
   const [callLog, setCallLog] = useState<{ time: string; text: string }[]>([]);
@@ -93,13 +103,13 @@ export function AlertScreen({
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <ToneBadge tone={isHigh ? "red" : "amber"}>
-                <AlertTriangle className="w-3 h-3" /> {isHigh ? "High risk" : "Medium risk"}
+                <AlertTriangle className="w-3 h-3" /> {displayedRisk} risk
               </ToneBadge>
               <span className="text-xs text-slate-500">Confidence {confidence}%</span>
             </div>
-            <div className="mt-3 text-slate-900 text-lg">Possible Fall / No Response</div>
+            <div className="mt-3 text-slate-900 text-lg">{liveAlert?.eventType || 'Possible Fall / No Response'}</div>
             <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-              <MapPin className="w-3 h-3" /> {RESIDENT.address}
+              <MapPin className="w-3 h-3" /> Registered HDB unit: {liveAlert?.location || RESIDENT.address}
             </div>
 
             <div className="mt-4 rounded-xl bg-white border border-red-200 p-3">
@@ -127,6 +137,9 @@ export function AlertScreen({
             Why this alert was raised
           </div>
           <div className="flex flex-wrap gap-2">
+            {liveEvidence.map((item) => (
+              <Evidence key={item} icon={<AlertTriangle className="w-3 h-3" />} text={item} />
+            ))}
             <Evidence icon={<Volume2 className="w-3 h-3" />} text="Loud impact detected" />
             <Evidence icon={<Footprints className="w-3 h-3" />} text="No movement for 45s" />
             <Evidence

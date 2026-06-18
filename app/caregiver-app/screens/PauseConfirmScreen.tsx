@@ -45,10 +45,10 @@ export function PauseConfirmScreen({
         <Card className="border-amber-200 bg-amber-50">
           <CardContent className="p-4 space-y-2">
             <div className="text-amber-900 text-sm">
-              Normal monitoring will pause for {d.label.toLowerCase()}.
+              Low-risk monitoring will pause for {d.label.toLowerCase()}.
             </div>
             <div className="text-xs text-amber-800">
-              Critical alerts such as impact + no response will remain active.
+              Critical alerts, no-response alerts, and high-risk events remain active.
             </div>
           </CardContent>
         </Card>

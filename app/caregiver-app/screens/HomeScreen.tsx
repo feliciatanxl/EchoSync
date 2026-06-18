@@ -24,6 +24,7 @@ import {
   PauseBanner,
   type ReactNode
 } from "../shared";
+import type { CaregiverLiveAlert } from "../CaregiverApp";
 
 export function HomeScreen({
   go,
@@ -32,6 +33,7 @@ export function HomeScreen({
   clearPause,
   contactsSaved,
   clearContactsSaved,
+  liveAlert,
 }: {
   go: (s: ScreenId) => void;
   role: Role;
@@ -39,9 +41,15 @@ export function HomeScreen({
   clearPause: () => void;
   contactsSaved: boolean;
   clearContactsSaved: () => void;
+  liveAlert: CaregiverLiveAlert | null;
 }) {
   const canContacts = can(role, "contacts");
   const [showAlert, setShowAlert] = useState(false);
+  const visibleAlert = liveAlert || (showAlert ? {
+    eventType: 'Possible fall',
+    riskLevel: 'Medium',
+    confidence: 78,
+  } : null);
   const lastUpdated = new Date().toLocaleTimeString("en-SG", {
     hour: "2-digit",
     minute: "2-digit",
@@ -105,7 +113,7 @@ export function HomeScreen({
           <Stat icon={<Phone className="w-4 h-4" />} label="Contacts" value="Updated" />
         </div>
 
-        {showAlert ? (
+        {visibleAlert ? (
           <Card className="border-amber-300 bg-amber-50">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -113,10 +121,10 @@ export function HomeScreen({
                   <AlertTriangle className="w-4 h-4" />
                   <span>Verification needed</span>
                 </div>
-                <ToneBadge tone="amber">Medium</ToneBadge>
+                <ToneBadge tone="amber">{visibleAlert.riskLevel || 'Medium'}</ToneBadge>
               </div>
               <div className="text-xs text-amber-800 mt-1">
-                Possible fall detected · 10:22 AM
+                {visibleAlert.eventType || 'Sensor anomaly'} detected · Confidence {Math.round(visibleAlert.confidence || 0)}%
               </div>
               <Button
                 size="sm"

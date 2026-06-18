@@ -6,6 +6,7 @@ import {
   type Role,
   type ScreenId,
   type Tab,
+  useEffect,
   useState,
 } from "./shared";
 import { WelcomeScreen } from "./screens/WelcomeScreen";
@@ -54,6 +55,20 @@ const TAB_SCREENS: ScreenId[] = [
   "consentStatus",
 ];
 
+export type CaregiverLiveAlert = {
+  nodeId?: string;
+  resident?: string;
+  location?: string;
+  eventType?: string;
+  riskLevel?: string;
+  confidence?: number;
+  reason?: string;
+  sensorData?: unknown;
+  voiceCheckIn?: unknown;
+  aiSummary?: string;
+  receivedAt?: string;
+};
+
 export default function CaregiverApp() {
   const [screen, setScreen] = useState<ScreenId>("welcome");
   const [tab, setTab] = useState<Tab>("home");
@@ -66,6 +81,46 @@ export default function CaregiverApp() {
   const [contactsSaved, setContactsSaved] = useState(false);
   const [largeText, setLargeText] = useState(false);
   const [language, setLanguage] = useState<"en" | "zh" | "ms" | "ta">("en");
+  const [liveAlert, setLiveAlert] = useState<CaregiverLiveAlert | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const loadAlerts = async () => {
+      try {
+        const response = await fetch('/api/caregiver-alert', { cache: 'no-store' });
+        if (!response.ok) return;
+        const payload = await response.json() as { alerts?: CaregiverLiveAlert[] };
+        const alert = (payload.alerts || []).find((item) =>
+          ['low', 'medium'].includes(item.riskLevel?.toLowerCase() || '')
+        ) || null;
+        if (active) setLiveAlert(alert);
+      } catch {
+        // The hardcoded caregiver case remains the fallback.
+      }
+    };
+    void loadAlerts();
+    const timer = setInterval(loadAlerts, 5000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
+
+  const updatePause = async (paused: boolean, reason?: string) => {
+    try {
+      await fetch('/api/node-control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pauseLowRiskMonitoring: paused,
+          reason: paused ? reason : null,
+          durationMinutes: paused ? Number(pauseDuration === 'custom' ? 30 : pauseDuration) : null,
+        }),
+      });
+    } finally {
+      if (!paused) setPause(null);
+    }
+  };
 
   const screenToTab: Partial<Record<ScreenId, Tab>> = {
     home: "home",
@@ -111,13 +166,14 @@ export default function CaregiverApp() {
           go={go}
           role={role}
           pause={pause}
-          clearPause={() => setPause(null)}
+          clearPause={() => { void updatePause(false); }}
           contactsSaved={contactsSaved}
           clearContactsSaved={() => setContactsSaved(false)}
+          liveAlert={liveAlert}
         />
       )}
       {screen === "alert" && (
-        <AlertScreen go={go} risk={risk} setRisk={setRisk} role={role} />
+        <AlertScreen go={go} risk={risk} setRisk={setRisk} role={role} liveAlert={liveAlert} />
       )}
       {screen === "verify" && <VerifyScreen go={go} />}
       {screen === "context" && <ContextScreen go={go} />}
@@ -130,7 +186,7 @@ export default function CaregiverApp() {
           online={nodeOnline}
           setOnline={setNodeOnline}
           pause={pause}
-          clearPause={() => setPause(null)}
+          clearPause={() => { void updatePause(false); }}
         />
       )}
       {screen === "selftest" && <SelfTestScreen go={go} />}
@@ -148,7 +204,10 @@ export default function CaregiverApp() {
           go={go}
           duration={pauseDuration}
           reason={pauseReason}
-          onConfirm={(reasonLabel, resumeAt) => setPause({ reasonLabel, resumeAt })}
+          onConfirm={(reasonLabel, resumeAt) => {
+            setPause({ reasonLabel, resumeAt });
+            void updatePause(true, reasonLabel);
+          }}
         />
       )}
       {screen === "history" && <HistoryScreen />}
