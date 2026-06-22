@@ -85,6 +85,63 @@ function createIcon(severity: Severity, isSelected: boolean): L.DivIcon {
 // ─────────────────────────────────────────────────────────
 // Popup HTML builder
 // ─────────────────────────────────────────────────────────
+function escapeHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function cleanPopupAiText(value?: string) {
+  return String(value || '')
+    .replace(/\*\*/g, '')
+    .replace(/\r/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function formatPopupSummaryHtml(value?: string) {
+  const clean = cleanPopupAiText(value);
+
+  if (!clean) return '';
+
+  const headingRegex =
+    /(Alert Summary|Recommendation|Additional Note|Operator Note|Caregiver Note|Safety Note|Risk Assessment)\s*:?\s*/gi;
+
+  const matches = [...clean.matchAll(headingRegex)];
+
+  if (matches.length === 0) {
+    return `<p style="margin:0;color:#475569;line-height:1.55;">${escapeHtml(clean)}</p>`;
+  }
+
+  return matches
+    .map((match, index) => {
+      const title = match[1];
+      const start = (match.index || 0) + match[0].length;
+      const end =
+        index + 1 < matches.length
+          ? matches[index + 1].index || clean.length
+          : clean.length;
+
+      const body = clean.slice(start, end).trim();
+
+      if (!body) return '';
+
+      return `
+        <div style="margin-bottom:10px;padding:9px 10px;border:1px solid #dbeafe;background:#eff6ff;border-radius:9px;">
+          <div style="font-size:9px;font-weight:800;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;">
+            ${escapeHtml(title)}
+          </div>
+          <div style="font-size:12px;color:#334155;line-height:1.55;white-space:normal;overflow-wrap:anywhere;">
+            ${escapeHtml(body)}
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+}
 
 function popupContent(inc: Incident): string {
   const sevBadge: Record<Severity, string> = {
@@ -119,7 +176,7 @@ function popupContent(inc: Incident): string {
       </div>
     `
     : '';
-  
+  const descriptionHtml = formatPopupSummaryHtml(inc.description);
   const evidenceHtml = inc.evidence && inc.evidence.length > 0 
     ? `
       <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #cbd5e1;min-width:0;overflow:hidden;">
@@ -158,7 +215,7 @@ function popupContent(inc: Incident): string {
 
       <!-- Description -->
       <div style="font-size:12.5px;color:#475569;line-height:1.55;margin-bottom:12px;padding:10px 12px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;min-width:0;overflow-wrap:anywhere;white-space:normal;">
-        ${inc.description}
+        ${descriptionHtml}
       </div>
 
       <!-- 2x2 Stats Grid -->

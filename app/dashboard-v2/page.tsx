@@ -399,11 +399,133 @@ function describeUnknown(value: unknown): string[] {
 
 function voiceResult(value: unknown) {
   if (typeof value === 'string') return value;
+
   if (value && typeof value === 'object') {
     const record = value as Record<string, unknown>;
+
+    const intent = String(record.intent ?? '').toLowerCase();
+    const transcript = String(record.transcript ?? '').trim();
+    const responded = record.responded;
+
+    if (intent === 'help') return transcript ? `help request: ${transcript}` : 'help request detected';
+    if (intent === 'ok') return transcript ? `resident okay: ${transcript}` : 'resident responded okay';
+    if (intent === 'unclear') return transcript ? `unclear: ${transcript}` : 'unclear response';
+    if (intent === 'no_response') return 'no response';
+
+    if (responded === false) return 'no response';
+    if (responded === true) return transcript ? `response: ${transcript}` : 'response detected';
+
     return String(record.result ?? record.status ?? record.response ?? 'Not recorded');
   }
+
   return 'Not recorded';
+}
+function cleanAiText(value?: string) {
+  return String(value || '')
+    .replace(/\*\*/g, '')
+    .replace(/\r/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function buildLiveOpsLog(
+  event: SensorApiEvent,
+  severity: Severity,
+  confidence: number,
+  voice: string,
+  received: Date,
+): OpsLogEntry[] {
+  const baseTime = received.getTime();
+
+  const timeAt = (offsetMs: number) =>
+    new Date(baseTime + offsetMs).toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+  const eventType = event.eventType || 'EchoSync sensor alert';
+  const location = event.location || 'registered HDB unit';
+
+  const noResponse = /no[- ]?response|not recorded|unresponsive|failed/i.test(voice);
+  const help = /help request/i.test(voice);
+
+  const logs: OpsLogEntry[] = [
+    {
+      time: timeAt(0),
+      title: 'EchoSync Detector Event',
+      description: `${eventType} signal received at ${location}.`,
+      source: 'Raspberry Pi sensor node',
+    },
+    {
+      time: timeAt(15_000),
+      title: 'Sensor Evidence Captured',
+      description: `Arduino JSON received from sound, PIR, ultrasonic and load-cell sensors. Confidence score ${confidence}%.`,
+      source: 'Arduino + edge node',
+    },
+    {
+      time: timeAt(30_000),
+      title: 'Voice Check-In Completed',
+      description: `${voice}.`,
+      source: 'Azure Speech + EchoSync voice check-in',
+    },
+    {
+      time: timeAt(45_000),
+      title: 'AI Confidence Fused',
+      description: `${confidence}% confidence, ${severity} risk. GB10 generated operator summary.`,
+      source: 'GB10 NIM / sensor fusion',
+    },
+  ];
+
+  if (severity === 'Critical') {
+    logs.push(
+      {
+        time: timeAt(60_000),
+        title: 'Emergency Operator Review Queued',
+        description: help
+          ? 'Resident requested help. Immediate emergency operator review required.'
+          : noResponse
+          ? 'No resident response. Emergency operator review required.'
+          : 'Critical alert requires emergency operator review.',
+        source: 'EchoSync triage router',
+      },
+      {
+        time: timeAt(75_000),
+        title: 'Caregiver Notified',
+        description: 'Registered caregiver notified for context. Caregiver cannot cancel critical escalation.',
+        source: 'Caregiver app',
+      },
+      {
+        time: timeAt(90_000),
+        title: '995 / SCDF Escalation Prepared',
+        description: 'Case prepared for dispatcher review and possible ambulance / CFR coordination.',
+        source: 'Command Centre workflow',
+      },
+    );
+  } else if (severity === 'High') {
+    logs.push(
+      {
+        time: timeAt(60_000),
+        title: 'Dispatcher Review Needed',
+        description: 'High-risk alert routed for operator review before emergency escalation.',
+        source: 'EchoSync triage router',
+      },
+      {
+        time: timeAt(75_000),
+        title: 'Caregiver Notified',
+        description: 'Registered caregiver notified to provide context while operator review is pending.',
+        source: 'Caregiver app',
+      },
+      {
+        time: timeAt(90_000),
+        title: 'CFR / Ambulance Coordination Pending',
+        description: 'Operator may coordinate nearby CFR or ambulance dispatch if risk is confirmed.',
+        source: 'Command Centre workflow',
+      },
+    );
+  }
+
+  return logs;
 }
 
 function liveEventToIncident(event: SensorApiEvent, index: number): Incident | null {
@@ -416,6 +538,7 @@ function liveEventToIncident(event: SensorApiEvent, index: number): Incident | n
   const voice = voiceResult(event.voiceCheckIn);
   const confidence = Math.round(event.confidence ?? 0);
   const received = event.receivedAt ? new Date(event.receivedAt) : new Date();
+  const liveOpsLog = buildLiveOpsLog(event, severity, confidence, voice, received);
   const noResponse = /no[- ]?response|unresponsive|failed/i.test(voice);
   const recommendedAction = noResponse || severity === 'Critical'
     ? 'Urgent operator review. Consider myResponder CFR/AED coordination and escalate to SCDF if emergency signs are confirmed or there is no response.'
@@ -439,9 +562,9 @@ function liveEventToIncident(event: SensorApiEvent, index: number): Incident | n
     status: 'Active',
     assignedUnit: assignedUnitFromRisk(severity),
     lastUpdated: received.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' }),
-    description: event.aiSummary || `${event.eventType || 'Anomaly'} detected for ${event.resident || 'registered resident'}.`,
+    description: cleanAiText(event.aiSummary) || `${event.eventType || 'Anomaly'} detected for ${event.resident || 'registered resident'}.`,
     evidence: evidence.length ? evidence : ['Sensor trigger received', `AI calculated score: ${confidence}%`],
-    opsLog: [],
+    opsLog: liveOpsLog,
     nodeId: event.nodeId,
     simulation: {
       confidence,
@@ -452,7 +575,7 @@ function liveEventToIncident(event: SensorApiEvent, index: number): Incident | n
       recommendedAction,
       reasoning: evidence,
       aiReasoningLine: [...evidence, `AI calculated score ${confidence}%`].join(' + '),
-      aiSummary: event.aiSummary ? { summary: event.aiSummary, source: 'NIM' } : undefined,
+      aiSummary: event.aiSummary ? { summary: cleanAiText(event.aiSummary), source: 'NIM' } : undefined,
       detectorEvidence: {
         thermal: evidence.join('; ') || 'Trigger details not provided',
         acoustic: 'See trigger evidence',
@@ -1007,6 +1130,73 @@ function OpsLogPanel({ opsLog, onOpenFullLog }: { opsLog: GlobalOpsLogEntry[]; o
 // ─────────────────────────────────────────────────────────
 // Incident Detail Strip (compact, attached below map)
 // ─────────────────────────────────────────────────────────
+function parseSummarySections(text?: string) {
+  if (!text) return [];
+
+  const clean = cleanAiText(text);
+
+  const headingRegex =
+    /(Alert Summary|Recommendation|Additional Note|Operator Note|Caregiver Note|Safety Note|Risk Assessment)\s*:?\s*/gi;
+
+  const matches = [...clean.matchAll(headingRegex)];
+
+  if (matches.length === 0) {
+    return [{ title: 'Summary', body: clean }];
+  }
+
+  return matches
+    .map((match, index) => {
+      const title = match[1];
+      const start = (match.index || 0) + match[0].length;
+      const end =
+        index + 1 < matches.length
+          ? matches[index + 1].index || clean.length
+          : clean.length;
+
+      return {
+        title,
+        body: clean.slice(start, end).trim(),
+      };
+    })
+    .filter((section) => section.body.length > 0);
+}
+
+function splitSummarySentences(text: string) {
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+}
+
+function AiSummaryCard({ summary, source }: { summary: string; source: string }) {
+  const sections = parseSummarySections(summary);
+
+  return (
+    <div className="rounded bg-white px-2 py-1.5 border border-slate-100">
+      <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+        GB10 AI Summary <span className="font-mono normal-case">({source})</span>
+      </p>
+
+      <div className="space-y-2">
+        {sections.map((section, index) => (
+          <div key={`${section.title}-${index}`} className="rounded-md border border-indigo-100 bg-indigo-50/60 px-2 py-2">
+            <p className="text-[8px] font-bold uppercase tracking-wider text-indigo-700 mb-1">
+              {section.title}
+            </p>
+
+            <div className="space-y-1">
+              {splitSummarySentences(section.body).map((sentence, sentenceIndex) => (
+                <p key={`${section.title}-${sentenceIndex}`} className="text-[10.5px] font-semibold text-slate-700 leading-relaxed">
+                  {sentence}
+                </p>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function IncidentDetailStrip({
   incident,
@@ -1145,12 +1335,10 @@ function IncidentDetailStrip({
           </div>
 
           {incident.simulation.aiSummary && (
-            <div className="rounded bg-white px-2 py-1.5 border border-slate-100">
-              <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
-                GB10 AI Summary <span className="font-mono normal-case">({incident.simulation.aiSummary.source})</span>
-              </p>
-              <p className="text-[10.5px] font-semibold text-slate-700">{incident.simulation.aiSummary.summary}</p>
-            </div>
+            <AiSummaryCard
+              summary={incident.simulation.aiSummary.summary}
+              source={incident.simulation.aiSummary.source}
+            />
           )}
         </div>
       )}
@@ -1430,6 +1618,7 @@ export default function DashboardV2() {
   const [mounted, setMounted] = useState(false);
   const broadcastTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const liveDataActive = useRef(false);
+  const userClosedSelection = useRef(false);
 
   useEffect(() => {
     const mountedTimer = setTimeout(() => setMounted(true), 0);
@@ -1453,14 +1642,24 @@ export default function DashboardV2() {
           .map(liveEventToIncident)
           .filter((incident): incident is Incident => incident !== null);
         if (active && liveIncidents.length) {
-          liveDataActive.current = true;
-          setIncidents(liveIncidents);
-          setSelectedId((current) => liveIncidents.some((incident) => incident.id === current) ? current : liveIncidents[0].id);
-        } else if (active && liveDataActive.current) {
-          liveDataActive.current = false;
-          setIncidents(initialIncidents);
+        liveDataActive.current = true;
+        setIncidents(liveIncidents);
+
+        setSelectedId((current) => {
+          if (userClosedSelection.current) return current;
+
+          return liveIncidents.some((incident) => incident.id === current)
+            ? current
+            : liveIncidents[0].id;
+        });
+      } else if (active && liveDataActive.current) {
+        liveDataActive.current = false;
+        setIncidents(initialIncidents);
+
+        if (!userClosedSelection.current) {
           setSelectedId('INC-2026-089');
         }
+      }
       } catch {
         // Existing demo incidents remain visible when the live endpoint is unavailable.
       }
@@ -1483,7 +1682,18 @@ export default function DashboardV2() {
     return true;
   });
 
-  const selectedIncident = incidents.find(i => i.id === selectedId) || incidents[0];
+  const selectedIncident = incidents.find(i => i.id === selectedId) || null;
+
+  const handleSelectIncident = useCallback((id: string | null) => {
+    if (id === null) {
+      userClosedSelection.current = true;
+      setSelectedId(null);
+      return;
+    }
+
+    userClosedSelection.current = false;
+    setSelectedId(id);
+  }, []);
   const notifIncident = incidents.find(i => i.severity === 'Critical') || incidents[0];
   const allOpsLogEntries = useMemo<GlobalOpsLogEntry[]>(() => {
     const incidentOpsLog = incidents
@@ -1735,7 +1945,7 @@ export default function DashboardV2() {
                 key={inc.id}
                 incident={inc}
                 isSelected={inc.id === selectedId}
-                onSelect={() => setSelectedId(inc.id)}
+                onSelect={() => handleSelectIncident(inc.id)}
                 onToggleFlag={() => handleToggleFlag(inc.id)}
               />
             ))}
@@ -1757,12 +1967,12 @@ export default function DashboardV2() {
               <IncidentMap
                 incidents={incidents}
                 selectedId={selectedId}
-                onSelectIncident={setSelectedId}
+                onSelectIncident={handleSelectIncident}
               />
             )}
           </div>
           {/* Detail strip attached below map - hidden when full log is open */}
-          {!isOpsLogOpen && (
+          {!isOpsLogOpen && selectedIncident && (
             <IncidentDetailStrip
               incident={selectedIncident}
               onRunSimulation={handleRunSimulation}
