@@ -66,6 +66,8 @@ export type CaregiverLiveAlert = {
   sensorData?: unknown;
   voiceCheckIn?: unknown;
   aiSummary?: string;
+  source?: string;
+  timestamp?: string;
   receivedAt?: string;
 };
 
@@ -112,27 +114,46 @@ export default function CaregiverApp() {
   const [liveAlert, setLiveAlert] = useState<CaregiverLiveAlert | null>(null);
 
   useEffect(() => {
-    let active = true;
-    const loadAlerts = async () => {
-      try {
-        const response = await fetch("/api/caregiver-alert", { cache: "no-store" });
-        if (!response.ok) return;
-        const payload = await response.json() as { alerts?: CaregiverLiveAlert[] };
-        const alert = (payload.alerts || []).find((item) =>
-          ["low", "medium"].includes(item.riskLevel?.toLowerCase() || "")
-        ) || null;
-        if (active) setLiveAlert(alert);
-      } catch {
-        // The hardcoded caregiver case remains the fallback.
+  let active = true;
+
+  const loadAlerts = async () => {
+    try {
+      const response = await fetch("/api/caregiver-alert", {
+        cache: "no-store",
+      });
+
+      if (!response.ok) return;
+
+      const payload = (await response.json()) as {
+        latest?: CaregiverLiveAlert | null;
+        alerts?: CaregiverLiveAlert[];
+      };
+
+      // Use latest real Pi alert first.
+      // If latest is empty, use first item from alert history.
+      // If no real alert exists, keep mock fallback.
+      const alert =
+        payload.latest ||
+        (payload.alerts || [])[0] ||
+        null;
+
+      if (active) {
+        setLiveAlert(alert);
       }
-    };
-    void loadAlerts();
-    const timer = setInterval(loadAlerts, 5000);
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
-  }, []);
+    } catch {
+      // The hardcoded caregiver case remains the fallback.
+    }
+  };
+
+  void loadAlerts();
+
+  const timer = setInterval(loadAlerts, 5000);
+
+  return () => {
+    active = false;
+    clearInterval(timer);
+  };
+}, []);
 
   useEffect(() => {
     const loadNodeControl = async () => {
