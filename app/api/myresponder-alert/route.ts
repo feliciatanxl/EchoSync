@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 type MyResponderAlert = {
+  id?: string;
   nodeId?: string;
   resident?: string;
   location?: string;
@@ -21,27 +22,43 @@ const globalStore = globalThis as typeof globalThis & {
   __echosyncMyResponderAlerts?: MyResponderAlert[];
 };
 
+function normaliseRiskLevel(value: unknown) {
+  const risk = String(value || "Medium").toLowerCase();
+
+  if (risk === "medium") return "Medium";
+  if (risk === "low") return "Low";
+  if (risk === "high") return "High";
+  if (risk === "critical") return "Critical";
+
+  return "Medium";
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
     const riskLevel = String(body.riskLevel || "").toLowerCase();
 
-    // myResponder should only receive low/medium verification alerts
-    if (!["low", "medium"].includes(riskLevel)) {
+    // myResponder should only receive Medium verification alerts.
+    // Low stays caregiver-only. High/Critical goes SCDF dashboard.
+    if (riskLevel !== "medium") {
       return NextResponse.json(
         {
-          ok: false,
+          ok: true,
           ignored: true,
-          message: "Only Low/Medium alerts are accepted by myResponder route",
+          message: "Only Medium alerts are accepted by myResponder route",
         },
         { status: 202 }
       );
     }
 
+    const receivedAt = new Date().toISOString();
+
     const alert: MyResponderAlert = {
       ...body,
-      receivedAt: new Date().toISOString(),
+      id: body.id || `MYR-${Date.now()}`,
+      riskLevel: normaliseRiskLevel(body.riskLevel),
+      receivedAt,
     };
 
     globalStore.__echosyncMyResponderLatest = alert;
@@ -49,8 +66,10 @@ export async function POST(request: Request) {
       globalStore.__echosyncMyResponderAlerts || [];
 
     globalStore.__echosyncMyResponderAlerts.unshift(alert);
+
+    // Keep latest 50 myResponder alerts for demo.
     globalStore.__echosyncMyResponderAlerts =
-      globalStore.__echosyncMyResponderAlerts.slice(0, 20);
+      globalStore.__echosyncMyResponderAlerts.slice(0, 50);
 
     console.log("EchoSync myResponder alert received:", alert);
 
@@ -58,6 +77,7 @@ export async function POST(request: Request) {
       ok: true,
       message: "myResponder alert received",
       latest: alert,
+      alerts: globalStore.__echosyncMyResponderAlerts,
     });
   } catch {
     return NextResponse.json(
@@ -71,9 +91,11 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
+  const alerts = globalStore.__echosyncMyResponderAlerts || [];
+
   return NextResponse.json({
     ok: true,
     latest: globalStore.__echosyncMyResponderLatest || null,
-    alerts: globalStore.__echosyncMyResponderAlerts || [],
+    alerts,
   });
 }
