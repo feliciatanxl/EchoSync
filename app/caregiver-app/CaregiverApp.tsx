@@ -80,18 +80,46 @@ export default function CaregiverApp() {
   const [pause, setPause] = useState<{ reasonLabel: string; resumeAt: string } | null>(null);
   const [contactsSaved, setContactsSaved] = useState(false);
   const [largeText, setLargeText] = useState(false);
+  const [sensorMonitoringEnabled, setSensorMonitoringEnabled] = useState(true);
   const [language, setLanguage] = useState<"en" | "zh" | "ms" | "ta">("en");
+
+  const updateLanguage = (nextLanguage: "en" | "zh" | "ms" | "ta") => {
+    setLanguage(nextLanguage);
+
+    void fetch("/api/node-control", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        preferredLanguage: nextLanguage,
+      }),
+    });
+  };
+
+  const updateSensorMonitoring = async (enabled: boolean) => {
+    setSensorMonitoringEnabled(enabled);
+
+    await fetch("/api/node-control", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sensorMonitoringEnabled: enabled,
+        reason: enabled ? null : "Resident away from home",
+        durationMinutes: enabled ? null : 1440,
+      }),
+    });
+  };
+
   const [liveAlert, setLiveAlert] = useState<CaregiverLiveAlert | null>(null);
 
   useEffect(() => {
     let active = true;
     const loadAlerts = async () => {
       try {
-        const response = await fetch('/api/caregiver-alert', { cache: 'no-store' });
+        const response = await fetch("/api/caregiver-alert", { cache: "no-store" });
         if (!response.ok) return;
         const payload = await response.json() as { alerts?: CaregiverLiveAlert[] };
         const alert = (payload.alerts || []).find((item) =>
-          ['low', 'medium'].includes(item.riskLevel?.toLowerCase() || '')
+          ["low", "medium"].includes(item.riskLevel?.toLowerCase() || "")
         ) || null;
         if (active) setLiveAlert(alert);
       } catch {
@@ -106,15 +134,43 @@ export default function CaregiverApp() {
     };
   }, []);
 
+  useEffect(() => {
+    const loadNodeControl = async () => {
+      try {
+        const response = await fetch("/api/node-control", { cache: "no-store" });
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        if (typeof data.sensorMonitoringEnabled === "boolean") {
+          setSensorMonitoringEnabled(data.sensorMonitoringEnabled);
+        }
+
+        if (
+          data.preferredLanguage === "en" ||
+          data.preferredLanguage === "zh" ||
+          data.preferredLanguage === "ms" ||
+          data.preferredLanguage === "ta"
+        ) {
+          setLanguage(data.preferredLanguage);
+        }
+      } catch {
+        // keep default caregiver app state
+      }
+    };
+
+    void loadNodeControl();
+  }, []);
+
   const updatePause = async (paused: boolean, reason?: string) => {
     try {
-      await fetch('/api/node-control', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/node-control", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           pauseLowRiskMonitoring: paused,
           reason: paused ? reason : null,
-          durationMinutes: paused ? Number(pauseDuration === 'custom' ? 30 : pauseDuration) : null,
+          durationMinutes: paused ? Number(pauseDuration === "custom" ? 30 : pauseDuration) : null,
         }),
       });
     } finally {
@@ -142,11 +198,13 @@ export default function CaregiverApp() {
     faq: "profile",
     consentStatus: "profile",
   };
+
   const go = (s: ScreenId) => {
     setScreen(s);
     const t = screenToTab[s];
     if (t) setTab(t);
   };
+
   const showNav = TAB_SCREENS.includes(screen);
 
   return (
@@ -161,6 +219,7 @@ export default function CaregiverApp() {
       {screen === "link" && <LinkScreen go={go} />}
       {screen === "consent" && <ConsentScreen go={go} />}
       {screen === "access" && <AccessScreen go={go} />}
+
       {screen === "home" && (
         <HomeScreen
           go={go}
@@ -172,13 +231,16 @@ export default function CaregiverApp() {
           liveAlert={liveAlert}
         />
       )}
+
       {screen === "alert" && (
         <AlertScreen go={go} risk={risk} setRisk={setRisk} role={role} liveAlert={liveAlert} />
       )}
+
       {screen === "verify" && <VerifyScreen go={go} />}
       {screen === "context" && <ContextScreen go={go} />}
       {screen === "outcome" && <OutcomeScreen go={go} role={role} />}
       {screen === "contextOutcome" && <ContextOutcomeScreen go={go} role={role} />}
+
       {screen === "node" && (
         <NodeScreen
           go={go}
@@ -187,9 +249,15 @@ export default function CaregiverApp() {
           setOnline={setNodeOnline}
           pause={pause}
           clearPause={() => { void updatePause(false); }}
+          sensorMonitoringEnabled={sensorMonitoringEnabled}
+          setSensorMonitoringEnabled={(enabled) => {
+            void updateSensorMonitoring(enabled);
+          }}
         />
       )}
+
       {screen === "selftest" && <SelfTestScreen go={go} />}
+
       {screen === "pause" && (
         <PauseScreen
           go={go}
@@ -199,6 +267,7 @@ export default function CaregiverApp() {
           setReason={setPauseReason}
         />
       )}
+
       {screen === "pauseConfirm" && (
         <PauseConfirmScreen
           go={go}
@@ -210,11 +279,15 @@ export default function CaregiverApp() {
           }}
         />
       )}
+
       {screen === "history" && <HistoryScreen />}
+
       {screen === "contacts" && (
         <ContactsScreen go={go} role={role} onSave={() => setContactsSaved(true)} />
       )}
+
       {screen === "privacy" && <PrivacyScreen go={go} />}
+
       {screen === "profile" && (
         <ProfileScreen
           go={go}
@@ -222,7 +295,7 @@ export default function CaregiverApp() {
           largeText={largeText}
           setLargeText={setLargeText}
           language={language}
-          setLanguage={setLanguage}
+          setLanguage={updateLanguage}
         />
       )}
 
