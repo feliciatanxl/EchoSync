@@ -48,6 +48,11 @@ export function NodeScreen({
   const canRestart = can(role, "restart");
   const canPause = can(role, "pause");
   const canSelfTest = can(role, "selftest");
+  const SHOW_RESTART_DEVICE = false;
+  const SHOW_UPDATE_CHECKIN_SCHEDULE = false;
+  const SHOW_PAUSE_LOW_RISK_MONITORING = false;
+  const SHOW_REPORT_DEVICE_ISSUE = false;
+  const SHOW_RESTRICTED_SECTION = false;
 
   return (
     <>
@@ -194,6 +199,7 @@ export function NodeScreen({
         </div>
 
         <div className="space-y-2">
+        {SHOW_RESTART_DEVICE && (
           <NodeControl
             icon={<RotateCw className="w-5 h-5" />}
             title="Restart device"
@@ -207,15 +213,17 @@ export function NodeScreen({
             locked={!canRestart}
             lockHint="Primary caregiver only"
           />
+        )}
 
-          <NodeControl
-            icon={<Stethoscope className="w-5 h-5" />}
-            title="Run self-test"
-            onClick={() => canSelfTest && go("selftest")}
-            locked={!canSelfTest}
-            lockHint="Primary caregiver only"
-          />
+        <NodeControl
+          icon={<Stethoscope className="w-5 h-5" />}
+          title="Run self-test"
+          onClick={() => canSelfTest && go("selftest")}
+          locked={!canSelfTest}
+          lockHint="Primary caregiver only"
+        />
 
+        {SHOW_UPDATE_CHECKIN_SCHEDULE && (
           <NodeControl
             icon={<Clock className="w-5 h-5" />}
             title="Update check-in schedule"
@@ -229,27 +237,33 @@ export function NodeScreen({
             locked={!canRestart}
             lockHint="Primary caregiver only"
           />
+        )}
 
-          <NodeControl
-            icon={<Pause className="w-5 h-5" />}
-            title={sensorMonitoringEnabled ? "Enable Away Mode / Pause Node" : "Resume Node Monitoring"}
-            onClick={() => {
-              if (!canPause) return;
+        <NodeControl
+          icon={<Pause className="w-5 h-5" />}
+          title={
+            sensorMonitoringEnabled
+              ? "Enable Away Mode / Pause Node"
+              : "Resume Node Monitoring"
+          }
+          onClick={() => {
+            if (!canPause) return;
 
-              const nextState = !sensorMonitoringEnabled;
-              setSensorMonitoringEnabled(nextState);
+            const nextState = !sensorMonitoringEnabled;
+            setSensorMonitoringEnabled(nextState);
 
-              setNodeLog({
-                title: nextState ? "Node monitoring resumed" : "Away Mode enabled",
-                sub: nextState
-                  ? "Sensor alerts, voice check-in and escalation are active again."
-                  : "Sensor alerts and voice recording are paused while the resident is away.",
-              });
-            }}
-            locked={!canPause}
-            lockHint="Primary caregiver only"
-          />
+            setNodeLog({
+              title: nextState ? "Node monitoring resumed" : "Away Mode enabled",
+              sub: nextState
+                ? "Sensor alerts, voice check-in and escalation are active again."
+                : "Sensor alerts and voice recording are paused while the resident is away.",
+            });
+          }}
+          locked={!canPause}
+          lockHint="Primary caregiver only"
+        />
 
+        {SHOW_PAUSE_LOW_RISK_MONITORING && (
           <NodeControl
             icon={<Pause className="w-5 h-5" />}
             title="Pause low-risk monitoring"
@@ -257,7 +271,9 @@ export function NodeScreen({
             locked={!canPause}
             lockHint="Primary caregiver only"
           />
+        )}
 
+        {SHOW_REPORT_DEVICE_ISSUE && (
           <NodeControl
             icon={<AlertTriangle className="w-5 h-5" />}
             title="Report device issue"
@@ -268,17 +284,22 @@ export function NodeScreen({
               })
             }
           />
-        </div>
+        )}
+      </div>
 
-        <div>
-          <div className="text-xs uppercase tracking-wide text-slate-500 mb-2">Restricted</div>
+        {SHOW_RESTRICTED_SECTION && (
+          <div>
+            <div className="text-xs uppercase tracking-wide text-slate-500 mb-2">
+              Restricted
+            </div>
 
-          <div className="space-y-2">
-            <LockedControl title="Turn off emergency escalation" />
-            <LockedControl title="Disable critical alerts" />
-            <LockedControl title="Delete audit logs" />
+            <div className="space-y-2">
+              <LockedControl title="Turn off emergency escalation" />
+              <LockedControl title="Disable critical alerts" />
+              <LockedControl title="Delete audit logs" />
+            </div>
           </div>
-        </div>
+        )}
 
         <Card className="border-slate-200 bg-slate-100">
           <CardContent className="p-3 flex gap-2 items-start">

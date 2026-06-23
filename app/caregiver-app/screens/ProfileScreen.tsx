@@ -38,6 +38,7 @@ export function ProfileScreen({
   setLanguage: (l: "en" | "zh" | "ms" | "ta") => void;
 }) {
   const perms = ROLE_PERMS[role];
+  const SHOW_SIMULATE_ACCESS_PENDING = false;
   const langs: [typeof language, string][] = [
     ["en", "English"],
     ["zh", "中文"],
@@ -173,12 +174,14 @@ export function ProfileScreen({
             sub="Review linked caregivers - Revoke - Consent history"
             onClick={() => go("manageAccess")}
           />
-          <ProfileLink
-            icon={<Clock className="w-5 h-5 text-slate-700" />}
-            label="Simulate access pending"
-            sub="Demo - see what a non-authorised caregiver sees"
-            onClick={() => go("accessPending")}
-          />
+          {SHOW_SIMULATE_ACCESS_PENDING && (
+            <ProfileLink
+              icon={<Clock className="w-5 h-5 text-slate-700" />}
+              label="Simulate access pending"
+              sub="Demo - see what a non-authorised caregiver sees"
+              onClick={() => go("accessPending")}
+            />
+          )}
           <ProfileLink
             icon={<FileText className="w-5 h-5 text-slate-700" />}
             label="Audit log"
