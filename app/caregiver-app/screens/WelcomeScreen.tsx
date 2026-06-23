@@ -43,7 +43,7 @@ export function WelcomeScreen({ go }: { go: (s: ScreenId) => void }) {
           className="w-full h-12 border-slate-300"
           onClick={() => go("notifications")}
         >
-          Continue as demo user
+          Continue as Community Responder
         </Button>
         <p className="text-[11px] text-center text-slate-400 px-4">
           Hackathon prototype. Mock secure identity login — not a real government integration.

@@ -520,14 +520,14 @@ function buildLiveOpsLog(
       },
       {
         time: timeAt(75_000),
-        title: 'Caregiver Notified',
-        description: 'Registered caregiver notified for context. Caregiver cannot cancel critical escalation.',
-        source: 'Caregiver app',
+        title: 'SCDF Dashboard Received',
+        description: 'High-confidence emergency alert is kept on SCDF dashboard for operator-led review only.',
+        source: 'SCDF dashboard',
       },
       {
         time: timeAt(90_000),
-        title: '995 / SCDF Escalation Prepared',
-        description: 'Case prepared for dispatcher review and possible ambulance / CFR coordination.',
+        title: 'myResponder Coordination Pending',
+        description: 'Operator may push to myResponder for CFR/AED coordination after dashboard review.',
         source: 'Command Centre workflow',
       },
     );
@@ -541,14 +541,14 @@ function buildLiveOpsLog(
       },
       {
         time: timeAt(75_000),
-        title: 'Caregiver Notified',
-        description: 'Registered caregiver notified to provide context while operator review is pending.',
-        source: 'Caregiver app',
+        title: 'SCDF Dashboard Received',
+        description: 'High-risk alert is kept on SCDF dashboard for operator-led review only.',
+        source: 'SCDF dashboard',
       },
       {
         time: timeAt(90_000),
-        title: 'CFR / Ambulance Coordination Pending',
-        description: 'Operator may coordinate nearby CFR or ambulance dispatch if risk is confirmed.',
+        title: 'CFR / AED Coordination Pending',
+        description: 'Operator may push to myResponder for CFR/AED coordination if risk is confirmed.',
         source: 'Command Centre workflow',
       },
     );
@@ -577,8 +577,8 @@ function liveEventToIncident(event: SensorApiEvent, index: number): Incident | n
   const liveOpsLog = buildLiveOpsLog(event, severity, confidence, voice, piTime);
   const noResponse = /no[- ]?response|unresponsive|failed/i.test(voice);
   const recommendedAction = noResponse || severity === 'Critical'
-    ? 'Urgent operator review. Consider myResponder CFR/AED coordination and escalate to SCDF if emergency signs are confirmed or there is no response.'
-    : 'Operator review. Consider myResponder CFR/AED coordination; notify the caregiver while verification is in progress.';
+    ? 'Urgent operator review. Operator may push to myResponder for CFR/AED coordination if emergency signs are confirmed or there is no response.'
+    : 'Operator review. Operator may push to myResponder for CFR/AED coordination if risk is confirmed.';
 
   return {
     id: liveCaseId,
@@ -1260,10 +1260,16 @@ function IncidentDetailStrip({
   incident,
   onRunSimulation,
   simulationLoading,
+  onSendToMyResponder,
+  myResponderSending,
+  myResponderStatus,
 }: {
   incident: Incident | null;
   onRunSimulation: (scenario: EchoSyncScenarioId) => void;
   simulationLoading: EchoSyncScenarioId | null;
+  onSendToMyResponder: (incident: Incident) => void;
+  myResponderSending: boolean;
+  myResponderStatus: string | null;
 }) {
   if (!incident) {
     return (
@@ -1309,16 +1315,46 @@ function IncidentDetailStrip({
         <button className="min-w-0 whitespace-nowrap flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white text-[10px] font-semibold transition-colors shadow-sm">
           <Send className="w-3.5 h-3.5 flex-shrink-0" /> Send for operator review
         </button>
-        <button className="min-w-0 whitespace-nowrap flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold transition-colors border border-slate-200 shadow-sm">
-          <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 text-slate-500" /> Notify caregiver
+        <button
+          type="button"
+          disabled={incident.severity === 'High' || incident.severity === 'Critical'}
+          className={`min-w-0 whitespace-nowrap flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[10px] font-semibold transition-colors border shadow-sm ${
+            incident.severity === 'High' || incident.severity === 'Critical'
+              ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
+              : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+          }`}
+        >
+          <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 text-slate-500" />
+          {incident.severity === 'High' || incident.severity === 'Critical'
+            ? 'Caregiver not routed for urgent'
+            : 'Notify caregiver'}
         </button>
-        <button className="min-w-0 whitespace-nowrap flex items-center gap-1 px-2 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold transition-colors border border-slate-200 shadow-sm">
-          <Radio className="w-3.5 h-3.5 flex-shrink-0 text-slate-500" /> Suggest CFR/AED coordination
+        <button
+          type="button"
+          onClick={() => onSendToMyResponder(incident)}
+          disabled={
+            myResponderSending ||
+            (incident.severity !== "High" && incident.severity !== "Critical")
+          }
+          className={`min-w-0 whitespace-nowrap flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-semibold transition-colors border shadow-sm ${
+            incident.severity === "High" || incident.severity === "Critical"
+              ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+              : "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"
+          } disabled:opacity-60 disabled:cursor-wait`}
+        >
+          <Radio className="w-3.5 h-3.5 flex-shrink-0 text-slate-500" />
+          {myResponderSending ? "Sending to myResponder..." : "Suggest CFR/AED coordination"}
         </button>
         <button className="min-w-0 whitespace-nowrap flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold transition-colors shadow-sm">
           <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> SCDF escalation if urgent / no response
         </button>
       </div>
+
+      {myResponderStatus && (
+        <p className="text-[10px] font-semibold text-teal-700">
+          {myResponderStatus}
+        </p>
+      )}
 
       {(incident.severity === 'High' || incident.severity === 'Critical') && (
         <div className="rounded-md border border-teal-100 bg-teal-50/70 px-2.5 py-2">
@@ -1351,6 +1387,7 @@ function IncidentDetailStrip({
               </button>
             ))}
           </div>
+
         </div>
       )}
 
@@ -1672,6 +1709,8 @@ export default function DashboardV2() {
   const [broadcastToast, setBroadcastToast] = useState<{ acknowledged: number; total: number; complete: boolean } | null>(null);
   const [simulationLoading, setSimulationLoading] = useState<EchoSyncScenarioId | null>(null);
   const [simulationToast, setSimulationToast] = useState<SimulationToastState | null>(null);
+  const [myResponderSending, setMyResponderSending] = useState(false);
+  const [myResponderStatus, setMyResponderStatus] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const broadcastTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const liveDataActive = useRef(false);
@@ -1813,6 +1852,88 @@ export default function DashboardV2() {
       setTimeout(() => setBroadcastToast({ acknowledged: 4, total: 5, complete: false }), 1800),
       setTimeout(() => setBroadcastToast({ acknowledged: 5, total: 5, complete: true }), 2900),
     ];
+  }, []);
+
+  const handleSendToMyResponder = useCallback(async (incident: Incident) => {
+    if (incident.severity !== 'High' && incident.severity !== 'Critical') {
+      setMyResponderStatus('Only High/Critical alerts can be sent to myResponder.');
+      return;
+    }
+
+    setMyResponderSending(true);
+    setMyResponderStatus(null);
+
+    try {
+      const payload = {
+        id: `MYR-${incident.id}`,
+        nodeId: incident.nodeId || incident.id,
+        resident: 'Mdm Tan Siew Lan',
+        location: incident.location,
+        eventType: incident.type,
+        riskLevel: incident.severity,
+        confidence:
+          incident.simulation?.confidence ??
+          (incident.severity === 'Critical' ? 95 : 86),
+        reason:
+          incident.simulation?.aiReasoningLine ||
+          incident.description ||
+          'SCDF dashboard pushed alert for myResponder CFR/AED coordination.',
+        sensorData: {
+          evidence: incident.evidence,
+          detectorEvidence: incident.simulation?.detectorEvidence,
+        },
+        voiceCheckIn: {
+          result: incident.simulation?.voiceResult || 'Not recorded',
+        },
+        aiSummary:
+          incident.simulation?.aiSummary?.summary ||
+          incident.description ||
+          'High/Critical alert pushed from SCDF dashboard to myResponder.',
+        source: 'SCDF Dashboard',
+        timestamp: new Date().toISOString(),
+        dashboardPushedAt: new Date().toISOString(),
+      };
+
+      const response = await fetch('/api/myresponder-alert', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || result?.ignored) {
+        throw new Error(
+          result?.message || 'myResponder rejected this alert.'
+        );
+      }
+
+      setMyResponderStatus('Sent to myResponder for CFR/AED coordination.');
+
+      setBroadcastOpsLog((prev) => [
+        {
+          time: currentDashboardTime(),
+          title: 'myResponder Coordination Suggested',
+          description: `${incident.severity} alert pushed from SCDF dashboard to myResponder for CFR/AED coordination.`,
+          source: 'SCDF Dashboard',
+          incidentId: incident.id,
+          incidentType: incident.type,
+          location: incident.location,
+          priority: incident.severity === 'Critical' ? 'Critical' : 'High',
+        },
+        ...prev,
+      ]);
+    } catch (error) {
+      setMyResponderStatus(
+        error instanceof Error
+          ? error.message
+          : 'Failed to send alert to myResponder.'
+      );
+    } finally {
+      setMyResponderSending(false);
+    }
   }, []);
 
   const handleRunSimulation = useCallback(async (scenario: EchoSyncScenarioId) => {
@@ -2033,6 +2154,9 @@ export default function DashboardV2() {
               incident={selectedIncident}
               onRunSimulation={handleRunSimulation}
               simulationLoading={simulationLoading}
+              onSendToMyResponder={handleSendToMyResponder}
+              myResponderSending={myResponderSending}
+              myResponderStatus={myResponderStatus}
             />
           )}
         </div>

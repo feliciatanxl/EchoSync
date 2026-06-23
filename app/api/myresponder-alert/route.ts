@@ -15,6 +15,7 @@ type MyResponderAlert = {
   source?: string;
   timestamp?: string;
   receivedAt?: string;
+  dashboardPushedAt?: string;
 };
 
 const globalStore = globalThis as typeof globalThis & {
@@ -23,12 +24,12 @@ const globalStore = globalThis as typeof globalThis & {
 };
 
 function normaliseRiskLevel(value: unknown) {
-  const risk = String(value || "Medium").toLowerCase();
+  const risk = String(value || "").toLowerCase();
 
+  if (risk === "critical") return "Critical";
+  if (risk === "high") return "High";
   if (risk === "medium") return "Medium";
   if (risk === "low") return "Low";
-  if (risk === "high") return "High";
-  if (risk === "critical") return "Critical";
 
   return "Medium";
 }
@@ -38,14 +39,16 @@ export async function POST(request: Request) {
     const body = await request.json();
     const riskLevel = String(body.riskLevel || "").toLowerCase();
 
-    // Pi should only send Medium here.
-    // Low goes caregiver only. High/Critical goes SCDF dashboard.
-    if (riskLevel !== "medium") {
+    // Latest EchoSync flow:
+    // Low / Medium stay in caregiver app.
+    // myResponder only receives High / Critical when SCDF dashboard/operator pushes it.
+    if (riskLevel !== "high" && riskLevel !== "critical") {
       return NextResponse.json(
         {
           ok: true,
           ignored: true,
-          message: "Only Medium alerts are accepted by myResponder route",
+          message:
+            "Only High/Critical alerts pushed by SCDF dashboard are accepted by myResponder.",
         },
         { status: 202 }
       );
@@ -57,6 +60,8 @@ export async function POST(request: Request) {
       ...body,
       id: body.id || `MYR-${Date.now()}`,
       riskLevel: normaliseRiskLevel(body.riskLevel),
+      source: body.source || "SCDF Dashboard",
+      dashboardPushedAt: receivedAt,
       receivedAt,
     };
 
@@ -72,7 +77,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      message: "myResponder alert received",
+      message: "High/Critical alert received by myResponder",
       latest: alert,
       alerts: globalStore.__echosyncMyResponderAlerts,
     });

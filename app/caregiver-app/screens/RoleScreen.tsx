@@ -57,7 +57,17 @@ export function RoleScreen({
           ))}
         </div>
       </ScreenScroll>
-      <BottomCTA label="Continue" onClick={() => go("link")} />
+      
+      <BottomCTA
+  label="Continue"
+  onClick={() => {
+    if (role === "neighbour") {
+      go("link");
+    } else {
+      go("home"); // change this to your desired screen
+    }
+  }}
+/>
     </>
   );
 }
