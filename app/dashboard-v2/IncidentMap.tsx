@@ -142,107 +142,192 @@ function formatPopupSummaryHtml(value?: string) {
     })
     .join('');
 }
+function clampPopupText(value: string, maxLength = 150) {
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength).trim()}...`;
+}
+
+function getCompactPopupSummary(value?: string) {
+  const clean = cleanPopupAiText(value);
+
+  if (!clean) {
+    return {
+      summary: "EchoSync alert received from registered node.",
+      recommendation: "Review details in the incident panel.",
+    };
+  }
+
+  const headingRegex =
+    /(Alert Summary|Recommendation|Additional Note|Operator Note|Caregiver Note|Safety Note|Risk Assessment)\s*:?\s*/gi;
+
+  const matches = [...clean.matchAll(headingRegex)];
+
+  if (matches.length === 0) {
+    return {
+      summary: clampPopupText(clean, 170),
+      recommendation: "Review full details below.",
+    };
+  }
+
+  const sections = matches.map((match, index) => {
+    const title = match[1].toLowerCase();
+    const start = (match.index || 0) + match[0].length;
+    const end =
+      index + 1 < matches.length
+        ? matches[index + 1].index || clean.length
+        : clean.length;
+
+    return {
+      title,
+      body: clean.slice(start, end).trim(),
+    };
+  });
+
+  const summary =
+    sections.find((section) => section.title.includes("summary"))?.body ||
+    sections[0]?.body ||
+    clean;
+
+  const recommendation =
+    sections.find((section) => section.title.includes("recommendation"))?.body ||
+    "Review full details below.";
+
+  return {
+    summary: clampPopupText(summary, 170),
+    recommendation: clampPopupText(recommendation, 130),
+  };
+}
+
 
 function popupContent(inc: Incident): string {
   const sevBadge: Record<Severity, string> = {
-    Critical: 'background:#fee2e2;color:#b91c1c;',
-    High: 'background:#ffedd5;color:#c2410c;',
-    Medium: 'background:#fef3c7;color:#b45309;',
-    Low: 'background:#dcfce7;color:#15803d;',
+    Critical: "background:#fee2e2;color:#b91c1c;",
+    High: "background:#ffedd5;color:#c2410c;",
+    Medium: "background:#fef3c7;color:#b45309;",
+    Low: "background:#dcfce7;color:#15803d;",
   };
+
   const statusStyle: Record<string, string> = {
-    Active: 'background:#fef2f2;color:#dc2626;',
-    Dispatched: 'background:#eff6ff;color:#2563eb;',
-    'Operator Review': 'background:#eff6ff;color:#2563eb;',
-    'En Route': 'background:#ecfeff;color:#0891b2;',
-    'On Scene': 'background:#ecfdf5;color:#059669;',
-    Resolved: 'background:#f8fafc;color:#64748b;',
+    Active: "background:#fef2f2;color:#dc2626;",
+    Dispatched: "background:#eff6ff;color:#2563eb;",
+    "Operator Review": "background:#eff6ff;color:#2563eb;",
+    "En Route": "background:#ecfeff;color:#0891b2;",
+    "On Scene": "background:#ecfdf5;color:#059669;",
+    Resolved: "background:#f8fafc;color:#64748b;",
   };
-  
-  // SVG strings from Lucide React
-  const svgs: Record<string, string> = {
-    Medical: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M12 5 9.04 9.2a2 2 0 0 0-.27 1.35l.99 4.9a2 2 0 0 0 3.97-.47l.45-5a2 2 0 0 0-.96-1.89l-2.05-1.12"/></svg>',
-    Fire: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
-    'Fall Detection': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>',
-    'Unresponsive Resident': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
-    'Gas Leak': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>'
-  };
-  const iconSvg = svgs[inc.type] || svgs['Unresponsive Resident'];
-  const closeIconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
-  const locationMetaHtml = inc.locationSource || inc.locationAccuracy
-    ? `
-      <div style="margin-top:6px;font-size:10px;line-height:1.35;color:#64748b;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-        ${inc.locationSource || ''}${inc.locationSource && inc.locationAccuracy ? ' · ' : ''}${inc.locationAccuracy || ''}
-      </div>
-    `
-    : '';
-  const descriptionHtml = formatPopupSummaryHtml(inc.description);
-  const evidenceHtml = inc.evidence && inc.evidence.length > 0 
-    ? `
-      <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #cbd5e1;min-width:0;overflow:hidden;">
-        <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;display:flex;align-items:center;gap:4px;min-width:0;overflow-wrap:anywhere;white-space:normal;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          Detection Evidence
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;overflow:hidden;min-width:0;max-width:100%;">
-          ${inc.evidence.map(ev => `<span style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;font-size:10px;font-weight:500;padding:4px 8px;border-radius:6px;">${ev}</span>`).join('')}
-        </div>
-      </div>
-    `
-    : '';
+
+  const closeIconSvg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+
+  const alertIconSvg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+
+  const compactSummary = getCompactPopupSummary(inc.description);
+  const evidencePreview = (inc.evidence || []).slice(0, 3);
 
   return `
-    <div style="font-family:Inter,system-ui,-apple-system,sans-serif;width:100%;overflow-x:hidden;">
-      <!-- Header -->
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;min-width:0;overflow:visible;">
-        <div style="min-width:0;flex:1;">
-          <div style="display:flex;align-items:center;gap:10px;color:${inc.severity === 'Critical' ? '#b91c1c' : '#0f172a'};min-width:0;">
-            <span style="display:flex;flex-shrink:0;">${iconSvg}</span>
-            <span style="font-size:18px;font-weight:800;letter-spacing:-0.02em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${inc.type}</span>
+    <div class="echosync-popup-scroll" style="font-family:Inter,system-ui,-apple-system,sans-serif;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
+        <div style="display:flex;gap:8px;min-width:0;flex:1;">
+          <div style="flex-shrink:0;color:${inc.severity === "Critical" ? "#b91c1c" : "#c2410c"};">
+            ${alertIconSvg}
           </div>
-          <div style="font-size:11px;font-family:'SF Mono',ui-monospace,monospace;color:#94a3b8;margin-top:6px;margin-bottom:5px;overflow-wrap:anywhere;">${inc.id}</div>
-          <div style="font-size:13px;color:#334155;font-weight:500;display:flex;align-items:flex-start;gap:6px;line-height:1.5;min-width:0;">
-            <svg style="flex-shrink:0;margin-top:2px;color:#94a3b8;" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span style="min-width:0;overflow-wrap:anywhere;">${inc.location}</span>
+
+          <div style="min-width:0;flex:1;">
+            <div style="font-size:15px;font-weight:850;letter-spacing:-0.02em;color:#0f172a;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              ${escapeHtml(inc.type)}
+            </div>
+
+            <div style="margin-top:3px;font-size:9.5px;font-family:'SF Mono',ui-monospace,monospace;color:#94a3b8;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              ${escapeHtml(inc.id)}
+            </div>
           </div>
-          ${locationMetaHtml}
         </div>
-        <div style="display:flex;flex-shrink:0;align-items:center;gap:8px;">
-          <span style="flex-shrink:0;font-size:10px;font-weight:700;text-transform:uppercase;padding:4px 12px;border-radius:99px;letter-spacing:0.05em;white-space:nowrap;${sevBadge[inc.severity]}">${inc.severity}</span>
-          <button type="button" class="incident-popup-close" aria-label="Close incident popup">${closeIconSvg}</button>
+
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+          <span style="font-size:9.5px;font-weight:800;text-transform:uppercase;padding:3px 8px;border-radius:99px;letter-spacing:0.04em;white-space:nowrap;${sevBadge[inc.severity]}">
+            ${inc.severity}
+          </span>
+
+          <button type="button" class="incident-popup-close" aria-label="Close incident popup">
+            ${closeIconSvg}
+          </button>
         </div>
       </div>
 
-      <!-- Description -->
-      <div style="font-size:12.5px;color:#475569;line-height:1.55;margin-bottom:12px;padding:10px 12px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;min-width:0;overflow-wrap:anywhere;white-space:normal;">
-        ${descriptionHtml}
+      <div style="font-size:12px;color:#334155;font-weight:650;display:flex;gap:5px;line-height:1.3;margin-bottom:5px;">
+        <span style="color:#94a3b8;flex-shrink:0;">⌖</span>
+        <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+          ${escapeHtml(inc.location)}
+        </span>
       </div>
 
-      <!-- 2x2 Stats Grid -->
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;font-size:11px;min-width:0;overflow:hidden;">
-        <div style="background:#f1f5f9;padding:9px 10px;border-radius:10px;min-width:0;overflow:hidden;">
-          <div style="color:#94a3b8;font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">Elapsed</div>
-          <div style="color:#1e293b;font-weight:700;font-family:'SF Mono',ui-monospace,monospace;overflow-wrap:anywhere;">${inc.elapsedTime}</div>
+      <div style="margin-top:9px;border-left:3px solid #2563eb;padding-left:9px;">
+        <div style="font-size:8.5px;font-weight:850;color:#2563eb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">
+          Alert summary
         </div>
-        <div style="background:#f1f5f9;padding:9px 10px;border-radius:10px;min-width:0;overflow:hidden;">
-          <div style="color:#94a3b8;font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">Assigned Unit</div>
-          <div style="color:#1e293b;font-weight:700;overflow-wrap:anywhere;white-space:normal;">${inc.assignedUnit}</div>
-        </div>
-        <div style="background:#f1f5f9;padding:9px 10px;border-radius:10px;min-width:0;overflow:hidden;">
-          <div style="color:#94a3b8;font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">Priority</div>
-          <div style="font-weight:700;overflow-wrap:anywhere;${sevBadge[inc.severity].replace('background:', 'color:').split(';')[1]}">${inc.severity}</div>
-        </div>
-        <div style="padding:9px 10px;border-radius:10px;text-align:center;min-width:0;overflow:hidden;${statusStyle[inc.status] || 'background:#f1f5f9;color:#334155;'}">
-          <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;opacity:0.7;">Status</div>
-          <div style="font-weight:800;font-size:11px;text-transform:uppercase;overflow-wrap:anywhere;">${inc.status}</div>
+        <div style="font-size:12px;color:#334155;line-height:1.38;">
+          ${escapeHtml(compactSummary.summary)}
         </div>
       </div>
-      
-      ${evidenceHtml}
+
+      <div style="margin-top:9px;border-left:3px solid #0f766e;padding-left:9px;">
+        <div style="font-size:8.5px;font-weight:850;color:#0f766e;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">
+          Action
+        </div>
+        <div style="font-size:11.5px;color:#334155;line-height:1.35;">
+          ${escapeHtml(compactSummary.recommendation)}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;">
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:6px 7px;border-radius:8px;">
+          <div style="font-size:8px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">Elapsed</div>
+          <div style="margin-top:1px;color:#0f172a;font-weight:800;font-size:11.5px;font-family:'SF Mono',ui-monospace,monospace;">${escapeHtml(inc.elapsedTime)}</div>
+        </div>
+
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:6px 7px;border-radius:8px;">
+          <div style="font-size:8px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">Assigned</div>
+          <div style="margin-top:1px;color:#0f172a;font-weight:800;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(inc.assignedUnit)}</div>
+        </div>
+
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:6px 7px;border-radius:8px;">
+          <div style="font-size:8px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">Priority</div>
+          <div style="margin-top:1px;font-weight:850;font-size:11.5px;color:${inc.severity === "Critical" ? "#dc2626" : inc.severity === "High" ? "#c2410c" : "#b45309"};">${inc.severity}</div>
+        </div>
+
+        <div style="padding:6px 7px;border-radius:8px;${statusStyle[inc.status] || "background:#f8fafc;color:#334155;"}">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:0.7;">Status</div>
+          <div style="margin-top:1px;font-weight:850;font-size:11.5px;text-transform:uppercase;">${escapeHtml(inc.status)}</div>
+        </div>
+      </div>
+
+      ${
+        evidencePreview.length > 0
+          ? `
+            <div style="margin-top:9px;padding-top:8px;border-top:1px dashed #cbd5e1;">
+              <div style="font-size:8.5px;font-weight:850;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">
+                Key evidence
+              </div>
+
+              <div style="display:flex;flex-wrap:wrap;gap:5px;">
+                ${evidencePreview
+                  .map(
+                    (ev) => `
+                      <span style="max-width:105px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;font-size:9px;font-weight:600;padding:3px 6px;border-radius:6px;">
+                        ${escapeHtml(String(ev))}
+                      </span>
+                    `
+                  )
+                  .join("")}
+              </div>
+            </div>
+          `
+          : ""
+      }
     </div>
   `;
 }
-
 // ─────────────────────────────────────────────────────────
 // FlyTo controller
 // ─────────────────────────────────────────────────────────
@@ -265,6 +350,7 @@ export default function IncidentMap({
   const mapRef = useRef<L.Map | null>(null);
   const markerRefs = useRef<Record<string, L.Marker>>({});
   const onSelectIncidentRef = useRef(onSelectIncident);
+  const lastSelectedIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     onSelectIncidentRef.current = onSelectIncident;
@@ -326,12 +412,14 @@ export default function IncidentMap({
         icon: createIcon(inc.severity, inc.id === selectedId),
       })
         .bindPopup(popupContent(inc), {
-          minWidth: 360,
-          maxWidth: 420,
-          closeButton: false,
-          autoPan: true,
-          keepInView: true,
-        })
+  className: "echosync-incident-popup",
+  closeButton: false,
+  maxWidth: 330,
+  minWidth: 300,
+  maxHeight: 300,
+  autoPan: false,
+  keepInView: false,
+})
         .on('click', () => onSelectIncidentRef.current(inc.id))
         .addTo(map);
 
@@ -339,107 +427,120 @@ export default function IncidentMap({
     });
 
     if (selectedIncident) {
-      map.flyTo([selectedIncident.lat, selectedIncident.lng], 17, { duration: 1.2 });
-      const popupTimer = setTimeout(() => {
-        markerRefs.current[selectedIncident.id]?.openPopup();
-      }, 900);
+      const shouldMoveMap = selectedIncident.id !== lastSelectedIdRef.current;
+      lastSelectedIdRef.current = selectedIncident.id;
+
+      if (shouldMoveMap) {
+        map.flyTo([selectedIncident.lat, selectedIncident.lng], 17, {
+          duration: 0.45,
+        });
+      }
+
+      const popupTimer = setTimeout(
+        () => {
+          markerRefs.current[selectedIncident.id]?.openPopup();
+        },
+        shouldMoveMap ? 450 : 0
+      );
+
       return () => clearTimeout(popupTimer);
     }
 
+    lastSelectedIdRef.current = null;
     map.closePopup();
-    map.flyTo([1.3521, 103.8198], 12, { duration: 1.2 });
   }, [incidents, selectedId, selectedIncident]);
 
   return (
     <div className="w-full h-full relative overflow-hidden">
       <style>{`
-        @keyframes marker-pulse {
-          0%, 100% { transform: scale(1); opacity: 0.5; }
-          50% { transform: scale(2.2); opacity: 0; }
-        }
-        .leaflet-popup-content-wrapper {
-          border-radius: 20px !important;
-          padding: 0 !important;
-          box-shadow: 0 12px 48px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.06) !important;
-          overflow-x: hidden !important;
-          overflow-y: hidden !important;
-          border: 1px solid #e2e8f0 !important;
-          background: #ffffff !important;
-          max-width: min(360px, calc(100vw - 32px)) !important;
-          max-height: calc(100dvh - 300px) !important;
-        }
-        .leaflet-popup-content {
-          margin: 16px !important;
-          width: 328px !important;
-          max-width: calc(100vw - 64px) !important;
-          max-height: calc(100dvh - 300px) !important;
-          overflow-y: auto !important;
-          overflow-x: hidden !important;
-          line-height: 1.4 !important;
-          font-size: 12.5px !important;
-        }
-        @media (min-width: 1536px) and (min-height: 900px) {
-          .leaflet-popup-content-wrapper {
-            max-width: min(420px, calc(100vw - 32px)) !important;
-          }
-          .leaflet-popup-content {
-            margin: 16px !important;
-            width: 388px !important;
-            max-width: calc(100vw - 64px) !important;
-            max-height: calc(100dvh - 300px) !important;
-            font-size: 13px !important;
-          }
-        }
-        @media (max-width: 1023px) {
-          .leaflet-popup-content-wrapper {
-            max-width: calc(100vw - 32px) !important;
-          }
-          .leaflet-popup-content {
-            width: auto !important;
-            min-width: min(320px, calc(100vw - 64px)) !important;
-            max-width: calc(100vw - 64px) !important;
-          }
-        }
-        .leaflet-popup-tip-container {
-          margin-top: -1px !important;
-          pointer-events: none !important;
-        }
-        .leaflet-popup-tip {
-          box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
-          border: 1px solid #e2e8f0 !important;
-          background: #ffffff !important;
-          pointer-events: none !important;
-        }
-        .leaflet-popup-close-button {
-          display: none !important;
-        }
-        .incident-popup-close {
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          width: 32px !important;
-          height: 32px !important;
-          flex-shrink: 0 !important;
-          border-radius: 9999px !important;
-          background: #f1f5f9 !important;
-          color: #64748b !important;
-          border: 0 !important;
-          padding: 0 !important;
-          font-size: 18px !important;
-          font-weight: 600 !important;
-          line-height: 32px !important;
-          cursor: pointer !important;
-          transition: all 0.15s ease !important;
-        }
-        .incident-popup-close:hover {
-          color: #475569 !important;
-          background: #e2e8f0 !important;
-        }
-        .leaflet-container {
-          font-family: Inter, system-ui, -apple-system, sans-serif !important;
-          background: #f8fafc !important;
-        }
-      `}</style>
+  @keyframes marker-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(2.2); opacity: 0; }
+  }
+
+  .echosync-incident-popup .leaflet-popup-content-wrapper {
+  border-radius: 18px !important;
+  padding: 0 !important;
+  box-shadow: 0 12px 36px rgba(15,23,42,0.20) !important;
+  overflow: hidden !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+}
+
+.echosync-incident-popup .leaflet-popup-content {
+  margin: 0 !important;
+  width: 320px !important;
+  max-width: 320px !important;
+  max-height: 300px !important;
+  overflow: hidden !important;
+  line-height: 1.35 !important;
+  font-size: 12px !important;
+}
+
+.echosync-popup-scroll {
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.echosync-popup-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.echosync-popup-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.echosync-popup-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.echosync-incident-popup .leaflet-popup-tip-container {
+  margin-top: -1px !important;
+  pointer-events: none !important;
+}
+
+.echosync-incident-popup .leaflet-popup-tip {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  pointer-events: none !important;
+}
+
+.echosync-incident-popup .leaflet-popup-close-button {
+  display: none !important;
+}
+
+.incident-popup-close {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  flex-shrink: 0 !important;
+  border-radius: 9999px !important;
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  border: 0 !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.incident-popup-close:hover {
+  color: #475569 !important;
+  background: #e2e8f0 !important;
+}
+
+  .leaflet-container {
+    font-family: Inter, system-ui, -apple-system, sans-serif !important;
+    background: #f8fafc !important;
+  }
+`}</style>
       <div ref={containerRef} className="w-full h-full" />
     </div>
   );

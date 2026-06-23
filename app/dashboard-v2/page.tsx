@@ -125,8 +125,10 @@ type SensorApiEvent = {
   sensorData?: unknown;
   voiceCheckIn?: unknown;
   aiSummary?: string;
-  receivedAt?: string;
+  timestamp?: string;   // Raspberry Pi trigger time
+  receivedAt?: string;  // Next.js receive time
 };
+
 
 // ─────────────────────────────────────────────────────────
 // Mock Data
@@ -427,6 +429,33 @@ function cleanAiText(value?: string) {
     .replace(/\s+/g, ' ')
     .trim();
 }
+function parseLiveDate(value?: string) {
+  if (!value) return null;
+
+  const normalised =
+    value.includes(' ') && !value.includes('T')
+      ? value.replace(' ', 'T')
+      : value;
+
+  const date = new Date(normalised);
+
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date;
+}
+
+function makeLiveIncidentId(index: number, piTime: Date) {
+  const stamp = piTime
+    .toLocaleTimeString('en-SG', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+    .replaceAll(':', '');
+
+  return `INC-LIVE-${stamp}-${index + 1}`;
+}
 
 function buildLiveOpsLog(
   event: SensorApiEvent,
@@ -485,8 +514,8 @@ function buildLiveOpsLog(
         description: help
           ? 'Resident requested help. Immediate emergency operator review required.'
           : noResponse
-          ? 'No resident response. Emergency operator review required.'
-          : 'Critical alert requires emergency operator review.',
+            ? 'No resident response. Emergency operator review required.'
+            : 'Critical alert requires emergency operator review.',
         source: 'EchoSync triage router',
       },
       {
@@ -537,31 +566,41 @@ function liveEventToIncident(event: SensorApiEvent, index: number): Incident | n
   const evidence = describeUnknown(event.sensorData);
   const voice = voiceResult(event.voiceCheckIn);
   const confidence = Math.round(event.confidence ?? 0);
-  const received = event.receivedAt ? new Date(event.receivedAt) : new Date();
-  const liveOpsLog = buildLiveOpsLog(event, severity, confidence, voice, received);
+  // Prefer Raspberry Pi timestamp.
+  // Fall back to Next.js receivedAt only if Pi timestamp is missing.
+  const piTime =
+    parseLiveDate(event.timestamp) ||
+    parseLiveDate(event.receivedAt) ||
+    new Date();
+
+  const liveCaseId = makeLiveIncidentId(index, piTime);
+  const liveOpsLog = buildLiveOpsLog(event, severity, confidence, voice, piTime);
   const noResponse = /no[- ]?response|unresponsive|failed/i.test(voice);
   const recommendedAction = noResponse || severity === 'Critical'
     ? 'Urgent operator review. Consider myResponder CFR/AED coordination and escalate to SCDF if emergency signs are confirmed or there is no response.'
     : 'Operator review. Consider myResponder CFR/AED coordination; notify the caregiver while verification is in progress.';
 
   return {
-    id: `${event.nodeId || 'LIVE'}-${event.receivedAt || index}`,
+    id: liveCaseId,
     type: event.eventType || 'Sensor anomaly',
     ...(resolvedLocation
       ? toIncidentLocationFields(resolvedLocation)
       : {
-          location: event.location || 'Registered HDB unit unavailable',
-          lat: 1.3521,
-          lng: 103.8198,
-          locationSource: 'Registered HDB address',
-          locationAccuracy: 'Unit registration pending verification',
-        }),
+        location: event.location || 'Registered HDB unit unavailable',
+        lat: 1.3521,
+        lng: 103.8198,
+        locationSource: 'Registered HDB address',
+        locationAccuracy: 'Unit registration pending verification',
+      }),
     elapsedTime: 'Live',
     severity,
     flagged: severity === 'Critical',
     status: 'Active',
     assignedUnit: assignedUnitFromRisk(severity),
-    lastUpdated: received.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' }),
+    lastUpdated: piTime.toLocaleTimeString('en-SG', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
     description: cleanAiText(event.aiSummary) || `${event.eventType || 'Anomaly'} detected for ${event.resident || 'registered resident'}.`,
     evidence: evidence.length ? evidence : ['Sensor trigger received', `AI calculated score: ${confidence}%`],
     opsLog: liveOpsLog,
@@ -735,6 +774,24 @@ function IncidentCard({
   onToggleFlag: () => void;
 }) {
   const sev = severityColor(incident.severity);
+  const rawEvidenceLine =
+    incident.simulation?.aiReasoningLine ||
+    incident.evidence?.join(" + ") ||
+    "";
+
+  const evidenceItems = rawEvidenceLine
+    .split(" + ")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      const [label, ...rest] = item.split(":");
+      const value = rest.join(":").trim();
+
+      return {
+        label: value ? label.trim() : "Signal",
+        value: value || item,
+      };
+    });
 
   return (
     <div
@@ -747,11 +804,10 @@ function IncidentCard({
           onSelect();
         }
       }}
-      className={`w-full text-left rounded-lg border p-2.5 transition-all duration-150 group cursor-pointer ${
-        isSelected
+      className={`w-full text-left rounded-lg border p-2.5 transition-all duration-150 group cursor-pointer ${isSelected
           ? `${sev.bg} bg-opacity-30 ${sev.border} ring-1 ${sev.ring}`
           : 'bg-white border-slate-150 hover:bg-slate-50 hover:border-slate-300'
-      }`}
+        }`}
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
@@ -765,11 +821,10 @@ function IncidentCard({
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onToggleFlag(); }}
-          className={`p-1 rounded-md border transition-colors ${
-            incident.flagged
+          className={`p-1 rounded-md border transition-colors ${incident.flagged
               ? 'text-red-600 bg-red-50 border-red-200 hover:bg-red-100'
               : 'text-red-300 bg-red-50/40 border-red-100 hover:bg-red-50'
-          }`}
+            }`}
           title={incident.flagged ? 'Unflag' : 'Flag'}
         >
           {incident.flagged ? <Flag className="w-3 h-3" /> : <FlagOff className="w-3 h-3" />}
@@ -813,9 +868,8 @@ function NotificationToast({
   const sev = severityColor(incident.severity);
 
   const content = (
-    <div className={`fixed bottom-4 right-4 z-[100] w-[min(380px,calc(100vw-32px))] max-h-[min(220px,calc(100dvh-96px))] rounded-xl border shadow-2xl overflow-hidden transition-all duration-500 2xl:bottom-6 2xl:right-6 2xl:w-[min(420px,calc(100vw-32px))] ${
-      acknowledged ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'
-    }`}>
+    <div className={`fixed bottom-4 right-4 z-[100] w-[min(380px,calc(100vw-32px))] max-h-[min(220px,calc(100dvh-96px))] rounded-xl border shadow-2xl overflow-hidden transition-all duration-500 2xl:bottom-6 2xl:right-6 2xl:w-[min(420px,calc(100vw-32px))] ${acknowledged ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'
+      }`}>
       <div className={`h-0.5 ${acknowledged ? 'bg-emerald-500' : sev.dot}`} />
       <div className="p-3.5">
         <div className="flex items-start justify-between mb-2">
@@ -828,9 +882,8 @@ function NotificationToast({
                 <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-ping" />
               </div>
             )}
-            <span className={`text-[9px] font-bold uppercase tracking-wider ${
-              acknowledged ? 'text-emerald-600' : 'text-red-600'
-            }`}>
+            <span className={`text-[9px] font-bold uppercase tracking-wider ${acknowledged ? 'text-emerald-600' : 'text-red-600'
+              }`}>
               {acknowledged ? 'Acknowledged' : `${incident.severity} Alert`}
             </span>
           </div>
@@ -1103,25 +1156,24 @@ function OpsLogPanel({ opsLog, onOpenFullLog }: { opsLog: GlobalOpsLogEntry[]; o
       {/* Scrollable timeline */}
       <div className="flex-1 overflow-y-auto px-3 py-2 flex flex-col">
         {opsLog.map((entry, i) => (
-            <div key={`${entry.incidentId}-${entry.time}-${i}`} className="flex gap-2.5 relative">
-              <div className="flex flex-col items-center flex-shrink-0">
-                <div className={`w-2 h-2 rounded-full border-[1.5px] flex-shrink-0 z-10 mt-0.5 ${
-                  i === 0 ? 'bg-teal-500 border-teal-500' : 'bg-white border-slate-300'
+          <div key={`${entry.incidentId}-${entry.time}-${i}`} className="flex gap-2.5 relative">
+            <div className="flex flex-col items-center flex-shrink-0">
+              <div className={`w-2 h-2 rounded-full border-[1.5px] flex-shrink-0 z-10 mt-0.5 ${i === 0 ? 'bg-teal-500 border-teal-500' : 'bg-white border-slate-300'
                 }`} />
-                {i < opsLog.length - 1 && (
-                  <div className="w-px flex-1 bg-slate-200 min-h-[24px]" />
-                )}
-              </div>
-              <div className="pb-3 -mt-0.5 flex-1 min-w-0">
-                <div className="flex items-baseline gap-1.5 mb-0.5">
-                  <span className="text-[9px] font-mono font-bold text-slate-400">{entry.time}</span>
-                  <span className="text-[9px] font-mono font-bold text-teal-600 bg-teal-50 px-1 py-0.5 rounded">{entry.incidentId}</span>
-                  <span className="text-[11px] font-semibold text-slate-700">{entry.title}</span>
-                </div>
-                <p className="text-[10px] text-slate-500 leading-relaxed">{entry.description}</p>
-              </div>
+              {i < opsLog.length - 1 && (
+                <div className="w-px flex-1 bg-slate-200 min-h-[24px]" />
+              )}
             </div>
-          ))}
+            <div className="pb-3 -mt-0.5 flex-1 min-w-0">
+              <div className="flex items-baseline gap-1.5 mb-0.5">
+                <span className="text-[9px] font-mono font-bold text-slate-400">{entry.time}</span>
+                <span className="text-[9px] font-mono font-bold text-teal-600 bg-teal-50 px-1 py-0.5 rounded">{entry.incidentId}</span>
+                <span className="text-[11px] font-semibold text-slate-700">{entry.title}</span>
+              </div>
+              <p className="text-[10px] text-slate-500 leading-relaxed">{entry.description}</p>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1172,21 +1224,27 @@ function AiSummaryCard({ summary, source }: { summary: string; source: string })
   const sections = parseSummarySections(summary);
 
   return (
-    <div className="rounded bg-white px-2 py-1.5 border border-slate-100">
+    <div className="px-0 py-0">
       <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400 mb-2">
         GB10 AI Summary <span className="font-mono normal-case">({source})</span>
       </p>
 
       <div className="space-y-2">
         {sections.map((section, index) => (
-          <div key={`${section.title}-${index}`} className="rounded-md border border-indigo-100 bg-indigo-50/60 px-2 py-2">
+          <div
+            key={`${section.title}-${index}`}
+            className="rounded-md border border-indigo-100 bg-indigo-50/60 px-2 py-2"
+          >
             <p className="text-[8px] font-bold uppercase tracking-wider text-indigo-700 mb-1">
               {section.title}
             </p>
 
             <div className="space-y-1">
               {splitSummarySentences(section.body).map((sentence, sentenceIndex) => (
-                <p key={`${section.title}-${sentenceIndex}`} className="text-[10.5px] font-semibold text-slate-700 leading-relaxed">
+                <p
+                  key={`${section.title}-${sentenceIndex}`}
+                  className="text-[10.5px] font-semibold text-slate-700 leading-relaxed"
+                >
                   {sentence}
                 </p>
               ))}
@@ -1274,7 +1332,7 @@ function IncidentDetailStrip({
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs bg-amber-50/50 p-2.5 rounded-md border border-amber-100 shadow-sm">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 flex-shrink-0 flex items-center gap-1.5">
-               <AlertTriangle className="w-3.5 h-3.5" /> Why this alert was raised:
+              <AlertTriangle className="w-3.5 h-3.5" /> Why this alert was raised:
             </span>
             <span className="min-w-0 text-[11.5px] font-semibold text-slate-800 leading-snug">
               {incident.simulation?.aiReasoningLine || incident.evidence.join(' + ')}
@@ -1412,14 +1470,14 @@ function FullOpsLogWorkspace({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={openForm}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-semibold transition-colors shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" /> Add Log Entry
           </button>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition-colors border border-slate-200 shadow-sm"
           >
             <MapPin className="w-3.5 h-3.5" /> Back to Map
@@ -1433,15 +1491,14 @@ function FullOpsLogWorkspace({
         <div className="flex-1 overflow-y-auto bg-slate-50 flex flex-col p-6">
           <div className="flex-1">
             {opsLog.map((entry, i) => (
-              <div 
-                key={`${entry.incidentId}-${entry.time}-${i}`} 
+              <div
+                key={`${entry.incidentId}-${entry.time}-${i}`}
                 className="flex gap-4 relative mb-6 cursor-pointer group"
                 onClick={() => openEntry(entry)}
               >
                 <div className="flex flex-col items-center flex-shrink-0 w-8">
-                  <div className={`w-3 h-3 rounded-full border-[2.5px] flex-shrink-0 z-10 mt-1.5 ${
-                    i === 0 ? 'bg-teal-500 border-teal-500 ring-4 ring-teal-50' : 'bg-white border-slate-300 group-hover:border-teal-400'
-                  } transition-colors`} />
+                  <div className={`w-3 h-3 rounded-full border-[2.5px] flex-shrink-0 z-10 mt-1.5 ${i === 0 ? 'bg-teal-500 border-teal-500 ring-4 ring-teal-50' : 'bg-white border-slate-300 group-hover:border-teal-400'
+                    } transition-colors`} />
                   {i < opsLog.length - 1 && (
                     <div className="w-px flex-1 bg-slate-200 min-h-[40px] group-hover:bg-slate-300 transition-colors" />
                   )}
@@ -1485,8 +1542,8 @@ function FullOpsLogWorkspace({
                 <div className="p-5 space-y-4 flex-1">
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Title</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={title}
                       onChange={e => setTitle(e.target.value)}
                       placeholder="e.g. CFR arrived on scene"
@@ -1496,7 +1553,7 @@ function FullOpsLogWorkspace({
 
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Source</label>
-                    <select 
+                    <select
                       value={source}
                       onChange={e => setSource(e.target.value)}
                       className="w-full text-[12px] p-2.5 border border-slate-200 rounded-md focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 bg-white"
@@ -1512,7 +1569,7 @@ function FullOpsLogWorkspace({
 
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Status Update</label>
-                    <select 
+                    <select
                       value={status}
                       onChange={e => setStatus(e.target.value)}
                       className="w-full text-[12px] p-2.5 border border-slate-200 rounded-md focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 bg-white"
@@ -1538,16 +1595,16 @@ function FullOpsLogWorkspace({
                   </div>
                 </div>
                 <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2 shrink-0">
-                   <button onClick={() => setActivePanel('none')} className="flex-1 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold text-[12px] py-2 rounded-md transition-colors shadow-sm">
-                     Cancel
-                   </button>
-                   <button onClick={handleSubmit} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold text-[12px] py-2 rounded-md transition-colors shadow-sm">
-                     Save Log Entry
-                   </button>
+                  <button onClick={() => setActivePanel('none')} className="flex-1 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold text-[12px] py-2 rounded-md transition-colors shadow-sm">
+                    Cancel
+                  </button>
+                  <button onClick={handleSubmit} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold text-[12px] py-2 rounded-md transition-colors shadow-sm">
+                    Save Log Entry
+                  </button>
                 </div>
               </div>
             )}
-            
+
             {activePanel === 'entry' && selectedEntry && (
               <div className="flex flex-col h-full">
                 <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50 shadow-sm">
@@ -1559,36 +1616,36 @@ function FullOpsLogWorkspace({
                   </button>
                 </div>
                 <div className="p-5 space-y-6 flex-1">
-                   <div>
-                     <div className="text-[11px] font-mono font-bold text-teal-600 bg-teal-50 px-2.5 py-0.5 rounded inline-block mb-2">{selectedEntry.time}</div>
-                     <h4 className="text-[16px] font-bold text-slate-900 leading-tight">{selectedEntry.title}</h4>
-                   </div>
-                   
-                   <div>
-                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Description</label>
-                     <p className="text-[13px] text-slate-700 leading-relaxed bg-slate-50 p-3.5 rounded-lg border border-slate-100">{selectedEntry.description}</p>
-                   </div>
-                   
-                   <div>
-                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Source</label>
-                     <div className="flex items-center gap-1.5 text-[12px] font-medium text-slate-700">
-                       <User className="w-4 h-4 text-slate-400" /> {selectedEntry.source}
-                     </div>
-                   </div>
+                  <div>
+                    <div className="text-[11px] font-mono font-bold text-teal-600 bg-teal-50 px-2.5 py-0.5 rounded inline-block mb-2">{selectedEntry.time}</div>
+                    <h4 className="text-[16px] font-bold text-slate-900 leading-tight">{selectedEntry.title}</h4>
+                  </div>
 
-                   <div className="pt-5 border-t border-slate-100">
-                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">Related Context</label>
-                     <div className="space-y-2.5 bg-white border border-slate-100 rounded-lg p-3">
-                       <div className="flex justify-between items-center">
-                         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Case ID</span>
-                         <span className="text-[12px] font-mono font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded">{selectedEntry.incidentId}</span>
-                       </div>
-                       <div className="flex justify-between items-center">
-                         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Location</span>
-                         <span className="text-[12px] font-medium text-slate-800">{selectedEntry.location}</span>
-                       </div>
-                     </div>
-                   </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Description</label>
+                    <p className="text-[13px] text-slate-700 leading-relaxed bg-slate-50 p-3.5 rounded-lg border border-slate-100">{selectedEntry.description}</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Source</label>
+                    <div className="flex items-center gap-1.5 text-[12px] font-medium text-slate-700">
+                      <User className="w-4 h-4 text-slate-400" /> {selectedEntry.source}
+                    </div>
+                  </div>
+
+                  <div className="pt-5 border-t border-slate-100">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">Related Context</label>
+                    <div className="space-y-2.5 bg-white border border-slate-100 rounded-lg p-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Case ID</span>
+                        <span className="text-[12px] font-mono font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded">{selectedEntry.incidentId}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Location</span>
+                        <span className="text-[12px] font-medium text-slate-800">{selectedEntry.location}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -1642,24 +1699,24 @@ export default function DashboardV2() {
           .map(liveEventToIncident)
           .filter((incident): incident is Incident => incident !== null);
         if (active && liveIncidents.length) {
-        liveDataActive.current = true;
-        setIncidents(liveIncidents);
+          liveDataActive.current = true;
+          setIncidents(liveIncidents);
 
-        setSelectedId((current) => {
-          if (userClosedSelection.current) return current;
+          setSelectedId((current) => {
+            if (userClosedSelection.current) return current;
 
-          return liveIncidents.some((incident) => incident.id === current)
-            ? current
-            : liveIncidents[0].id;
-        });
-      } else if (active && liveDataActive.current) {
-        liveDataActive.current = false;
-        setIncidents(initialIncidents);
+            return liveIncidents.some((incident) => incident.id === current)
+              ? current
+              : liveIncidents[0].id;
+          });
+        } else if (active && liveDataActive.current) {
+          liveDataActive.current = false;
+          setIncidents(initialIncidents);
 
-        if (!userClosedSelection.current) {
-          setSelectedId('INC-2026-089');
+          if (!userClosedSelection.current) {
+            setSelectedId('INC-2026-089');
+          }
         }
-      }
       } catch {
         // Existing demo incidents remain visible when the live endpoint is unavailable.
       }
@@ -1671,7 +1728,7 @@ export default function DashboardV2() {
       clearInterval(timer);
     };
   }, []);
-  
+
 
   const filteredIncidents = incidents.filter(inc => {
     if (filter === 'All') return true;
@@ -1717,8 +1774,8 @@ export default function DashboardV2() {
   }, []);
 
   const handleAddOpsLogEntry = useCallback((incidentId: string, entry: OpsLogEntry) => {
-    setIncidents(prev => prev.map(inc => 
-      inc.id === incidentId 
+    setIncidents(prev => prev.map(inc =>
+      inc.id === incidentId
         ? { ...inc, opsLog: [...inc.opsLog, entry] }
         : inc
     ));
@@ -1784,12 +1841,12 @@ export default function DashboardV2() {
         ...(resolvedLocation
           ? toIncidentLocationFields(resolvedLocation)
           : {
-              location: alert.location,
-              lat: 1.3521,
-              lng: 103.8198,
-              locationSource: 'Manual address geocode',
-              locationAccuracy: 'Address verified, block-level estimate',
-            }),
+            location: alert.location,
+            lat: 1.3521,
+            lng: 103.8198,
+            locationSource: 'Manual address geocode',
+            locationAccuracy: 'Address verified, block-level estimate',
+          }),
         description: getOperationalSummary(scenario),
         evidence: evidenceChips,
         opsLog: [],
@@ -1922,16 +1979,15 @@ export default function DashboardV2() {
                 if (f === 'Active') return inc.status !== 'Resolved';
                 return true;
               }).length;
-              
+
               return (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`px-2 py-1 rounded text-xs whitespace-nowrap font-semibold transition-colors flex items-center gap-1 border border-transparent ${
-                    filter === f
+                  className={`px-2 py-1 rounded text-xs whitespace-nowrap font-semibold transition-colors flex items-center gap-1 border border-transparent ${filter === f
                       ? (f === 'Critical' ? 'bg-red-50 text-red-700 border-red-100' : 'bg-teal-50 text-teal-700 border-teal-100')
                       : 'text-slate-500 hover:bg-slate-50 border-slate-100'
-                  }`}
+                    }`}
                 >
                   {f} <span className="text-[10px] opacity-60 font-mono">{count}</span>
                 </button>

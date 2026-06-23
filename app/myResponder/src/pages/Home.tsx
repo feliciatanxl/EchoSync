@@ -13,6 +13,47 @@ export default function Home() {
   const [activeAlert, setActiveAlert] = useState(null);
   const [liveAlert, setLiveAlert] = useState<any>(null);
   const [verificationStatus, setVerificationStatus] = useState('');
+  const notifyCaregiverFromMyResponder = async () => {
+  if (!liveAlert) {
+    setVerificationStatus("No live EchoSync alert to notify caregiver");
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/caregiver-alert", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...liveAlert,
+        id: liveAlert.id || `MYR-CARE-${Date.now()}`,
+        eventType: liveAlert.eventType || "EchoSync Verification Alert",
+        riskLevel: liveAlert.riskLevel || "Medium",
+        reason:
+          liveAlert.reason ||
+          "myResponder operator notified caregiver for verification",
+        aiSummary:
+          liveAlert.aiSummary ||
+          "myResponder operator notified the caregiver to verify resident safety.",
+        source: "myResponder operator",
+        myResponderAction: {
+          action: "caregiver_notified",
+          message: "Caregiver notified by myResponder operator",
+          timestamp: new Date().toISOString(),
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to notify caregiver");
+    }
+
+    setVerificationStatus("Caregiver notified through caregiver app");
+  } catch {
+    setVerificationStatus("Failed to notify caregiver");
+  }
+};
   const startLiveEchoSyncResponse = () => {
     if (!liveAlert) return;
 
@@ -239,8 +280,8 @@ export default function Home() {
 
               <button
                 type="button"
-                onClick={() => setVerificationStatus("Caregiver notified")}
-                className="w-full rounded-xl border border-[#1e3a8a] bg-white px-4 py-2.5 text-sm font-bold text-[#1e3a8a]"
+                onClick={notifyCaregiverFromMyResponder}
+                className="w-full rounded-xl bg-[#1e3a8a] px-4 py-2.5 text-sm font-bold text-white"
               >
                 Notify caregiver
               </button>
