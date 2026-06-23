@@ -13,6 +13,34 @@ export default function Home() {
   const [activeAlert, setActiveAlert] = useState(null);
   const [liveAlert, setLiveAlert] = useState<any>(null);
   const [verificationStatus, setVerificationStatus] = useState('');
+  const startLiveEchoSyncResponse = () => {
+    if (!liveAlert) return;
+
+    const responseAlert = {
+      id: liveAlert.id || `MYR-${Date.now()}`,
+      type: "echosync_verification",
+      status: "accepted",
+      source: "raspberry_pi",
+      title: liveAlert.eventType || "EchoSync Verification Alert",
+      riskLevel: liveAlert.riskLevel || "Medium",
+      confidence: liveAlert.confidence || 72,
+      resident: liveAlert.resident || "Mdm Tan Siew Lan",
+      location_name: liveAlert.location || "Registered HDB unit",
+      location_address: liveAlert.location || "Blk 302 Ang Mo Kio Ave 3, #08-112",
+      reason: liveAlert.reason || "Resident said they are okay after voice check-in",
+      aiSummary: liveAlert.aiSummary || "",
+      sensorData: liveAlert.sensorData || null,
+      voiceCheckIn: liveAlert.voiceCheckIn || null,
+      receivedAt: liveAlert.receivedAt || new Date().toISOString(),
+    };
+
+    sessionStorage.setItem(
+      "echosync-myresponder-active-alert",
+      JSON.stringify(responseAlert)
+    );
+
+    navigate("/active-response");
+  };
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,8 +72,8 @@ export default function Home() {
       const alerts = await base44.entities.EmergencyAlert.list();
       setActiveAlert(
         alerts.find((alert) => alert.status === 'pending')
-          || alerts.find((alert) => alert.status === 'accepted')
-          || null
+        || alerts.find((alert) => alert.status === 'accepted')
+        || null
       );
     };
 
@@ -98,11 +126,10 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setAlertOn(!alertOn)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium ${
-                alertOn
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium ${alertOn
                   ? 'border-green-400 text-green-400 bg-green-400/10'
                   : 'border-white/50 text-white/80 bg-white/10'
-              }`}
+                }`}
             >
               {alertOn ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
               {alertOn ? 'Alert on' : 'Alert off'}
@@ -204,21 +231,27 @@ export default function Home() {
             <div className="mt-4 grid gap-2">
               <button
                 type="button"
-                onClick={() => setVerificationStatus('Caregiver notified')}
+                onClick={startLiveEchoSyncResponse}
                 className="w-full rounded-xl bg-[#1e3a8a] px-4 py-2.5 text-sm font-bold text-white"
+              >
+                Accept verification task
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setVerificationStatus("Caregiver notified")}
+                className="w-full rounded-xl border border-[#1e3a8a] bg-white px-4 py-2.5 text-sm font-bold text-[#1e3a8a]"
               >
                 Notify caregiver
               </button>
+
               <button
                 type="button"
-                onClick={() => setVerificationStatus('Alert acknowledged for operator verification')}
-                className="w-full rounded-xl border border-[#1e3a8a] bg-white px-4 py-2.5 text-sm font-bold text-[#1e3a8a]"
-              >
-                Acknowledge
-              </button>
-              <button
-                type="button"
-                onClick={() => setVerificationStatus('Unable to verify - sent for operator escalation review')}
+                onClick={() =>
+                  setVerificationStatus(
+                    "Unable to verify - sent for operator escalation review"
+                  )
+                }
                 className="w-full rounded-xl border border-amber-400 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-800"
               >
                 Unable to verify - escalate for review

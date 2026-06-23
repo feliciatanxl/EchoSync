@@ -16,6 +16,7 @@ export default function ActiveResponseScreen({ alert, onCancel, onParamedicsArri
 
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
+  const isEchoSync = alert.type === 'echosync_verification';
   const isCardiac = alert.type === 'cardiac_arrest';
 
   const handleCancel = async () => {
@@ -99,9 +100,9 @@ export default function ActiveResponseScreen({ alert, onCancel, onParamedicsArri
       <div className="bg-white px-5 pt-5 pb-24 shadow-2xl rounded-t-3xl -mt-20 min-h-[420px] relative z-10">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-xl">{isCardiac ? '💗' : '🔥'}</span>
+            <span className="text-xl">{isEchoSync ? '🏠' : isCardiac ? '💗' : '🔥'}</span>
             <span className="font-black text-lg text-[#1e3a8a]">
-              {isCardiac ? 'Cardiac arrest' : 'Fire'}
+              {isEchoSync ? 'EchoSync Verification' : isCardiac ? 'Cardiac arrest' : 'Fire'}
             </span>
           </div>
           <button onClick={() => setCollapsed(!collapsed)} className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center">
@@ -114,8 +115,26 @@ export default function ActiveResponseScreen({ alert, onCancel, onParamedicsArri
             <div className="flex items-start gap-2 mb-4 text-sm text-gray-700">
               <MapPin className="w-4 h-4 text-[#1e3a8a] mt-0.5 flex-shrink-0" />
               <div>
-                <div className="font-bold">{alert.location_name}</div>
-                <div className="text-xs text-gray-500">{alert.location_address}</div>
+                <div className="font-bold">{alert.location_name || alert.location || 'Registered HDB unit'}</div>
+                <div className="text-xs text-gray-500">
+                  {alert.location_address || alert.location || 'Blk 302 Ang Mo Kio Ave 3, #08-112'}
+                </div>
+                {isEchoSync && (
+                  <div className="mt-3 rounded-xl bg-blue-50 border border-blue-100 p-3 text-xs text-gray-700 space-y-1">
+                    <p>
+                      <span className="font-bold text-[#1e3a8a]">Risk:</span>{" "}
+                      {alert.riskLevel || "Medium"} · {alert.confidence || 72}% confidence
+                    </p>
+                    <p>
+                      <span className="font-bold text-[#1e3a8a]">Reason:</span>{" "}
+                      {alert.reason || "Resident said they are okay after voice check-in"}
+                    </p>
+                    <p>
+                      <span className="font-bold text-[#1e3a8a]">Task:</span>{" "}
+                      Verify resident safety and provide update to caregiver/operator.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -153,7 +172,7 @@ export default function ActiveResponseScreen({ alert, onCancel, onParamedicsArri
               onClick={handleParamedics}
               className="w-full bg-[#1e3a8a] text-white font-bold py-3.5 rounded-2xl text-sm"
             >
-              Tap when paramedics arrive
+              {isEchoSync ? 'Complete verification' : 'Tap when paramedics arrive'}
             </button>
           </>
         )}

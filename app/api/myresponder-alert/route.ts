@@ -36,11 +36,10 @@ function normaliseRiskLevel(value: unknown) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-
     const riskLevel = String(body.riskLevel || "").toLowerCase();
 
-    // myResponder should only receive Medium verification alerts.
-    // Low stays caregiver-only. High/Critical goes SCDF dashboard.
+    // Pi should only send Medium here.
+    // Low goes caregiver only. High/Critical goes SCDF dashboard.
     if (riskLevel !== "medium") {
       return NextResponse.json(
         {
@@ -66,8 +65,6 @@ export async function POST(request: Request) {
       globalStore.__echosyncMyResponderAlerts || [];
 
     globalStore.__echosyncMyResponderAlerts.unshift(alert);
-
-    // Keep latest 50 myResponder alerts for demo.
     globalStore.__echosyncMyResponderAlerts =
       globalStore.__echosyncMyResponderAlerts.slice(0, 50);
 

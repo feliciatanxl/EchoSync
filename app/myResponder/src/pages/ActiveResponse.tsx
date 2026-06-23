@@ -10,6 +10,20 @@ export default function ActiveResponse() {
 
   useEffect(() => {
     const loadAcceptedAlert = async () => {
+      const liveAlertRaw = sessionStorage.getItem(
+        'echosync-myresponder-active-alert'
+      );
+
+      if (liveAlertRaw) {
+        try {
+          const liveAlert = JSON.parse(liveAlertRaw);
+          setAlert(liveAlert);
+          return;
+        } catch {
+          sessionStorage.removeItem('echosync-myresponder-active-alert');
+        }
+      }
+
       const alerts = await base44.entities.EmergencyAlert.list();
       const acceptedAlert = alerts.find((item) => item.status === 'accepted');
 
@@ -35,8 +49,14 @@ export default function ActiveResponse() {
   return (
     <ActiveResponseScreen
       alert={alert}
-      onCancel={() => navigate('/home', { replace: true })}
-      onParamedicsArrived={() => navigate('/home', { replace: true })}
+      onCancel={() => {
+        sessionStorage.removeItem('echosync-myresponder-active-alert');
+        navigate('/home', { replace: true });
+      }}
+      onParamedicsArrived={() => {
+        sessionStorage.removeItem('echosync-myresponder-active-alert');
+        navigate('/home', { replace: true });
+      }}
     />
   );
 }
