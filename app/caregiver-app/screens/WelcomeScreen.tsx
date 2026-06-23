@@ -5,17 +5,26 @@ import {
   Button,
   Card,
   CardContent,
-  type ScreenId
 } from "../shared";
 
-export function WelcomeScreen({ go }: { go: (s: ScreenId) => void }) {
+export function WelcomeScreen({
+  startCaregiverLogin,
+  startNeighbourLogin,
+}: {
+  startCaregiverLogin: () => void;
+  startNeighbourLogin: () => void;
+}) {
   return (
     <div className="flex-1 flex flex-col px-6 pt-20 pb-8 bg-gradient-to-b from-slate-50 to-white">
       <div className="flex-1 flex flex-col items-center justify-center text-center">
         <div className="w-20 h-20 rounded-3xl bg-emerald-600 flex items-center justify-center shadow-lg mb-6">
           <ShieldCheck className="w-10 h-10 text-white" />
         </div>
-        <div className="text-slate-900 text-2xl mb-2">EchoSync Caregiver</div>
+
+        <div className="text-slate-900 text-2xl mb-2">
+          EchoSync Caregiver
+        </div>
+
         <div className="text-slate-500 px-4">
           Secure caregiver verification for seniors living alone
         </div>
@@ -33,18 +42,20 @@ export function WelcomeScreen({ go }: { go: (s: ScreenId) => void }) {
       <div className="space-y-3">
         <Button
           className="w-full h-12 !bg-[#e60012] hover:!bg-[#c90010] text-white"
-          onClick={() => go("notifications")}
+          onClick={startCaregiverLogin}
         >
           <Fingerprint className="w-4 h-4 mr-2" />
           Login with Singpass (Mock)
         </Button>
+
         <Button
           variant="outline"
           className="w-full h-12 border-slate-300"
-          onClick={() => go("notifications")}
+          onClick={startNeighbourLogin}
         >
           Continue as Community Responder
         </Button>
+
         <p className="text-[11px] text-center text-slate-400 px-4">
           Hackathon prototype. Mock secure identity login — not a real government integration.
         </p>

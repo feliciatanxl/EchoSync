@@ -6,7 +6,7 @@ import {
   type ScreenId,
   type Role,
   TopBar,
-  ScreenScroll
+  ScreenScroll,
 } from "../shared";
 
 export function NotificationsScreen({
@@ -16,6 +16,8 @@ export function NotificationsScreen({
   go: (s: ScreenId) => void;
   role: Role;
 }) {
+  const nextScreen: ScreenId = role === "neighbour" ? "link" : "role";
+
   return (
     <>
       <TopBar title="Notifications" onBack={() => go("welcome")} />
@@ -58,7 +60,7 @@ export function NotificationsScreen({
       <div className="border-t border-slate-200 bg-white p-4 space-y-2">
         <Button
           className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white"
-          onClick={() => go(role === "neighbour" ? "link" : "role")}
+          onClick={() => go(nextScreen)}
         >
           Allow notifications
         </Button>
@@ -66,7 +68,7 @@ export function NotificationsScreen({
         <Button
           variant="outline"
           className="w-full h-11 border-slate-300"
-          onClick={() => go(role === "neighbour" ? "link" : "role")}
+          onClick={() => go(nextScreen)}
         >
           Not now
         </Button>

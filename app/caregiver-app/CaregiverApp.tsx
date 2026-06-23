@@ -1,14 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   AppFrame,
   BottomNav,
   type Role,
   type ScreenId,
   type Tab,
-  useEffect,
-  useState,
 } from "./shared";
+
 import { WelcomeScreen } from "./screens/WelcomeScreen";
 import { NotificationsScreen } from "./screens/NotificationsScreen";
 import { AccessPendingScreen } from "./screens/AccessPendingScreen";
@@ -74,16 +74,30 @@ export type CaregiverLiveAlert = {
 export default function CaregiverApp() {
   const [screen, setScreen] = useState<ScreenId>("welcome");
   const [tab, setTab] = useState<Tab>("home");
+
+  // Caregiver access role
   const [role, setRole] = useState<Role>("primary");
+
+  // Controls what the role selection screen shows:
+  // caregiver = Primary / Secondary / Family
+  // neighbour = Neighbour / helper only
+  const [roleMode, setRoleMode] = useState<"caregiver" | "neighbour">(
+    "caregiver"
+  );
+
   const [risk, setRisk] = useState<"medium" | "high">("medium");
   const [nodeOnline, setNodeOnline] = useState(true);
   const [pauseDuration, setPauseDuration] = useState("30");
   const [pauseReason, setPauseReason] = useState("family");
-  const [pause, setPause] = useState<{ reasonLabel: string; resumeAt: string } | null>(null);
+  const [pause, setPause] = useState<{
+    reasonLabel: string;
+    resumeAt: string;
+  } | null>(null);
   const [contactsSaved, setContactsSaved] = useState(false);
   const [largeText, setLargeText] = useState(false);
   const [sensorMonitoringEnabled, setSensorMonitoringEnabled] = useState(true);
   const [language, setLanguage] = useState<"en" | "zh" | "ms" | "ta">("en");
+  const [liveAlert, setLiveAlert] = useState<CaregiverLiveAlert | null>(null);
 
   const updateLanguage = (nextLanguage: "en" | "zh" | "ms" | "ta") => {
     setLanguage(nextLanguage);
@@ -111,54 +125,49 @@ export default function CaregiverApp() {
     });
   };
 
-  const [liveAlert, setLiveAlert] = useState<CaregiverLiveAlert | null>(null);
-
   useEffect(() => {
-  let active = true;
+    let active = true;
 
-  const loadAlerts = async () => {
-    try {
-      const response = await fetch("/api/caregiver-alert", {
-        cache: "no-store",
-      });
+    const loadAlerts = async () => {
+      try {
+        const response = await fetch("/api/caregiver-alert", {
+          cache: "no-store",
+        });
 
-      if (!response.ok) return;
+        if (!response.ok) return;
 
-      const payload = (await response.json()) as {
-        latest?: CaregiverLiveAlert | null;
-        alerts?: CaregiverLiveAlert[];
-      };
+        const payload = (await response.json()) as {
+          latest?: CaregiverLiveAlert | null;
+          alerts?: CaregiverLiveAlert[];
+        };
 
-      // Use latest real Pi alert first.
-      // If latest is empty, use first item from alert history.
-      // If no real alert exists, keep mock fallback.
-      const alert =
-        payload.latest ||
-        (payload.alerts || [])[0] ||
-        null;
+        const alert = payload.latest || (payload.alerts || [])[0] || null;
 
-      if (active) {
-        setLiveAlert(alert);
+        if (active) {
+          setLiveAlert(alert);
+        }
+      } catch {
+        // The hardcoded caregiver case remains the fallback.
       }
-    } catch {
-      // The hardcoded caregiver case remains the fallback.
-    }
-  };
+    };
 
-  void loadAlerts();
+    void loadAlerts();
 
-  const timer = setInterval(loadAlerts, 5000);
+    const timer = setInterval(loadAlerts, 5000);
 
-  return () => {
-    active = false;
-    clearInterval(timer);
-  };
-}, []);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     const loadNodeControl = async () => {
       try {
-        const response = await fetch("/api/node-control", { cache: "no-store" });
+        const response = await fetch("/api/node-control", {
+          cache: "no-store",
+        });
+
         if (!response.ok) return;
 
         const data = await response.json();
@@ -176,7 +185,7 @@ export default function CaregiverApp() {
           setLanguage(data.preferredLanguage);
         }
       } catch {
-        // keep default caregiver app state
+        // Keep default caregiver app state.
       }
     };
 
@@ -191,7 +200,9 @@ export default function CaregiverApp() {
         body: JSON.stringify({
           pauseLowRiskMonitoring: paused,
           reason: paused ? reason : null,
-          durationMinutes: paused ? Number(pauseDuration === "custom" ? 30 : pauseDuration) : null,
+          durationMinutes: paused
+            ? Number(pauseDuration === "custom" ? 30 : pauseDuration)
+            : null,
         }),
       });
     } finally {
@@ -230,13 +241,35 @@ export default function CaregiverApp() {
 
   return (
     <AppFrame largeText={largeText}>
-      {screen === "welcome" && <WelcomeScreen go={go} />}
-      {screen === "notifications" && <NotificationsScreen go={go} />}
+      {screen === "welcome" && (
+        <WelcomeScreen
+          startCaregiverLogin={() => {
+            setRole("primary");
+            go("notifications");
+          }}
+          startNeighbourLogin={() => {
+            setRole("neighbour");
+            go("notifications");
+          }}
+        />
+      )}
+
+      {screen === "notifications" && (
+        <NotificationsScreen go={go} role={role} />
+      )}
       {screen === "accessPending" && <AccessPendingScreen go={go} />}
       {screen === "manageAccess" && <ManageAccessScreen go={go} />}
       {screen === "faq" && <FaqScreen go={go} />}
       {screen === "consentStatus" && <ConsentStatusScreen go={go} />}
-      {screen === "role" && <RoleScreen go={go} role={role} setRole={setRole} />}
+
+      {screen === "role" && (
+        <RoleScreen
+          go={go}
+          role={role}
+          setRole={setRole}
+        />
+      )}
+
       {screen === "link" && <LinkScreen go={go} />}
       {screen === "consent" && <ConsentScreen go={go} />}
       {screen === "access" && <AccessScreen go={go} />}
@@ -246,7 +279,9 @@ export default function CaregiverApp() {
           go={go}
           role={role}
           pause={pause}
-          clearPause={() => { void updatePause(false); }}
+          clearPause={() => {
+            void updatePause(false);
+          }}
           contactsSaved={contactsSaved}
           clearContactsSaved={() => setContactsSaved(false)}
           liveAlert={liveAlert}
@@ -254,13 +289,21 @@ export default function CaregiverApp() {
       )}
 
       {screen === "alert" && (
-        <AlertScreen go={go} risk={risk} setRisk={setRisk} role={role} liveAlert={liveAlert} />
+        <AlertScreen
+          go={go}
+          risk={risk}
+          setRisk={setRisk}
+          role={role}
+          liveAlert={liveAlert}
+        />
       )}
 
       {screen === "verify" && <VerifyScreen go={go} />}
       {screen === "context" && <ContextScreen go={go} />}
       {screen === "outcome" && <OutcomeScreen go={go} role={role} />}
-      {screen === "contextOutcome" && <ContextOutcomeScreen go={go} role={role} />}
+      {screen === "contextOutcome" && (
+        <ContextOutcomeScreen go={go} role={role} />
+      )}
 
       {screen === "node" && (
         <NodeScreen
@@ -269,7 +312,9 @@ export default function CaregiverApp() {
           online={nodeOnline}
           setOnline={setNodeOnline}
           pause={pause}
-          clearPause={() => { void updatePause(false); }}
+          clearPause={() => {
+            void updatePause(false);
+          }}
           sensorMonitoringEnabled={sensorMonitoringEnabled}
           setSensorMonitoringEnabled={(enabled) => {
             void updateSensorMonitoring(enabled);
@@ -304,7 +349,11 @@ export default function CaregiverApp() {
       {screen === "history" && <HistoryScreen />}
 
       {screen === "contacts" && (
-        <ContactsScreen go={go} role={role} onSave={() => setContactsSaved(true)} />
+        <ContactsScreen
+          go={go}
+          role={role}
+          onSave={() => setContactsSaved(true)}
+        />
       )}
 
       {screen === "privacy" && <PrivacyScreen go={go} />}
