@@ -9,7 +9,13 @@ import 'leaflet/dist/leaflet.css';
 // ─────────────────────────────────────────────────────────
 
 type Severity = 'Critical' | 'High' | 'Medium' | 'Low';
-type IncidentStatus = 'Active' | 'Dispatched' | 'Operator Review' | 'En Route' | 'On Scene' | 'Resolved';
+type IncidentStatus =
+  | 'Active'
+  | 'Dispatched'
+  | 'Operator Review'
+  | 'En Route'
+  | 'On Scene'
+  | 'Resolved';
 
 interface OpsLogEntry {
   time: string;
@@ -52,12 +58,16 @@ function createIcon(severity: Severity, isSelected: boolean): L.DivIcon {
     Medium: { bg: '#f59e0b', ring: 'rgba(245,158,11,0.35)' },
     Low: { bg: '#22c55e', ring: 'rgba(34,197,94,0.35)' },
   };
+
   const c = colors[severity];
   const dotSize = isSelected ? 26 : 18;
   const outerSize = dotSize + 22;
-  const pulse = isSelected || severity === 'Critical'
-    ? `<span style="position:absolute;inset:${isSelected ? '4px' : '6px'};border-radius:50%;background:${c.ring};animation:marker-pulse 2s ease-in-out infinite;pointer-events:none;"></span>`
-    : '';
+
+  const pulse =
+    isSelected || severity === 'Critical'
+      ? `<span style="position:absolute;inset:${isSelected ? '4px' : '6px'};border-radius:50%;background:${c.ring};animation:marker-pulse 2s ease-in-out infinite;pointer-events:none;"></span>`
+      : '';
+
   const shadow = isSelected
     ? `0 0 0 6px ${c.ring},0 8px 18px rgba(15,23,42,0.36)`
     : '0 0 0 4px rgba(255,255,255,0.9),0 4px 12px rgba(15,23,42,0.3)';
@@ -71,11 +81,14 @@ function createIcon(severity: Severity, isSelected: boolean): L.DivIcon {
       <div style="position:relative;width:${outerSize}px;height:${outerSize}px;display:flex;align-items:center;justify-content:center;">
         ${pulse}
         <div style="
-          width:${dotSize}px;height:${dotSize}px;border-radius:50%;
+          width:${dotSize}px;
+          height:${dotSize}px;
+          border-radius:50%;
           background:${c.bg};
           border:${isSelected ? 3 : 2.5}px solid white;
           box-shadow:${shadow};
-          position:relative;z-index:2;
+          position:relative;
+          z-index:2;
         "></div>
       </div>
     `,
@@ -83,10 +96,11 @@ function createIcon(severity: Severity, isSelected: boolean): L.DivIcon {
 }
 
 // ─────────────────────────────────────────────────────────
-// Popup HTML builder
+// Popup helpers
 // ─────────────────────────────────────────────────────────
+
 function escapeHtml(value: string) {
-  return value
+  return String(value)
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
@@ -102,46 +116,6 @@ function cleanPopupAiText(value?: string) {
     .trim();
 }
 
-function formatPopupSummaryHtml(value?: string) {
-  const clean = cleanPopupAiText(value);
-
-  if (!clean) return '';
-
-  const headingRegex =
-    /(Alert Summary|Recommendation|Additional Note|Operator Note|Caregiver Note|Safety Note|Risk Assessment)\s*:?\s*/gi;
-
-  const matches = [...clean.matchAll(headingRegex)];
-
-  if (matches.length === 0) {
-    return `<p style="margin:0;color:#475569;line-height:1.55;">${escapeHtml(clean)}</p>`;
-  }
-
-  return matches
-    .map((match, index) => {
-      const title = match[1];
-      const start = (match.index || 0) + match[0].length;
-      const end =
-        index + 1 < matches.length
-          ? matches[index + 1].index || clean.length
-          : clean.length;
-
-      const body = clean.slice(start, end).trim();
-
-      if (!body) return '';
-
-      return `
-        <div style="margin-bottom:10px;padding:9px 10px;border:1px solid #dbeafe;background:#eff6ff;border-radius:9px;">
-          <div style="font-size:9px;font-weight:800;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;">
-            ${escapeHtml(title)}
-          </div>
-          <div style="font-size:12px;color:#334155;line-height:1.55;white-space:normal;overflow-wrap:anywhere;">
-            ${escapeHtml(body)}
-          </div>
-        </div>
-      `;
-    })
-    .join('');
-}
 function clampPopupText(value: string, maxLength = 150) {
   if (value.length <= maxLength) return value;
   return `${value.slice(0, maxLength).trim()}...`;
@@ -152,8 +126,8 @@ function getCompactPopupSummary(value?: string) {
 
   if (!clean) {
     return {
-      summary: "EchoSync alert received from registered node.",
-      recommendation: "Review details in the incident panel.",
+      summary: 'EchoSync alert received from registered node.',
+      recommendation: 'Review details in the incident panel.',
     };
   }
 
@@ -165,7 +139,7 @@ function getCompactPopupSummary(value?: string) {
   if (matches.length === 0) {
     return {
       summary: clampPopupText(clean, 170),
-      recommendation: "Review full details below.",
+      recommendation: 'Review full details below.',
     };
   }
 
@@ -184,13 +158,13 @@ function getCompactPopupSummary(value?: string) {
   });
 
   const summary =
-    sections.find((section) => section.title.includes("summary"))?.body ||
+    sections.find((section) => section.title.includes('summary'))?.body ||
     sections[0]?.body ||
     clean;
 
   const recommendation =
-    sections.find((section) => section.title.includes("recommendation"))?.body ||
-    "Review full details below.";
+    sections.find((section) => section.title.includes('recommendation'))?.body ||
+    'Review full details below.';
 
   return {
     summary: clampPopupText(summary, 170),
@@ -198,22 +172,25 @@ function getCompactPopupSummary(value?: string) {
   };
 }
 
+// ─────────────────────────────────────────────────────────
+// Popup HTML builder
+// ─────────────────────────────────────────────────────────
 
 function popupContent(inc: Incident): string {
   const sevBadge: Record<Severity, string> = {
-    Critical: "background:#fee2e2;color:#b91c1c;",
-    High: "background:#ffedd5;color:#c2410c;",
-    Medium: "background:#fef3c7;color:#b45309;",
-    Low: "background:#dcfce7;color:#15803d;",
+    Critical: 'background:#fee2e2;color:#b91c1c;',
+    High: 'background:#ffedd5;color:#c2410c;',
+    Medium: 'background:#fef3c7;color:#b45309;',
+    Low: 'background:#dcfce7;color:#15803d;',
   };
 
   const statusStyle: Record<string, string> = {
-    Active: "background:#fef2f2;color:#dc2626;",
-    Dispatched: "background:#eff6ff;color:#2563eb;",
-    "Operator Review": "background:#eff6ff;color:#2563eb;",
-    "En Route": "background:#ecfeff;color:#0891b2;",
-    "On Scene": "background:#ecfdf5;color:#059669;",
-    Resolved: "background:#f8fafc;color:#64748b;",
+    Active: 'background:#fef2f2;color:#dc2626;',
+    Dispatched: 'background:#eff6ff;color:#2563eb;',
+    'Operator Review': 'background:#eff6ff;color:#2563eb;',
+    'En Route': 'background:#ecfeff;color:#0891b2;',
+    'On Scene': 'background:#ecfdf5;color:#059669;',
+    Resolved: 'background:#f8fafc;color:#64748b;',
   };
 
   const closeIconSvg =
@@ -223,13 +200,12 @@ function popupContent(inc: Incident): string {
     '<svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
 
   const compactSummary = getCompactPopupSummary(inc.description);
-  const evidencePreview = (inc.evidence || []).slice(0, 3);
 
   return `
     <div class="echosync-popup-scroll" style="font-family:Inter,system-ui,-apple-system,sans-serif;">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
         <div style="display:flex;gap:8px;min-width:0;flex:1;">
-          <div style="flex-shrink:0;color:${inc.severity === "Critical" ? "#b91c1c" : "#c2410c"};">
+          <div style="flex-shrink:0;color:${inc.severity === 'Critical' ? '#b91c1c' : '#c2410c'};">
             ${alertIconSvg}
           </div>
 
@@ -246,7 +222,7 @@ function popupContent(inc: Incident): string {
 
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
           <span style="font-size:9.5px;font-weight:800;text-transform:uppercase;padding:3px 8px;border-radius:99px;letter-spacing:0.04em;white-space:nowrap;${sevBadge[inc.severity]}">
-            ${inc.severity}
+            ${escapeHtml(inc.severity)}
           </span>
 
           <button type="button" class="incident-popup-close" aria-label="Close incident popup">
@@ -282,55 +258,44 @@ function popupContent(inc: Incident): string {
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;">
         <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:6px 7px;border-radius:8px;">
-          <div style="font-size:8px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">Elapsed</div>
-          <div style="margin-top:1px;color:#0f172a;font-weight:800;font-size:11.5px;font-family:'SF Mono',ui-monospace,monospace;">${escapeHtml(inc.elapsedTime)}</div>
+          <div style="font-size:8px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">
+            Elapsed
+          </div>
+          <div style="margin-top:1px;color:#0f172a;font-weight:800;font-size:11.5px;font-family:'SF Mono',ui-monospace,monospace;">
+            ${escapeHtml(inc.elapsedTime)}
+          </div>
         </div>
 
         <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:6px 7px;border-radius:8px;">
-          <div style="font-size:8px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">Assigned</div>
-          <div style="margin-top:1px;color:#0f172a;font-weight:800;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(inc.assignedUnit)}</div>
+          <div style="font-size:8px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">
+            Assigned
+          </div>
+          <div style="margin-top:1px;color:#0f172a;font-weight:800;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            ${escapeHtml(inc.assignedUnit)}
+          </div>
         </div>
 
         <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:6px 7px;border-radius:8px;">
-          <div style="font-size:8px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">Priority</div>
-          <div style="margin-top:1px;font-weight:850;font-size:11.5px;color:${inc.severity === "Critical" ? "#dc2626" : inc.severity === "High" ? "#c2410c" : "#b45309"};">${inc.severity}</div>
+          <div style="font-size:8px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">
+            Priority
+          </div>
+          <div style="margin-top:1px;font-weight:850;font-size:11.5px;color:${inc.severity === 'Critical' ? '#dc2626' : inc.severity === 'High' ? '#c2410c' : '#b45309'};">
+            ${escapeHtml(inc.severity)}
+          </div>
         </div>
 
-        <div style="padding:6px 7px;border-radius:8px;${statusStyle[inc.status] || "background:#f8fafc;color:#334155;"}">
-          <div style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:0.7;">Status</div>
-          <div style="margin-top:1px;font-weight:850;font-size:11.5px;text-transform:uppercase;">${escapeHtml(inc.status)}</div>
+        <div style="padding:6px 7px;border-radius:8px;${statusStyle[inc.status] || 'background:#f8fafc;color:#334155;'}">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:0.7;">
+            Status
+          </div>
+          <div style="margin-top:1px;font-weight:850;font-size:11.5px;text-transform:uppercase;">
+            ${escapeHtml(inc.status)}
+          </div>
         </div>
       </div>
-
-      ${
-        evidencePreview.length > 0
-          ? `
-            <div style="margin-top:9px;padding-top:8px;border-top:1px dashed #cbd5e1;">
-              <div style="font-size:8.5px;font-weight:850;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">
-                Key evidence
-              </div>
-
-              <div style="display:flex;flex-wrap:wrap;gap:5px;">
-                ${evidencePreview
-                  .map(
-                    (ev) => `
-                      <span style="max-width:105px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;font-size:9px;font-weight:600;padding:3px 6px;border-radius:6px;">
-                        ${escapeHtml(String(ev))}
-                      </span>
-                    `
-                  )
-                  .join("")}
-              </div>
-            </div>
-          `
-          : ""
-      }
     </div>
   `;
 }
-// ─────────────────────────────────────────────────────────
-// FlyTo controller
-// ─────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────
 // Exported Map Component
@@ -345,7 +310,9 @@ export default function IncidentMap({
   selectedId: string | null;
   onSelectIncident: (id: string | null) => void;
 }) {
-  const selectedIncident = incidents.find(i => i.id === selectedId) || null;
+  const selectedIncident =
+    incidents.find((incident) => incident.id === selectedId) || null;
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRefs = useRef<Record<string, L.Marker>>({});
@@ -357,7 +324,10 @@ export default function IncidentMap({
   }, [onSelectIncident]);
 
   useEffect(() => {
-    const container = containerRef.current as (HTMLDivElement & { _leaflet_id?: number }) | null;
+    const container = containerRef.current as
+      | (HTMLDivElement & { _leaflet_id?: number })
+      | null;
+
     if (!container || mapRef.current) return;
 
     if (container._leaflet_id) {
@@ -377,7 +347,9 @@ export default function IncidentMap({
 
     const handleClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
+
       if (!target?.closest('.incident-popup-close')) return;
+
       event.preventDefault();
       event.stopPropagation();
       map.closePopup();
@@ -385,7 +357,9 @@ export default function IncidentMap({
     };
 
     container.addEventListener('click', handleClick);
+
     mapRef.current = map;
+
     const resizeTimer = setTimeout(() => map.invalidateSize(), 0);
 
     return () => {
@@ -394,6 +368,7 @@ export default function IncidentMap({
       markerRefs.current = {};
       map.remove();
       mapRef.current = null;
+
       if (container._leaflet_id) {
         delete container._leaflet_id;
       }
@@ -407,23 +382,23 @@ export default function IncidentMap({
     Object.values(markerRefs.current).forEach((marker) => marker.remove());
     markerRefs.current = {};
 
-    incidents.forEach((inc) => {
-      const marker = L.marker([inc.lat, inc.lng], {
-        icon: createIcon(inc.severity, inc.id === selectedId),
+    incidents.forEach((incident) => {
+      const marker = L.marker([incident.lat, incident.lng], {
+        icon: createIcon(incident.severity, incident.id === selectedId),
       })
-        .bindPopup(popupContent(inc), {
-  className: "echosync-incident-popup",
-  closeButton: false,
-  maxWidth: 330,
-  minWidth: 300,
-  maxHeight: 300,
-  autoPan: false,
-  keepInView: false,
-})
-        .on('click', () => onSelectIncidentRef.current(inc.id))
+        .bindPopup(popupContent(incident), {
+          className: 'echosync-incident-popup',
+          closeButton: false,
+          maxWidth: 330,
+          minWidth: 300,
+          maxHeight: 300,
+          autoPan: false,
+          keepInView: false,
+        })
+        .on('click', () => onSelectIncidentRef.current(incident.id))
         .addTo(map);
 
-      markerRefs.current[inc.id] = marker;
+      markerRefs.current[incident.id] = marker;
     });
 
     if (selectedIncident) {
@@ -453,94 +428,102 @@ export default function IncidentMap({
   return (
     <div className="w-full h-full relative overflow-hidden">
       <style>{`
-  @keyframes marker-pulse {
-    0%, 100% { transform: scale(1); opacity: 0.5; }
-    50% { transform: scale(2.2); opacity: 0; }
-  }
+        @keyframes marker-pulse {
+          0%, 100% {
+            transform: scale(1);
+            opacity: 0.5;
+          }
 
-  .echosync-incident-popup .leaflet-popup-content-wrapper {
-  border-radius: 18px !important;
-  padding: 0 !important;
-  box-shadow: 0 12px 36px rgba(15,23,42,0.20) !important;
-  overflow: hidden !important;
-  border: 1px solid #e2e8f0 !important;
-  background: #ffffff !important;
-}
+          50% {
+            transform: scale(2.2);
+            opacity: 0;
+          }
+        }
 
-.echosync-incident-popup .leaflet-popup-content {
-  margin: 0 !important;
-  width: 320px !important;
-  max-width: 320px !important;
-  max-height: 300px !important;
-  overflow: hidden !important;
-  line-height: 1.35 !important;
-  font-size: 12px !important;
-}
+        .echosync-incident-popup .leaflet-popup-content-wrapper {
+          border-radius: 18px !important;
+          padding: 0 !important;
+          box-shadow: 0 12px 36px rgba(15,23,42,0.20) !important;
+          overflow: hidden !important;
+          border: 1px solid #e2e8f0 !important;
+          background: #ffffff !important;
+        }
 
-.echosync-popup-scroll {
-  width: 100%;
-  max-height: 300px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 14px;
-  background: #ffffff;
-}
+        .echosync-incident-popup .leaflet-popup-content {
+          margin: 0 !important;
+          width: 320px !important;
+          max-width: 320px !important;
+          max-height: 300px !important;
+          overflow: hidden !important;
+          line-height: 1.35 !important;
+          font-size: 12px !important;
+        }
 
-.echosync-popup-scroll::-webkit-scrollbar {
-  width: 5px;
-}
+        .echosync-popup-scroll {
+          width: 100%;
+          max-height: 300px;
+          overflow-y: auto;
+          overflow-x: hidden;
+          padding: 14px;
+          background: #ffffff;
+        }
 
-.echosync-popup-scroll::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 999px;
-}
+        .echosync-popup-scroll::-webkit-scrollbar {
+          width: 5px;
+        }
 
-.echosync-popup-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
+        .echosync-popup-scroll::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 999px;
+        }
 
-.echosync-incident-popup .leaflet-popup-tip-container {
-  margin-top: -1px !important;
-  pointer-events: none !important;
-}
+        .echosync-popup-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
 
-.echosync-incident-popup .leaflet-popup-tip {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
-  border: 1px solid #e2e8f0 !important;
-  background: #ffffff !important;
-  pointer-events: none !important;
-}
+        .echosync-incident-popup .leaflet-popup-tip-container {
+          margin-top: -1px !important;
+          pointer-events: none !important;
+        }
 
-.echosync-incident-popup .leaflet-popup-close-button {
-  display: none !important;
-}
+        .echosync-incident-popup .leaflet-popup-tip {
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+          border: 1px solid #e2e8f0 !important;
+          background: #ffffff !important;
+          pointer-events: none !important;
+        }
 
-.incident-popup-close {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 28px !important;
-  height: 28px !important;
-  flex-shrink: 0 !important;
-  border-radius: 9999px !important;
-  background: #f1f5f9 !important;
-  color: #64748b !important;
-  border: 0 !important;
-  padding: 0 !important;
-  cursor: pointer !important;
-  transition: all 0.15s ease !important;
-}
+        .echosync-incident-popup .leaflet-popup-close-button {
+          display: none !important;
+        }
 
-.incident-popup-close:hover {
-  color: #475569 !important;
-  background: #e2e8f0 !important;
-}
+        .incident-popup-close {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          width: 28px !important;
+          height: 28px !important;
+          flex-shrink: 0 !important;
+          border-radius: 9999px !important;
+          background: #f1f5f9 !important;
+          color: #64748b !important;
+          border: 0 !important;
+          padding: 0 !important;
+          cursor: pointer !important;
+          transition: all 0.15s ease !important;
+        }
 
-  .leaflet-container {
-    font-family: Inter, system-ui, -apple-system, sans-serif !important;
-    background: #f8fafc !important;
-  }
-`}</style>
+        .incident-popup-close:hover {
+          color: #475569 !important;
+          background: #e2e8f0 !important;
+        }
+
+        .leaflet-container {
+          font-family: Inter, system-ui, -apple-system, sans-serif !important;
+          background: #f8fafc !important;
+        }
+      `}</style>
+
       <div ref={containerRef} className="w-full h-full" />
     </div>
   );

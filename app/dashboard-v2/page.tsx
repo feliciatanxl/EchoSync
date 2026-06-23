@@ -1220,15 +1220,11 @@ function splitSummarySentences(text: string) {
     .filter(Boolean);
 }
 
-function AiSummaryCard({ summary, source }: { summary: string; source: string }) {
+function AiSummaryCard({ summary }: { summary: string }) {
   const sections = parseSummarySections(summary);
 
   return (
     <div className="px-0 py-0">
-      <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-        GB10 AI Summary <span className="font-mono normal-case">({source})</span>
-      </p>
-
       <div className="space-y-2">
         {sections.map((section, index) => (
           <div
@@ -1281,6 +1277,166 @@ function IncidentDetailStrip({
 
   const sev = severityColor(incident.severity);
 
+  const alertEvidenceLine =
+    incident.simulation?.aiReasoningLine ||
+    incident.evidence?.join(' + ') ||
+    '';
+
+  const rawEvidenceParts = alertEvidenceLine
+    .split(/\s+\+\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const sensorEntries = rawEvidenceParts.map((part, index) => {
+    const [rawLabel, ...rest] = part.split(':');
+    const value = rest.join(':').trim();
+
+    const label = rawLabel
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const key = rawLabel.replace(/\s+/g, '').trim();
+
+    return {
+      key,
+      label: label || `Evidence ${index + 1}`,
+      value: value || part,
+      hasValue: Boolean(value),
+    };
+  });
+
+  const hasStructuredSignals = sensorEntries.some((entry) => entry.hasValue);
+
+  const getSensor = (...keys: string[]) => {
+    const found = sensorEntries.find((entry) =>
+      keys.some((key) => entry.key.toLowerCase() === key.toLowerCase())
+    );
+
+    return found?.value;
+  };
+
+  const isPositiveSignal = (value?: string) => {
+    const normalised = String(value || '').toLowerCase();
+
+    return (
+      normalised === '1' ||
+      normalised === 'true' ||
+      normalised === 'yes' ||
+      normalised.includes('detected') ||
+      normalised.includes('failed') ||
+      normalised.includes('no response')
+    );
+  };
+
+  const compactEvidenceText =
+    rawEvidenceParts.length > 0
+      ? rawEvidenceParts.join(' + ')
+      : 'Sensor evidence contributed to this alert.';
+
+  const groupedEvidence = hasStructuredSignals
+    ? [
+        {
+          title: 'Sound / impact',
+          badge: isPositiveSignal(getSensor('soundDetected')) ? 'Impact detected' : 'Low signal',
+          summary: isPositiveSignal(getSensor('soundDetected'))
+            ? 'Impact-related sound signal contributed to this alert.'
+            : 'Sound level alone is low, but it is considered with other sensors.',
+          details: [
+            { label: 'Sound level', value: getSensor('soundLevel') || 'Not provided' },
+            { label: 'Sound detected', value: getSensor('soundDetected') || 'Not provided' },
+            { label: 'Mic digital', value: getSensor('micDigital') || 'Not provided' },
+          ],
+        },
+        {
+          title: 'Motion / presence',
+          badge: isPositiveSignal(getSensor('nearDetected')) ? 'Presence anomaly' : 'Movement low',
+          summary: 'PIR, near-distance and ultrasonic readings are checked for abnormal presence or no movement.',
+          details: [
+            { label: 'PIR motion', value: getSensor('pirMotion') || 'Not provided' },
+            {
+              label: 'Distance',
+              value: getSensor('distanceCm') ? `${getSensor('distanceCm')} cm` : 'Not provided',
+            },
+            { label: 'Near detected', value: getSensor('nearDetected') || 'Not provided' },
+          ],
+        },
+        {
+          title: 'Load / fall pattern',
+          badge:
+            isPositiveSignal(getSensor('possibleFall')) || isPositiveSignal(getSensor('alert'))
+              ? 'Fall pattern'
+              : 'Load change',
+          summary:
+            'Mattress/load readings are compared with motion and sound to check if a fall pattern may be present.',
+          details: [
+            { label: 'Possible fall', value: getSensor('possibleFall') || 'Not provided' },
+            { label: 'Alert flag', value: getSensor('alert') || 'Not provided' },
+            { label: 'Load net', value: getSensor('loadNet') || 'Not provided' },
+          ],
+        },
+      ]
+    : [
+        {
+          title: 'Trigger pattern',
+          badge: incident.severity,
+          summary: compactEvidenceText,
+          details: rawEvidenceParts.slice(0, 3).map((part, index) => ({
+            label: `Evidence ${index + 1}`,
+            value: part,
+          })),
+        },
+        {
+          title: 'Likely concern',
+          badge: incident.severity === 'Critical' ? 'Urgent' : 'Review',
+          summary:
+            incident.severity === 'Critical'
+              ? 'Combined signals suggest possible fall or no resident response.'
+              : 'Signals require operator review before responder coordination.',
+          details: [
+            { label: 'Priority', value: incident.severity },
+            { label: 'Status', value: incident.status },
+            { label: 'Routing', value: incident.assignedUnit || 'Operator review' },
+          ],
+        },
+        {
+          title: 'Next action',
+          badge: 'Operator-led',
+          summary:
+            incident.simulation?.recommendedAction ||
+            'Review the case details, then decide whether SCDF escalation or CFR/AED coordination is needed.',
+          details: [
+            { label: 'Confidence', value: incident.simulation ? `${incident.simulation.confidence}%` : 'Not provided' },
+            { label: 'Voice', value: incident.simulation?.voiceResult || 'Not provided' },
+          ],
+        },
+      ];
+
+  const sensorEvidenceRows = incident.simulation
+    ? [
+        {
+          label: 'PIR / motion',
+          value: incident.simulation.detectorEvidence.thermal,
+        },
+        {
+          label: 'Sound sensor',
+          value: incident.simulation.detectorEvidence.acoustic,
+        },
+        {
+          label: 'Mattress load sensor',
+          value: incident.simulation.detectorEvidence.loadMat,
+        },
+        {
+          label: 'Ultrasonic sensor',
+          value: incident.simulation.detectorEvidence.doorFridge,
+        },
+        {
+          label: 'Mic + speaker check-in',
+          value: incident.simulation.detectorEvidence.voice,
+        },
+      ]
+    : [];
+
   return (
     <div className="bg-white border-t border-slate-200 px-4 py-3 flex flex-col gap-2 shrink-0 max-h-[38%] overflow-y-auto overflow-x-hidden">
       {/* Top Row: Incident identity */}
@@ -1288,9 +1444,17 @@ function IncidentDetailStrip({
         <div className={`w-7 h-7 rounded-md ${sev.bg} ${sev.text} flex items-center justify-center shadow-sm border border-white/50 flex-shrink-0`}>
           {typeIcon(incident.type)}
         </div>
+
         <div className="min-w-0 flex flex-col">
-          <p className="min-w-0 truncate text-[12px] font-bold text-slate-900 leading-tight">{incident.type} <span className="text-slate-400 font-mono font-medium text-[10px] ml-1">{incident.id}</span></p>
-          <p className="min-w-0 truncate text-[10px] font-medium text-slate-500">Registered HDB unit: {incident.location}</p>
+          <p className="min-w-0 truncate text-[12px] font-bold text-slate-900 leading-tight">
+            {incident.type}{' '}
+            <span className="text-slate-400 font-mono font-medium text-[10px] ml-1">
+              {incident.id}
+            </span>
+          </p>
+          <p className="min-w-0 truncate text-[10px] font-medium text-slate-500">
+            Registered HDB unit: {incident.location}
+          </p>
         </div>
       </div>
 
@@ -1304,49 +1468,45 @@ function IncidentDetailStrip({
           { label: 'Status', value: incident.status },
         ].map((item) => (
           <div key={item.label} className="min-w-0 bg-slate-50 rounded px-2 py-1 border border-slate-100">
-            <span className="block text-[8px] font-bold uppercase tracking-wider text-slate-400">{item.label}</span>
-            <span className="block text-[10px] font-bold text-slate-700 leading-tight break-words">{item.value}</span>
+            <span className="block text-[8px] font-bold uppercase tracking-wider text-slate-400">
+              {item.label}
+            </span>
+            <span className="block text-[10px] font-bold text-slate-700 leading-tight break-words">
+              {item.value}
+            </span>
           </div>
         ))}
       </div>
 
       {/* Action buttons */}
-      <div className="w-full min-w-0 flex flex-wrap items-center gap-1.5">
-        <button className="min-w-0 whitespace-nowrap flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white text-[10px] font-semibold transition-colors shadow-sm">
-          <Send className="w-3.5 h-3.5 flex-shrink-0" /> Send for operator review
+      <div className="inline-grid w-fit max-w-full grid-cols-3 gap-1.5">
+        <button className="flex h-7 w-[140px] min-w-0 items-center justify-center gap-1 rounded-md bg-teal-600 px-2 text-[9.5px] font-bold text-white shadow-sm transition-colors hover:bg-teal-700">
+          <Send className="h-3 w-3 flex-shrink-0" />
+          <span className="truncate">Operator review</span>
         </button>
-        <button
-          type="button"
-          disabled={incident.severity === 'High' || incident.severity === 'Critical'}
-          className={`min-w-0 whitespace-nowrap flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[10px] font-semibold transition-colors border shadow-sm ${
-            incident.severity === 'High' || incident.severity === 'Critical'
-              ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
-              : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
-          }`}
-        >
-          <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 text-slate-500" />
-          {incident.severity === 'High' || incident.severity === 'Critical'
-            ? 'Caregiver not routed for urgent'
-            : 'Notify caregiver'}
-        </button>
+
         <button
           type="button"
           onClick={() => onSendToMyResponder(incident)}
           disabled={
             myResponderSending ||
-            (incident.severity !== "High" && incident.severity !== "Critical")
+            (incident.severity !== 'High' && incident.severity !== 'Critical')
           }
-          className={`min-w-0 whitespace-nowrap flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-semibold transition-colors border shadow-sm ${
-            incident.severity === "High" || incident.severity === "Critical"
-              ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
-              : "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"
-          } disabled:opacity-60 disabled:cursor-wait`}
+          className={`flex h-7 w-[150px] min-w-0 items-center justify-center gap-1 rounded-md border px-2 text-[9.5px] font-bold shadow-sm transition-colors ${
+            incident.severity === 'High' || incident.severity === 'Critical'
+              ? 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'
+              : 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300'
+          } disabled:cursor-wait disabled:opacity-60`}
         >
-          <Radio className="w-3.5 h-3.5 flex-shrink-0 text-slate-500" />
-          {myResponderSending ? "Sending to myResponder..." : "Suggest CFR/AED coordination"}
+          <Radio className="h-3 w-3 flex-shrink-0 text-slate-500" />
+          <span className="truncate">
+            {myResponderSending ? 'Sending...' : 'CFR/AED coordination'}
+          </span>
         </button>
-        <button className="min-w-0 whitespace-nowrap flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold transition-colors shadow-sm">
-          <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> SCDF escalation if urgent / no response
+
+        <button className="flex h-7 w-[130px] min-w-0 items-center justify-center gap-1 rounded-md bg-emerald-600 px-2 text-[9.5px] font-bold text-white shadow-sm transition-colors hover:bg-emerald-700">
+          <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
+          <span className="truncate">SCDF escalation</span>
         </button>
       </div>
 
@@ -1358,36 +1518,74 @@ function IncidentDetailStrip({
 
       {(incident.severity === 'High' || incident.severity === 'Critical') && (
         <div className="rounded-md border border-teal-100 bg-teal-50/70 px-2.5 py-2">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-teal-700">myResponder operator review / CFR-AED coordination</p>
-          <p className="mt-0.5 text-[10.5px] text-slate-700">EchoSync can send this high-confidence detection for operator review. Public responder coordination is operator-led, not automatically dispatched.</p>
+          <p className="text-[9px] font-bold uppercase tracking-wider text-teal-700">
+            myResponder operator review / CFR-AED coordination
+          </p>
+          <p className="mt-0.5 text-[10.5px] text-slate-700">
+            EchoSync can send this high-confidence detection for operator review.
+            Public responder coordination is operator-led, not automatically dispatched.
+          </p>
         </div>
       )}
 
-      {/* Bottom Row: Evidence Summary */}
-      {incident.evidence && incident.evidence.length > 0 && (
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs bg-amber-50/50 p-2.5 rounded-md border border-amber-100 shadow-sm">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 flex-shrink-0 flex items-center gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5" /> Why this alert was raised:
-            </span>
-            <span className="min-w-0 text-[11.5px] font-semibold text-slate-800 leading-snug">
-              {incident.simulation?.aiReasoningLine || incident.evidence.join(' + ')}
-            </span>
-          </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+      {/* Why alert was raised */}
+      {groupedEvidence.length > 0 && (
+        <div className="mt-1 rounded-lg border border-amber-200 bg-amber-50/70 p-3 shadow-sm">
+          <div className="mb-2 grid grid-cols-[150px_minmax(0,1fr)] items-center gap-2">
+          <span className="flex items-center gap-1.5 text-[8.5px] font-bold uppercase tracking-wider text-amber-700 leading-tight">
+            <AlertTriangle className="h-3 w-3 shrink-0" />
+            <span>Why alert was raised</span>
+          </span>
+
+          <div className="grid grid-cols-3 gap-1.5 justify-self-end">
             {simulationControls.map((control) => (
               <button
                 key={control.id}
                 type="button"
                 onClick={() => onRunSimulation(control.id)}
                 disabled={simulationLoading === control.id}
-                className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+                className="h-7 w-[118px] whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 text-[9.5px] font-bold leading-none text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
               >
-                {simulationLoading === control.id ? 'Loading...' : control.label}
+                {simulationLoading === control.id ? "Loading..." : control.label}
               </button>
             ))}
           </div>
+        </div>
 
+          <div className="grid gap-2 xl:grid-cols-3">
+            {groupedEvidence.map((group) => (
+              <div
+                key={group.title}
+                className="rounded-md border border-amber-100 bg-white px-3 py-2"
+              >
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                    {group.title}
+                  </p>
+
+                  <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[8.5px] font-bold text-amber-700">
+                    {group.badge}
+                  </span>
+                </div>
+
+                <p className="text-[10.5px] font-semibold leading-snug text-slate-800">
+                  {group.summary}
+                </p>
+
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {group.details.map((detail) => (
+                    <span
+                      key={`${group.title}-${detail.label}`}
+                      className="rounded border border-slate-100 bg-slate-50 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600"
+                    >
+                      {detail.label}:{' '}
+                      <span className="text-slate-900">{detail.value}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -1402,45 +1600,70 @@ function IncidentDetailStrip({
               { label: 'Voice result', value: incident.simulation.voiceResult },
             ].map((metric) => (
               <div key={metric.label} className="min-w-0 rounded bg-white px-2 py-1.5 border border-slate-100">
-                <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">{metric.label}</p>
-                <p className="truncate text-[10px] font-bold text-slate-800">{metric.value}</p>
+                <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                  {metric.label}
+                </p>
+                <p className="truncate text-[10px] font-bold text-slate-800">
+                  {metric.value}
+                </p>
               </div>
             ))}
           </div>
 
-          <div className="grid gap-1.5 text-[10.5px] text-slate-700 md:grid-cols-2">
-            <p><span className="font-bold text-slate-500">PIR + motion sensors:</span> {incident.simulation.detectorEvidence.thermal}</p>
-            <p><span className="font-bold text-slate-500">Sound sensor:</span> {incident.simulation.detectorEvidence.acoustic}</p>
-            <p><span className="font-bold text-slate-500">Mattress load sensor:</span> {incident.simulation.detectorEvidence.loadMat}</p>
-            <p><span className="font-bold text-slate-500">Ultrasonic sensor:</span> {incident.simulation.detectorEvidence.doorFridge}</p>
-            <p className="md:col-span-2"><span className="font-bold text-slate-500">Mic + speaker check-in:</span> {incident.simulation.detectorEvidence.voice}</p>
-          </div>
-
-          <div className="rounded bg-white px-2 py-1.5 border border-slate-100">
-            <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Recommended action</p>
-            <p className="text-[10.5px] font-bold text-slate-800">{incident.simulation.recommendedAction}</p>
-          </div>
-
-          <div className="rounded bg-white px-2 py-1.5 border border-slate-100">
-            <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">GB10 AI sensor explanation</p>
-            <p className="text-[10.5px] font-semibold text-slate-700">
-              Generated from fused sensor-only triggers: mic/speaker, ultrasonic, PIR, motion, sound impact, and mattress load signals.
+          <div className="rounded-md border border-slate-100 bg-white px-3 py-2">
+            <p className="mb-2 text-[8px] font-bold uppercase tracking-wider text-slate-400">
+              Sensor evidence summary
             </p>
-            <p className="mt-1 text-[9px] font-mono font-semibold text-slate-400">Source: GB10 NIM / sensor fusion</p>
+
+            <div className="grid gap-x-4 gap-y-2 md:grid-cols-2">
+              {sensorEvidenceRows.map((sensor) => (
+                <div key={sensor.label} className="flex items-start gap-2">
+                  <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-teal-500" />
+
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                      {sensor.label}
+                    </p>
+
+                    <p className="text-[10.5px] font-semibold leading-snug text-slate-700">
+                      {sensor.value}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded bg-white px-2 py-1.5 border border-slate-100">
+            <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+              Recommended action
+            </p>
+            <p className="text-[10.5px] font-bold text-slate-800">
+              {incident.simulation.recommendedAction}
+            </p>
+          </div>
+
+          <div className="rounded bg-white px-2 py-1.5 border border-slate-100">
+            <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+              AI sensor explanation
+            </p>
+            <p className="text-[10.5px] font-semibold text-slate-700">
+              Generated from fused sensor-only triggers: mic/speaker, ultrasonic,
+              PIR, motion, sound impact, and mattress load signals.
+            </p>
           </div>
 
           {incident.simulation.aiSummary && (
             <AiSummaryCard
               summary={incident.simulation.aiSummary.summary}
-              source={incident.simulation.aiSummary.source}
             />
           )}
         </div>
       )}
-
     </div>
   );
 }
+
 
 // ─────────────────────────────────────────────────────────
 // Full Ops Log Workspace (replaces Map in Center Panel)
@@ -1792,18 +2015,28 @@ export default function DashboardV2() {
   }, []);
   const notifIncident = incidents.find(i => i.severity === 'Critical') || incidents[0];
   const allOpsLogEntries = useMemo<GlobalOpsLogEntry[]>(() => {
-    const incidentOpsLog = incidents
-      .flatMap((inc) =>
-        inc.opsLog.map((entry) => ({
-          ...entry,
-          incidentId: inc.id,
-          incidentType: inc.type,
-          location: inc.location,
-        }))
-      )
-      .reverse();
+    const incidentOpsLog = incidents.flatMap((inc) =>
+      inc.opsLog.map((entry) => ({
+        ...entry,
+        incidentId: inc.id,
+        incidentType: inc.type,
+        location: inc.location,
+      }))
+    );
 
-    return [...broadcastOpsLog, ...incidentOpsLog];
+    const getTimeValue = (time: string) => {
+      const match = time.match(/(\d{1,2}):(\d{2})/);
+      if (!match) return 0;
+
+      const hours = Number(match[1]);
+      const minutes = Number(match[2]);
+
+      return hours * 60 + minutes;
+    };
+
+    return [...broadcastOpsLog, ...incidentOpsLog].sort(
+      (a, b) => getTimeValue(b.time) - getTimeValue(a.time)
+    );
   }, [broadcastOpsLog, incidents]);
 
   const handleToggleFlag = useCallback((id: string) => {
