@@ -26,10 +26,73 @@ export default function ActiveResponseScreen({ alert, onCancel, onParamedicsArri
   };
 
   const handleParamedics = async () => {
-    await base44.entities.EmergencyAlert.update(alert.id, { status: 'resolved' });
-    toast.success('Great work! Paramedics notified.');
+  if (isEchoSync) {
+    const alertId = alert.id || `MYR-${Date.now()}`;
+    const completedIds =
+      (window as any).__echosyncMyResponderCompletedIds || [];
+
+    if (!completedIds.includes(alertId)) {
+      (window as any).__echosyncMyResponderCompletedIds = [
+        ...completedIds,
+        alertId,
+      ];
+
+      (window as any).__echosyncMyResponderCompletedCount =
+        ((window as any).__echosyncMyResponderCompletedCount || 0) + 1;
+    }
+
+    window.dispatchEvent(new Event("echosync-myresponder-completed"));
+
+    try {
+      await fetch("/api/sensor-alert", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: `MYR-COMPLETE-${alertId}-${Date.now()}`,
+          nodeId: alert.nodeId || alert.id || "MYRESPONDER",
+          resident: alert.resident || "Mdm Tan Siew Lan",
+          location:
+            alert.location_address ||
+            alert.location_name ||
+            alert.location ||
+            "Blk 124 Tampines Street 11, #04-12",
+          eventType: "myResponder Verification Completed",
+          riskLevel: alert.riskLevel || "Critical",
+          confidence: alert.confidence || 91,
+          reason:
+            "myResponder responder completed the EchoSync verification task. Update sent back to SCDF Ops Log.",
+          sensorData: {
+            myResponderStatus: "completed",
+            responderType: "Community First Responder",
+            originalAlertId: alertId,
+          },
+          voiceCheckIn: {
+            result: "myResponder verification completed",
+          },
+          aiSummary:
+            "myResponder responder completed verification and provided an update for SCDF operator / caregiver review.",
+          source: "myResponder",
+          timestamp: new Date().toISOString(),
+        }),
+      });
+    } catch {
+      // Demo still continues even if dashboard API is not reachable.
+    }
+
+    toast.success("Verification completed. SCDF Ops Log updated.");
     onParamedicsArrived();
-  };
+    return;
+  }
+
+  await base44.entities.EmergencyAlert.update(alert.id, {
+    status: "resolved",
+  });
+
+  toast.success("Great work! Paramedics notified.");
+  onParamedicsArrived();
+};
 
   return (
     <motion.div

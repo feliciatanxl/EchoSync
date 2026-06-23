@@ -13,6 +13,18 @@ export default function Home() {
   const [activeAlert, setActiveAlert] = useState(null);
   const [liveAlert, setLiveAlert] = useState<any>(null);
   const [verificationStatus, setVerificationStatus] = useState('');
+  function getCompletedIds() {
+  if (typeof window === "undefined") return [];
+  return (window as any).__echosyncMyResponderCompletedIds || [];
+}
+
+function getCompletedCount() {
+  if (typeof window === "undefined") return 0;
+  return (window as any).__echosyncMyResponderCompletedCount || 0;
+}
+
+const [completedEchoSyncCases, setCompletedEchoSyncCases] =
+  useState(getCompletedCount);
   const notifyCaregiverFromMyResponder = async () => {
   if (!liveAlert) {
     setVerificationStatus("No live EchoSync alert to notify caregiver");
@@ -83,6 +95,25 @@ export default function Home() {
     navigate("/active-response");
   };
   const navigate = useNavigate();
+  useEffect(() => {
+  const syncCompletedCases = () => {
+    setCompletedEchoSyncCases(getCompletedCount());
+  };
+
+  syncCompletedCases();
+
+  window.addEventListener(
+    "echosync-myresponder-completed",
+    syncCompletedCases
+  );
+
+  return () => {
+    window.removeEventListener(
+      "echosync-myresponder-completed",
+      syncCompletedCases
+    );
+  };
+}, []);
 
   useEffect(() => {
     async function fetchMyResponderAlert() {
@@ -94,8 +125,16 @@ export default function Home() {
         const data = await response.json();
 
         if (data.latest) {
+        const completedIds = getCompletedIds();
+
+        if (completedIds.includes(data.latest.id)) {
+          setLiveAlert(null);
+        } else {
           setLiveAlert(data.latest);
         }
+      } else {
+        setLiveAlert(null);
+      }
       } catch (error) {
         console.error("Failed to fetch myResponder alert", error);
       }
@@ -235,7 +274,9 @@ export default function Home() {
                 <div className="flex items-center gap-1 text-gray-500 text-[11px] mb-1">
                   Cases today <ChevronRight className="w-3 h-3" />
                 </div>
-                <div className="text-3xl font-black text-gray-900">{MOCK_STATS.casesToday}</div>
+                <div className="text-3xl font-black text-gray-900">
+                  {MOCK_STATS.casesToday + completedEchoSyncCases}
+                </div>
               </div>
               <span className="text-2xl">📍</span>
             </div>
@@ -276,26 +317,6 @@ export default function Home() {
                 className="w-full rounded-xl bg-[#1e3a8a] px-4 py-2.5 text-sm font-bold text-white"
               >
                 Accept verification task
-              </button>
-
-              <button
-                type="button"
-                onClick={notifyCaregiverFromMyResponder}
-                className="w-full rounded-xl bg-[#1e3a8a] px-4 py-2.5 text-sm font-bold text-white"
-              >
-                Notify caregiver
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setVerificationStatus(
-                    "Unable to verify - sent for operator escalation review"
-                  )
-                }
-                className="w-full rounded-xl border border-amber-400 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-800"
-              >
-                Unable to verify - escalate for review
               </button>
             </div>
 
