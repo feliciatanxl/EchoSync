@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import {
   Shield, Bell, MessageSquare, Radio, ClipboardList, User, Settings,
   Search, Flag, FlagOff, MapPin, Clock,
-  Send, CheckCircle2,
+  CheckCircle2,
   AlertTriangle, Flame, HeartPulse, Wind, Activity,
   Megaphone, X, Plus
 } from 'lucide-react';
@@ -127,6 +127,10 @@ type SensorApiEvent = {
   aiSummary?: string;
   timestamp?: string;   // Raspberry Pi trigger time
   receivedAt?: string;  // Next.js receive time
+  id?: string;
+  reason?: string;
+  source?: string;
+  dashboardPushedAt?: string;
 };
 
 
@@ -558,6 +562,8 @@ function buildLiveOpsLog(
 }
 
 function liveEventToIncident(event: SensorApiEvent, index: number): Incident | null {
+  if (isMyResponderCompletion(event)) return null;
+
   const severity = normalizeSeverity(event.riskLevel);
   if (severity !== 'High' && severity !== 'Critical') return null;
 
@@ -623,6 +629,71 @@ function liveEventToIncident(event: SensorApiEvent, index: number): Incident | n
         voice,
       },
     },
+  };
+}
+
+function getSensorRecord(value: unknown) {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  return {};
+}
+
+function isMyResponderCompletion(event: SensorApiEvent) {
+  const sensorRecord = getSensorRecord(event.sensorData);
+  const eventText = [
+    event.eventType,
+    event.source,
+    event.reason,
+    event.aiSummary,
+    sensorRecord.myResponderStatus,
+  ]
+    .map((item) => String(item || "").toLowerCase())
+    .join(" ");
+
+  return (
+    eventText.includes("myresponder verification completed") ||
+    eventText.includes("myresponder") && eventText.includes("completed")
+  );
+}
+
+function myResponderCompletionToOpsLog(
+  event: SensorApiEvent,
+  index: number
+): GlobalOpsLogEntry {
+  const sensorRecord = getSensorRecord(event.sensorData);
+
+  const eventTime =
+    parseLiveDate(event.timestamp) ||
+    parseLiveDate(event.receivedAt) ||
+    new Date();
+
+  const time = eventTime.toLocaleTimeString("en-US", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const originalAlertId =
+    String(sensorRecord.originalAlertId || "").trim() ||
+    event.nodeId ||
+    event.id ||
+    `MYR-COMPLETE-${index + 1}`;
+
+  const location =
+    event.location || "Registered HDB unit";
+
+  return {
+    time,
+    title: "myResponder Verification Completed",
+    description:
+      "Community First Responder completed the EchoSync verification task. Update recorded for SCDF operator review.",
+    source: "myResponder",
+    incidentId: originalAlertId,
+    incidentType: "myResponder Verification Completed",
+    location,
+    priority: "High",
   };
 }
 
@@ -1259,6 +1330,7 @@ function IncidentDetailStrip({
   onSendToMyResponder,
   myResponderSending,
   myResponderStatus,
+  myResponderSentIncidentIds,
 }: {
   incident: Incident | null;
   onRunSimulation: (scenario: EchoSyncScenarioId) => void;
@@ -1266,6 +1338,7 @@ function IncidentDetailStrip({
   onSendToMyResponder: (incident: Incident) => void;
   myResponderSending: boolean;
   myResponderStatus: string | null;
+  myResponderSentIncidentIds: string[];
 }) {
   if (!incident) {
     return (
@@ -1276,6 +1349,7 @@ function IncidentDetailStrip({
   }
 
   const sev = severityColor(incident.severity);
+  const myResponderAlreadySent = myResponderSentIncidentIds.includes(incident.id);
 
   const alertEvidenceLine =
     incident.simulation?.aiReasoningLine ||
@@ -1446,13 +1520,13 @@ function IncidentDetailStrip({
         </div>
 
         <div className="min-w-0 flex flex-col">
-          <p className="min-w-0 truncate text-[12px] font-bold text-slate-900 leading-tight">
+          <p className="min-w-0 break-words text-[12px] font-bold text-slate-900 leading-tight">
             {incident.type}{' '}
             <span className="text-slate-400 font-mono font-medium text-[10px] ml-1">
               {incident.id}
             </span>
           </p>
-          <p className="min-w-0 truncate text-[10px] font-medium text-slate-500">
+          <p className="min-w-0 break-words text-[10px] font-medium text-slate-500">
             Registered HDB unit: {incident.location}
           </p>
         </div>
@@ -1479,34 +1553,36 @@ function IncidentDetailStrip({
       </div>
 
       {/* Action buttons */}
-      <div className="inline-grid w-fit max-w-full grid-cols-3 gap-1.5">
-        <button className="flex h-7 w-[140px] min-w-0 items-center justify-center gap-1 rounded-md bg-teal-600 px-2 text-[9.5px] font-bold text-white shadow-sm transition-colors hover:bg-teal-700">
-          <Send className="h-3 w-3 flex-shrink-0" />
-          <span className="truncate">Operator review</span>
-        </button>
-
+      <div className="inline-grid w-fit max-w-full grid-cols-2 gap-1.5">
         <button
           type="button"
           onClick={() => onSendToMyResponder(incident)}
           disabled={
             myResponderSending ||
+            myResponderAlreadySent ||
             (incident.severity !== 'High' && incident.severity !== 'Critical')
           }
           className={`flex h-7 w-[150px] min-w-0 items-center justify-center gap-1 rounded-md border px-2 text-[9.5px] font-bold shadow-sm transition-colors ${
-            incident.severity === 'High' || incident.severity === 'Critical'
-              ? 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'
-              : 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300'
-          } disabled:cursor-wait disabled:opacity-60`}
+            myResponderAlreadySent
+              ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
+              : incident.severity === 'High' || incident.severity === 'Critical'
+                ? 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'
+                : 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300'
+          } disabled:cursor-not-allowed disabled:opacity-80`}
         >
           <Radio className="h-3 w-3 flex-shrink-0 text-slate-500" />
           <span className="truncate">
-            {myResponderSending ? 'Sending...' : 'CFR/AED coordination'}
+            {myResponderAlreadySent
+              ? 'CFR/AED sent'
+              : myResponderSending
+                ? 'Sending...'
+                : 'CFR/AED coordination'}
           </span>
         </button>
 
         <button className="flex h-7 w-[130px] min-w-0 items-center justify-center gap-1 rounded-md bg-emerald-600 px-2 text-[9.5px] font-bold text-white shadow-sm transition-colors hover:bg-emerald-700">
           <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
-          <span className="truncate">SCDF escalation</span>
+          <span className="whitespace-nowrap">SCDF escalation</span>
         </button>
       </div>
 
@@ -1519,11 +1595,11 @@ function IncidentDetailStrip({
       {(incident.severity === 'High' || incident.severity === 'Critical') && (
         <div className="rounded-md border border-teal-100 bg-teal-50/70 px-2.5 py-2">
           <p className="text-[9px] font-bold uppercase tracking-wider text-teal-700">
-            myResponder operator review / CFR-AED coordination
+            Operator-led CFR / AED coordination
           </p>
           <p className="mt-0.5 text-[10.5px] text-slate-700">
-            EchoSync can send this high-confidence detection for operator review.
-            Public responder coordination is operator-led, not automatically dispatched.
+            High and Critical alerts remain on the SCDF dashboard for review.
+            Use CFR/AED coordination only when an operator decides responder support is needed.
           </p>
         </div>
       )}
@@ -1531,26 +1607,26 @@ function IncidentDetailStrip({
       {/* Why alert was raised */}
       {groupedEvidence.length > 0 && (
         <div className="mt-1 rounded-lg border border-amber-200 bg-amber-50/70 p-3 shadow-sm">
-          <div className="mb-2 grid grid-cols-[150px_minmax(0,1fr)] items-center gap-2">
-          <span className="flex items-center gap-1.5 text-[8.5px] font-bold uppercase tracking-wider text-amber-700 leading-tight">
-            <AlertTriangle className="h-3 w-3 shrink-0" />
-            <span>Why alert was raised</span>
-          </span>
+          <div className="mb-2 grid grid-cols-[130px_minmax(0,1fr)] items-center gap-2">
+            <span className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider text-amber-700 leading-tight">
+              <AlertTriangle className="h-3 w-3 shrink-0" />
+              <span>Why raised</span>
+            </span>
 
-          <div className="grid grid-cols-3 gap-1.5 justify-self-end">
-            {simulationControls.map((control) => (
-              <button
-                key={control.id}
-                type="button"
-                onClick={() => onRunSimulation(control.id)}
-                disabled={simulationLoading === control.id}
-                className="h-7 w-[118px] whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 text-[9.5px] font-bold leading-none text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
-              >
-                {simulationLoading === control.id ? "Loading..." : control.label}
-              </button>
-            ))}
+            <div className="grid grid-cols-3 gap-1.5 justify-self-end">
+              {simulationControls.map((control) => (
+                <button
+                  key={control.id}
+                  type="button"
+                  onClick={() => onRunSimulation(control.id)}
+                  disabled={simulationLoading === control.id}
+                  className="h-7 w-[110px] whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 text-[9px] font-bold leading-none text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {simulationLoading === control.id ? 'Loading...' : control.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
           <div className="grid gap-2 xl:grid-cols-3">
             {groupedEvidence.map((group) => (
@@ -1603,7 +1679,7 @@ function IncidentDetailStrip({
                 <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
                   {metric.label}
                 </p>
-                <p className="truncate text-[10px] font-bold text-slate-800">
+                <p className="break-words text-[10px] font-bold text-slate-800">
                   {metric.value}
                 </p>
               </div>
@@ -1934,6 +2010,7 @@ export default function DashboardV2() {
   const [simulationToast, setSimulationToast] = useState<SimulationToastState | null>(null);
   const [myResponderSending, setMyResponderSending] = useState(false);
   const [myResponderStatus, setMyResponderStatus] = useState<string | null>(null);
+  const [myResponderSentIncidentIds, setMyResponderSentIncidentIds] = useState<string[]>([]);
   const [mounted, setMounted] = useState(false);
   const broadcastTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const liveDataActive = useRef(false);
@@ -1957,9 +2034,31 @@ export default function DashboardV2() {
         const response = await fetch('/api/sensor-alert', { cache: 'no-store' });
         if (!response.ok) return;
         const payload = await response.json() as { events?: SensorApiEvent[] };
-        const liveIncidents = (payload.events || [])
+        const liveEvents = payload.events || [];
+
+        const completionLogs = liveEvents
+          .filter(isMyResponderCompletion)
+          .map(myResponderCompletionToOpsLog);
+
+        if (active && completionLogs.length) {
+          setBroadcastOpsLog((prev) => {
+            const existing = new Set(
+              prev.map((entry) => `${entry.incidentId}-${entry.time}-${entry.title}`)
+            );
+
+            const freshLogs = completionLogs.filter(
+              (entry) => !existing.has(`${entry.incidentId}-${entry.time}-${entry.title}`)
+            );
+
+            return [...freshLogs, ...prev];
+          });
+        }
+
+        const liveIncidents = liveEvents
+          .filter((event) => !isMyResponderCompletion(event))
           .map(liveEventToIncident)
           .filter((incident): incident is Incident => incident !== null);
+
         if (active && liveIncidents.length) {
           liveDataActive.current = true;
           setIncidents(liveIncidents);
@@ -2087,9 +2186,14 @@ export default function DashboardV2() {
     ];
   }, []);
 
-  const handleSendToMyResponder = useCallback(async (incident: Incident) => {
+    const handleSendToMyResponder = useCallback(async (incident: Incident) => {
     if (incident.severity !== 'High' && incident.severity !== 'Critical') {
       setMyResponderStatus('Only High/Critical alerts can be sent to myResponder.');
+      return;
+    }
+
+    if (myResponderSentIncidentIds.includes(incident.id)) {
+      setMyResponderStatus('Already sent to myResponder for CFR/AED coordination.');
       return;
     }
 
@@ -2145,6 +2249,10 @@ export default function DashboardV2() {
 
       setMyResponderStatus('Sent to myResponder for CFR/AED coordination.');
 
+      setMyResponderSentIncidentIds((prev) =>
+        prev.includes(incident.id) ? prev : [...prev, incident.id]
+      );
+
       setBroadcastOpsLog((prev) => [
         {
           time: currentDashboardTime(),
@@ -2167,7 +2275,7 @@ export default function DashboardV2() {
     } finally {
       setMyResponderSending(false);
     }
-  }, []);
+  }, [myResponderSentIncidentIds]);
 
   const handleRunSimulation = useCallback(async (scenario: EchoSyncScenarioId) => {
     setSimulationLoading(scenario);
@@ -2366,10 +2474,10 @@ export default function DashboardV2() {
         <div className="min-h-0 min-w-0 flex flex-col overflow-hidden">
           {/* Map or Full Ops Log Workspace fills remaining height */}
           <div className="flex-1 min-h-0 min-w-0 bg-slate-100 flex flex-col relative overflow-hidden">
-            {isOpsLogOpen && selectedIncident ? (
+            {isOpsLogOpen ? (
               <FullOpsLogWorkspace
                 opsLog={allOpsLogEntries}
-                selectedIncident={selectedIncident}
+                selectedIncident={selectedIncident ?? incidents[0] ?? initialIncidents[0]}
                 onClose={() => setIsOpsLogOpen(false)}
                 onAddEntry={handleAddOpsLogEntry}
               />
@@ -2390,6 +2498,7 @@ export default function DashboardV2() {
               onSendToMyResponder={handleSendToMyResponder}
               myResponderSending={myResponderSending}
               myResponderStatus={myResponderStatus}
+              myResponderSentIncidentIds={myResponderSentIncidentIds}
             />
           )}
         </div>

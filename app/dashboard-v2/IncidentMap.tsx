@@ -65,7 +65,11 @@ function createIcon(severity: Severity, isSelected: boolean): L.DivIcon {
 
   const pulse =
     isSelected || severity === 'Critical'
-      ? `<span style="position:absolute;inset:${isSelected ? '4px' : '6px'};border-radius:50%;background:${c.ring};animation:marker-pulse 2s ease-in-out infinite;pointer-events:none;"></span>`
+      ? `<span style="position:absolute;inset:${
+          isSelected ? '4px' : '6px'
+        };border-radius:50%;background:${
+          c.ring
+        };animation:marker-pulse 2s ease-in-out infinite;pointer-events:none;"></span>`
       : '';
 
   const shadow = isSelected
@@ -116,11 +120,6 @@ function cleanPopupAiText(value?: string) {
     .trim();
 }
 
-function clampPopupText(value: string, maxLength = 150) {
-  if (value.length <= maxLength) return value;
-  return `${value.slice(0, maxLength).trim()}...`;
-}
-
 function getCompactPopupSummary(value?: string) {
   const clean = cleanPopupAiText(value);
 
@@ -138,7 +137,7 @@ function getCompactPopupSummary(value?: string) {
 
   if (matches.length === 0) {
     return {
-      summary: clampPopupText(clean, 170),
+      summary: clean,
       recommendation: 'Review full details below.',
     };
   }
@@ -167,8 +166,8 @@ function getCompactPopupSummary(value?: string) {
     'Review full details below.';
 
   return {
-    summary: clampPopupText(summary, 170),
-    recommendation: clampPopupText(recommendation, 130),
+    summary,
+    recommendation,
   };
 }
 
@@ -205,23 +204,27 @@ function popupContent(inc: Incident): string {
     <div class="echosync-popup-scroll" style="font-family:Inter,system-ui,-apple-system,sans-serif;">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
         <div style="display:flex;gap:8px;min-width:0;flex:1;">
-          <div style="flex-shrink:0;color:${inc.severity === 'Critical' ? '#b91c1c' : '#c2410c'};">
+          <div style="flex-shrink:0;color:${
+            inc.severity === 'Critical' ? '#b91c1c' : '#c2410c'
+          };">
             ${alertIconSvg}
           </div>
 
           <div style="min-width:0;flex:1;">
-            <div style="font-size:15px;font-weight:850;letter-spacing:-0.02em;color:#0f172a;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            <div style="font-size:15px;font-weight:850;letter-spacing:-0.02em;color:#0f172a;line-height:1.2;white-space:normal;overflow-wrap:anywhere;">
               ${escapeHtml(inc.type)}
             </div>
 
-            <div style="margin-top:3px;font-size:9.5px;font-family:'SF Mono',ui-monospace,monospace;color:#94a3b8;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            <div style="margin-top:3px;font-size:9.5px;font-family:'SF Mono',ui-monospace,monospace;color:#94a3b8;line-height:1.25;white-space:normal;overflow-wrap:anywhere;">
               ${escapeHtml(inc.id)}
             </div>
           </div>
         </div>
 
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-          <span style="font-size:9.5px;font-weight:800;text-transform:uppercase;padding:3px 8px;border-radius:99px;letter-spacing:0.04em;white-space:nowrap;${sevBadge[inc.severity]}">
+          <span style="font-size:9.5px;font-weight:800;text-transform:uppercase;padding:3px 8px;border-radius:99px;letter-spacing:0.04em;white-space:nowrap;${
+            sevBadge[inc.severity]
+          }">
             ${escapeHtml(inc.severity)}
           </span>
 
@@ -233,7 +236,7 @@ function popupContent(inc: Incident): string {
 
       <div style="font-size:12px;color:#334155;font-weight:650;display:flex;gap:5px;line-height:1.3;margin-bottom:5px;">
         <span style="color:#94a3b8;flex-shrink:0;">⌖</span>
-        <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        <span style="min-width:0;white-space:normal;overflow-wrap:anywhere;">
           ${escapeHtml(inc.location)}
         </span>
       </div>
@@ -242,7 +245,7 @@ function popupContent(inc: Incident): string {
         <div style="font-size:8.5px;font-weight:850;color:#2563eb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">
           Alert summary
         </div>
-        <div style="font-size:12px;color:#334155;line-height:1.38;">
+        <div style="font-size:12px;color:#334155;line-height:1.38;white-space:normal;overflow-wrap:anywhere;">
           ${escapeHtml(compactSummary.summary)}
         </div>
       </div>
@@ -251,7 +254,7 @@ function popupContent(inc: Incident): string {
         <div style="font-size:8.5px;font-weight:850;color:#0f766e;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">
           Action
         </div>
-        <div style="font-size:11.5px;color:#334155;line-height:1.35;">
+        <div style="font-size:11.5px;color:#334155;line-height:1.35;white-space:normal;overflow-wrap:anywhere;">
           ${escapeHtml(compactSummary.recommendation)}
         </div>
       </div>
@@ -270,7 +273,7 @@ function popupContent(inc: Incident): string {
           <div style="font-size:8px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">
             Assigned
           </div>
-          <div style="margin-top:1px;color:#0f172a;font-weight:800;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+          <div style="margin-top:1px;color:#0f172a;font-weight:800;font-size:11.5px;white-space:normal;overflow-wrap:anywhere;">
             ${escapeHtml(inc.assignedUnit)}
           </div>
         </div>
@@ -279,16 +282,24 @@ function popupContent(inc: Incident): string {
           <div style="font-size:8px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">
             Priority
           </div>
-          <div style="margin-top:1px;font-weight:850;font-size:11.5px;color:${inc.severity === 'Critical' ? '#dc2626' : inc.severity === 'High' ? '#c2410c' : '#b45309'};">
+          <div style="margin-top:1px;font-weight:850;font-size:11.5px;color:${
+            inc.severity === 'Critical'
+              ? '#dc2626'
+              : inc.severity === 'High'
+                ? '#c2410c'
+                : '#b45309'
+          };">
             ${escapeHtml(inc.severity)}
           </div>
         </div>
 
-        <div style="padding:6px 7px;border-radius:8px;${statusStyle[inc.status] || 'background:#f8fafc;color:#334155;'}">
+        <div style="padding:6px 7px;border-radius:8px;${
+          statusStyle[inc.status] || 'background:#f8fafc;color:#334155;'
+        }">
           <div style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:0.7;">
             Status
           </div>
-          <div style="margin-top:1px;font-weight:850;font-size:11.5px;text-transform:uppercase;">
+          <div style="margin-top:1px;font-weight:850;font-size:11.5px;text-transform:uppercase;white-space:normal;overflow-wrap:anywhere;">
             ${escapeHtml(inc.status)}
           </div>
         </div>
@@ -389,9 +400,9 @@ export default function IncidentMap({
         .bindPopup(popupContent(incident), {
           className: 'echosync-incident-popup',
           closeButton: false,
-          maxWidth: 330,
-          minWidth: 300,
-          maxHeight: 300,
+          maxWidth: 340,
+          minWidth: 310,
+          maxHeight: 360,
           autoPan: false,
           keepInView: false,
         })
@@ -423,6 +434,22 @@ export default function IncidentMap({
 
     lastSelectedIdRef.current = null;
     map.closePopup();
+    const singaporeBounds: L.LatLngBoundsExpression = [
+    [1.20, 103.60],
+    [1.48, 104.08],
+  ];
+
+  const resetTimer = setTimeout(() => {
+    map.invalidateSize();
+
+    map.fitBounds(singaporeBounds, {
+      padding: [20, 20],
+      animate: true,
+      duration: 0.45,
+    });
+  }, 0);
+
+  return () => clearTimeout(resetTimer);
   }, [incidents, selectedId, selectedIncident]);
 
   return (
@@ -451,9 +478,9 @@ export default function IncidentMap({
 
         .echosync-incident-popup .leaflet-popup-content {
           margin: 0 !important;
-          width: 320px !important;
-          max-width: 320px !important;
-          max-height: 300px !important;
+          width: 330px !important;
+          max-width: 330px !important;
+          max-height: 360px !important;
           overflow: hidden !important;
           line-height: 1.35 !important;
           font-size: 12px !important;
@@ -461,7 +488,7 @@ export default function IncidentMap({
 
         .echosync-popup-scroll {
           width: 100%;
-          max-height: 300px;
+          max-height: 360px;
           overflow-y: auto;
           overflow-x: hidden;
           padding: 14px;
