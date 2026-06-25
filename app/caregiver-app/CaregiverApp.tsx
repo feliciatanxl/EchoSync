@@ -271,7 +271,7 @@ export default function CaregiverApp() {
       )}
 
       {screen === "link" && <LinkScreen go={go} />}
-      {screen === "consent" && <ConsentScreen go={go} />}
+      {screen === "consent" && <ConsentScreen go={go} role={role} />}
       {screen === "access" && <AccessScreen go={go} />}
 
       {screen === "home" && (
