@@ -1,0 +1,68 @@
+{
+  "name": "EmergencyAlert",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "cardiac_arrest",
+        "fire"
+      ],
+      "description": "Type of emergency"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the emergency"
+    },
+    "location_name": {
+      "type": "string",
+      "description": "Name/landmark of the location"
+    },
+    "location_address": {
+      "type": "string",
+      "description": "Street address"
+    },
+    "lat": {
+      "type": "number",
+      "description": "Latitude"
+    },
+    "lng": {
+      "type": "number",
+      "description": "Longitude"
+    },
+    "walk_minutes": {
+      "type": "number",
+      "default": 4
+    },
+    "drive_minutes": {
+      "type": "number",
+      "default": 2
+    },
+    "cycle_minutes": {
+      "type": "number",
+      "default": 2
+    },
+    "distance_m": {
+      "type": "number",
+      "default": 250
+    },
+    "responders_count": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active",
+        "resolved",
+        "cancelled"
+      ],
+      "default": "pending"
+    }
+  },
+  "required": [
+    "type",
+    "location_name"
+  ]
+}

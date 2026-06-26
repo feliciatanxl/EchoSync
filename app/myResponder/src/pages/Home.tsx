@@ -1,15 +1,194 @@
 // @ts-nocheck
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Bell, BellOff, ChevronRight, Eye, Heart, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MOCK_STATS, MOCK_NEWS, MOCK_COURSES } from '@/lib/mockData';
+import { base44 } from '@/api/base44Client';
+import EmergencyAlertPopup from '@/components/EmergencyAlertPopup';
+import ActiveResponseScreen from '@/components/ActiveResponseScreen';
 
 export default function Home() {
   const [alertOn, setAlertOn] = useState(false);
+  const [activeAlert, setActiveAlert] = useState(null);
+  const [liveAlert, setLiveAlert] = useState<any>(null);
+  const [verificationStatus, setVerificationStatus] = useState('');
+  function getCompletedIds() {
+  if (typeof window === "undefined") return [];
+  return (window as any).__echosyncMyResponderCompletedIds || [];
+}
+
+function getCompletedCount() {
+  if (typeof window === "undefined") return 0;
+  return (window as any).__echosyncMyResponderCompletedCount || 0;
+}
+
+const [completedEchoSyncCases, setCompletedEchoSyncCases] =
+  useState(getCompletedCount);
+  const notifyCaregiverFromMyResponder = async () => {
+  if (!liveAlert) {
+    setVerificationStatus("No live EchoSync alert to notify caregiver");
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/caregiver-alert", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...liveAlert,
+        id: liveAlert.id || `MYR-CARE-${Date.now()}`,
+        eventType: liveAlert.eventType || "EchoSync Verification Alert",
+        riskLevel: liveAlert.riskLevel || "Medium",
+        reason:
+          liveAlert.reason ||
+          "myResponder operator notified caregiver for verification",
+        aiSummary:
+          liveAlert.aiSummary ||
+          "myResponder operator notified the caregiver to verify resident safety.",
+        source: "myResponder operator",
+        myResponderAction: {
+          action: "caregiver_notified",
+          message: "Caregiver notified by myResponder operator",
+          timestamp: new Date().toISOString(),
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to notify caregiver");
+    }
+
+    setVerificationStatus("Caregiver notified through caregiver app");
+  } catch {
+    setVerificationStatus("Failed to notify caregiver");
+  }
+};
+  const startLiveEchoSyncResponse = () => {
+    if (!liveAlert) return;
+
+    const responseAlert = {
+      id: liveAlert.id || `MYR-${Date.now()}`,
+      type: "echosync_verification",
+      status: "accepted",
+      source: "raspberry_pi",
+      title: liveAlert.eventType || "EchoSync Verification Alert",
+      riskLevel: liveAlert.riskLevel || "Medium",
+      confidence: liveAlert.confidence || 72,
+      resident: liveAlert.resident || "Mdm Tan Siew Lan",
+      location_name: liveAlert.location || "Registered HDB unit",
+      location_address: liveAlert.location || "Blk 302 Ang Mo Kio Ave 3, #08-112",
+      reason: liveAlert.reason || "Resident said they are okay after voice check-in",
+      aiSummary: liveAlert.aiSummary || "",
+      sensorData: liveAlert.sensorData || null,
+      voiceCheckIn: liveAlert.voiceCheckIn || null,
+      receivedAt: liveAlert.receivedAt || new Date().toISOString(),
+    };
+
+    sessionStorage.setItem(
+      "echosync-myresponder-active-alert",
+      JSON.stringify(responseAlert)
+    );
+
+    navigate("/active-response");
+  };
+  const navigate = useNavigate();
+  useEffect(() => {
+  const syncCompletedCases = () => {
+    setCompletedEchoSyncCases(getCompletedCount());
+  };
+
+  syncCompletedCases();
+
+  window.addEventListener(
+    "echosync-myresponder-completed",
+    syncCompletedCases
+  );
+
+  return () => {
+    window.removeEventListener(
+      "echosync-myresponder-completed",
+      syncCompletedCases
+    );
+  };
+}, []);
+
+  useEffect(() => {
+    async function fetchMyResponderAlert() {
+      try {
+        const response = await fetch("/api/myresponder-alert", {
+          cache: "no-store",
+        });
+
+        const data = await response.json();
+
+        if (data.latest) {
+        const completedIds = getCompletedIds();
+
+        if (completedIds.includes(data.latest.id)) {
+          setLiveAlert(null);
+        } else {
+          setLiveAlert(data.latest);
+        }
+      } else {
+        setLiveAlert(null);
+      }
+      } catch (error) {
+        console.error("Failed to fetch myResponder alert", error);
+      }
+    }
+
+    fetchMyResponderAlert();
+
+    const interval = setInterval(fetchMyResponderAlert, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const loadAlert = async () => {
+      const alerts = await base44.entities.EmergencyAlert.list();
+      setActiveAlert(
+        alerts.find((alert) => alert.status === 'pending')
+        || alerts.find((alert) => alert.status === 'accepted')
+        || null
+      );
+    };
+
+    loadAlert();
+    window.addEventListener('focus', loadAlert);
+    return () => window.removeEventListener('focus', loadAlert);
+  }, []);
+
+  const respondToAlert = async (status) => {
+    if (!activeAlert) return;
+    const updatedAlert = await base44.entities.EmergencyAlert.update(activeAlert.id, { status });
+    if (status === 'accepted') {
+      setActiveAlert(updatedAlert);
+      navigate('/active-response');
+      return;
+    }
+    setActiveAlert(null);
+  };
 
   return (
     <div className="min-h-screen bg-[#eef2f8]">
+      {activeAlert?.status === 'pending' && (
+        <EmergencyAlertPopup
+          alert={activeAlert}
+          onAccept={() => respondToAlert('accepted')}
+          onDecline={() => respondToAlert('declined')}
+        />
+      )}
+      {activeAlert?.status === 'accepted' && (
+        <ActiveResponseScreen
+          alert={activeAlert}
+          onCancel={() => setActiveAlert(null)}
+          onParamedicsArrived={() => setActiveAlert(null)}
+        />
+      )}
       {/* Blue header */}
       <div className="bg-gradient-to-b from-[#1a3a8f] to-[#2b5ce6] px-4 pt-10 pb-6 relative overflow-hidden">
         {/* Decorative circles */}
@@ -27,11 +206,10 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setAlertOn(!alertOn)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium ${
-                alertOn
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium ${alertOn
                   ? 'border-green-400 text-green-400 bg-green-400/10'
                   : 'border-white/50 text-white/80 bg-white/10'
-              }`}
+                }`}
             >
               {alertOn ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
               {alertOn ? 'Alert on' : 'Alert off'}
@@ -96,7 +274,9 @@ export default function Home() {
                 <div className="flex items-center gap-1 text-gray-500 text-[11px] mb-1">
                   Cases today <ChevronRight className="w-3 h-3" />
                 </div>
-                <div className="text-3xl font-black text-gray-900">{MOCK_STATS.casesToday}</div>
+                <div className="text-3xl font-black text-gray-900">
+                  {MOCK_STATS.casesToday + completedEchoSyncCases}
+                </div>
               </div>
               <span className="text-2xl">📍</span>
             </div>
@@ -106,6 +286,48 @@ export default function Home() {
 
       {/* Content */}
       <div className="px-4 py-4 space-y-5">
+        {liveAlert && (
+          <div className="bg-white border-2 border-amber-300 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-gray-900">EchoSync Verification Alert</h2>
+                  <p className="text-xs text-gray-500">{liveAlert.eventType || 'Resident check-in required'}</p>
+                </div>
+              </div>
+              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800 capitalize">
+                {liveAlert.riskLevel || 'Medium'}
+              </span>
+            </div>
+
+            <div className="mt-4 space-y-2 rounded-xl bg-gray-50 p-3 text-sm text-gray-700">
+              <p><span className="font-semibold text-gray-900">Risk:</span> {liveAlert.riskLevel || 'Low / Medium'}</p>
+              <p><span className="font-semibold text-gray-900">Location:</span> {liveAlert.location || 'Registered HDB unit'}</p>
+              <p><span className="font-semibold text-gray-900">Recommended action:</span> myResponder operator verification</p>
+              <p className="text-xs text-gray-500">Notify caregiver / acknowledge / escalate only if unable to verify</p>
+            </div>
+
+            <div className="mt-4 grid gap-2">
+              <button
+                type="button"
+                onClick={startLiveEchoSyncResponse}
+                className="w-full rounded-xl bg-[#1e3a8a] px-4 py-2.5 text-sm font-bold text-white"
+              >
+                Accept verification task
+              </button>
+            </div>
+
+            {verificationStatus && (
+              <p className="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-[#1e3a8a]">
+                {verificationStatus}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Guidelines banner */}
         <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 flex items-center gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />

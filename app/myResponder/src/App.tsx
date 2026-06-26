@@ -24,6 +24,8 @@ import CommunityNews from './pages/CommunityNews';
 import AEDMap from './pages/AEDMap';
 import About from './pages/About';
 import Occupation from './pages/Occupation';
+import TriggerAlert from './pages/TriggerAlert';
+import ActiveResponse from './pages/ActiveResponse';
 import AppShell from './components/AppShell';
 
 const AuthenticatedApp = () => {
@@ -67,6 +69,8 @@ const AuthenticatedApp = () => {
         <Route path="/profile" element={<Profile />} />
         <Route path="/account" element={<Account />} />
         <Route path="/occupation" element={<Occupation />} />
+        <Route path="/trigger-alert" element={<TriggerAlert />} />
+        <Route path="/active-response" element={<ActiveResponse />} />
       </Route>
 
       <Route path="*" element={<PageNotFound />} />

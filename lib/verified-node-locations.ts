@@ -84,6 +84,17 @@ export const verifiedNodeLocations: Record<string, VerifiedIncidentLocation> = {
     locationSource: 'Registered EchoSync node',
     accuracy: 'Block-level verified',
   },
+  'NODE-HDB-302-08-112': {
+  nodeId: 'NODE-HDB-302-08-112',
+  address: 'Blk 302 Ang Mo Kio Ave 3, #08-112',
+  block: '302',
+  unit: '#08-112',
+  postalCode: '560302',
+  latitude: 1.36708983179046,
+  longitude: 103.845660199054,
+  locationSource: 'Registered EchoSync node',
+  accuracy: 'Block-level verified',
+},
 };
 
 const incidentNodeIds: Record<string, string> = {

@@ -1,5 +1,6 @@
 // @ts-nocheck
 const STORAGE_KEY = "myresponder_feedback_reports";
+const ALERTS_STORAGE_KEY = "myresponder_emergency_alerts";
 
 const getReports = () => {
   try {
@@ -11,6 +12,18 @@ const getReports = () => {
 
 const saveReports = (reports) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+};
+
+const getAlerts = () => {
+  try {
+    return JSON.parse(localStorage.getItem(ALERTS_STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+};
+
+const saveAlerts = (alerts) => {
+  localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(alerts));
 };
 
 const mockUser = {
@@ -76,6 +89,31 @@ export const base44 = {
       },
       async list() {
         return getReports();
+      },
+    },
+    EmergencyAlert: {
+      async create(data) {
+        const alerts = getAlerts();
+        const alert = {
+          id: crypto.randomUUID?.() || String(Date.now()),
+          created_at: new Date().toISOString(),
+          ...data,
+        };
+        alerts.unshift(alert);
+        saveAlerts(alerts);
+        console.log("Saved emergency alert locally:", alert);
+        return alert;
+      },
+      async list() {
+        return getAlerts();
+      },
+      async update(id, data) {
+        const alerts = getAlerts();
+        const updatedAlerts = alerts.map((alert) =>
+          alert.id === id ? { ...alert, ...data, updated_at: new Date().toISOString() } : alert,
+        );
+        saveAlerts(updatedAlerts);
+        return updatedAlerts.find((alert) => alert.id === id) || null;
       },
     },
   },
