@@ -2,16 +2,15 @@ import {
   useState,
   Shield,
   Lock,
-  AlertTriangle,
   Activity,
   Wifi,
   Battery,
-  RotateCw,
   Stethoscope,
   Pause,
   ChevronRight,
   Clock,
   MapPin,
+  CheckCircle2,
   Card,
   CardContent,
   type ScreenId,
@@ -19,7 +18,6 @@ import {
   can,
   TopBar,
   ScreenScroll,
-  StatusDot,
   ToneBadge,
   PauseBanner,
   type ReactNode
@@ -45,14 +43,8 @@ export function NodeScreen({
   setSensorMonitoringEnabled: (enabled: boolean) => void;
 }) {
   const [nodeLog, setNodeLog] = useState<{ title: string; sub: string } | null>(null);
-  const canRestart = can(role, "restart");
   const canPause = can(role, "pause");
   const canSelfTest = can(role, "selftest");
-  const SHOW_RESTART_DEVICE = false;
-  const SHOW_UPDATE_CHECKIN_SCHEDULE = false;
-  const SHOW_PAUSE_LOW_RISK_MONITORING = false;
-  const SHOW_REPORT_DEVICE_ISSUE = false;
-  const SHOW_RESTRICTED_SECTION = false;
 
   return (
     <>
@@ -61,268 +53,162 @@ export function NodeScreen({
         {pause && <PauseBanner pause={pause} onResume={clearPause} />}
 
         {nodeLog && (
-          <Card className="border-emerald-200 bg-emerald-50">
-            <CardContent className="p-3">
-              <div className="text-sm text-emerald-900">{nodeLog.title}</div>
-              <div className="text-xs text-emerald-800 mt-0.5">{nodeLog.sub}</div>
-              <div className="text-[11px] text-emerald-700 mt-1">
-                Action logged to audit trail.
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex items-start gap-3 rounded-2xl bg-emerald-50 p-4">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+            <div>
+              <div className="text-sm font-semibold text-emerald-900">{nodeLog.title}</div>
+              <div className="mt-0.5 text-xs leading-relaxed text-emerald-700">{nodeLog.sub}</div>
+            </div>
+          </div>
         )}
 
-        <div className="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 space-y-1.5">
-          <div className="text-[11px] text-slate-500">
-            Demo controls — for prototype walkthrough only
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">Device state:</span>
-
-            <button
-              onClick={() => setOnline(true)}
-              className={`text-xs px-2.5 py-1 rounded-full border ${
-                online
-                  ? "bg-emerald-600 text-white border-emerald-600"
-                  : "bg-white text-slate-600 border-slate-200"
-              }`}
-            >
-              Online
-            </button>
-
-            <button
-              onClick={() => setOnline(false)}
-              className={`text-xs px-2.5 py-1 rounded-full border ${
-                !online
-                  ? "bg-slate-700 text-white border-slate-700"
-                  : "bg-white text-slate-600 border-slate-200"
-              }`}
-            >
-              Offline
-            </button>
-          </div>
-        </div>
-
-        {online ? (
-          <Card className="border-emerald-200 bg-emerald-50">
-            <CardContent className="p-4 grid grid-cols-2 gap-3">
-              <NodeStat icon={<Wifi className="w-4 h-4" />} label="Status" value="Online" />
-              <NodeStat icon={<Battery className="w-4 h-4" />} label="Power" value="Connected" />
-              <NodeStat icon={<Activity className="w-4 h-4" />} label="Wi-Fi" value="Good" />
-              <NodeStat
-                icon={<Clock className="w-4 h-4" />}
-                label="Last device check-in"
-                value="30s ago"
-              />
-              <NodeStat
-                icon={<Pause className="w-4 h-4" />}
-                label="Monitoring"
-                value={sensorMonitoringEnabled ? "Active" : "Away Mode"}
-              />
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border-slate-400 bg-slate-100">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <StatusDot tone="grey" />
-                <span className="text-slate-800">Device offline</span>
-              </div>
-
-              <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <div className="text-xs text-slate-500">Last check-in</div>
-                  <div className="text-slate-800">18 minutes ago</div>
+        <Card className={online ? "border-emerald-100 bg-white" : "border-slate-200 bg-white"}>
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${online ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>
+                  <Wifi className="h-6 w-6" />
                 </div>
-
                 <div>
-                  <div className="text-xs text-slate-500">Possible issue</div>
-                  <div className="text-slate-800">Wi-Fi disconnected</div>
+                  <div className="text-base font-semibold text-slate-900">
+                    {online ? "Node online" : "Node offline"}
+                  </div>
+                  <div className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                    <MapPin className="h-3.5 w-3.5" />
+                    Living room ceiling hub
+                  </div>
                 </div>
               </div>
+              <ToneBadge tone={online ? "green" : "grey"}>{online ? "Healthy" : "Offline"}</ToneBadge>
+            </div>
 
-              <div className="mt-3 text-xs uppercase tracking-wide text-slate-500">
-                Recommended action
-              </div>
-
-              <ol className="text-sm text-slate-800 list-decimal pl-5 mt-1 space-y-0.5">
-                <li>Check home Wi-Fi</li>
-                <li>Restart node</li>
-                <li>Contact secondary caregiver</li>
-                <li>Report device issue</li>
-              </ol>
-
-              <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-800">
-                If no check-in is restored within 30 minutes, EchoSync will flag this device for
-                follow-up.
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card className="border-slate-200">
-          <CardContent className="p-4 text-sm text-slate-700 flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-slate-500" /> Living room ceiling hub
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <NodeMetric icon={<Battery className="h-4 w-4" />} label="Power" value={online ? "Connected" : "Unknown"} />
+              <NodeMetric icon={<Activity className="h-4 w-4" />} label="Wi-Fi" value={online ? "Good" : "Disconnected"} />
+              <NodeMetric icon={<Clock className="h-4 w-4" />} label="Check-in" value={online ? "30s ago" : "18 min ago"} />
+              <NodeMetric icon={<Pause className="h-4 w-4" />} label="Monitoring" value={sensorMonitoringEnabled ? "Active" : "Away Mode"} />
+            </div>
           </CardContent>
         </Card>
 
-        <Card
-          className={
-            sensorMonitoringEnabled
-              ? "border-emerald-200 bg-emerald-50"
-              : "border-amber-200 bg-amber-50"
-          }
-        >
-          <CardContent className="p-3 flex gap-2 items-start">
-            <Pause
-              className={`w-4 h-4 mt-0.5 shrink-0 ${
-                sensorMonitoringEnabled ? "text-emerald-700" : "text-amber-700"
-              }`}
-            />
-            <p
-              className={`text-xs ${
-                sensorMonitoringEnabled ? "text-emerald-800" : "text-amber-800"
-              }`}
-            >
-              {sensorMonitoringEnabled
-                ? "Monitoring is active. Sensor alerts, voice check-in and escalation are enabled."
-                : "Away Mode is active. Sensor alerts and voice recording are paused while the resident is away. The node remains online for heartbeat and status."}
-            </p>
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-3 py-2">
+          <div className="mb-2 text-[11px] text-slate-500">Demo controls for prototype walkthrough only</div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">Device state:</span>
+            <StateChip label="Online" active={online} onClick={() => setOnline(true)} />
+            <StateChip label="Offline" active={!online} onClick={() => setOnline(false)} />
+          </div>
+        </div>
+
+        {!online && (
+          <Card className="border-red-100 bg-red-50">
+            <CardContent className="p-4">
+              <div className="text-sm font-semibold text-red-900">Recommended action</div>
+              <div className="mt-2 space-y-2 text-sm text-red-800">
+                <ActionHint n={1} text="Check home Wi-Fi" />
+                <ActionHint n={2} text="Run self-test when device reconnects" />
+                <ActionHint n={3} text="Contact secondary caregiver if unresolved" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card className={sensorMonitoringEnabled ? "border-emerald-100 bg-emerald-50" : "border-amber-100 bg-amber-50"}>
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <Pause className={`mt-0.5 h-5 w-5 shrink-0 ${sensorMonitoringEnabled ? "text-emerald-700" : "text-amber-700"}`} />
+              <div>
+                <div className={`text-sm font-semibold ${sensorMonitoringEnabled ? "text-emerald-900" : "text-amber-900"}`}>
+                  {sensorMonitoringEnabled ? "Monitoring active" : "Away Mode active"}
+                </div>
+                <p className={`mt-1 text-xs leading-relaxed ${sensorMonitoringEnabled ? "text-emerald-700" : "text-amber-700"}`}>
+                  {sensorMonitoringEnabled
+                    ? "Sensor alerts, voice check-in and escalation are enabled."
+                    : "Sensor alerts and voice recording are paused while the resident is away."}
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <div>
-          <div className="text-xs uppercase tracking-wide text-slate-500 mb-2">
-            Safe caregiver controls
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Safe controls
+          </div>
+          <div className="space-y-2">
+            <NodeControl
+              icon={<Stethoscope className="w-5 h-5" />}
+              title="Run self-test"
+              sub="Check speaker, Wi-Fi and sensor heartbeat"
+              onClick={() => canSelfTest && go("selftest")}
+              locked={!canSelfTest}
+              lockHint="Primary caregiver only"
+            />
+            <NodeControl
+              icon={<Pause className="w-5 h-5" />}
+              title={sensorMonitoringEnabled ? "Enable Away Mode" : "Resume monitoring"}
+              sub={sensorMonitoringEnabled ? "Pause sensor alerts while resident is away" : "Turn alerts and check-ins back on"}
+              onClick={() => {
+                if (!canPause) return;
+
+                const nextState = !sensorMonitoringEnabled;
+                setSensorMonitoringEnabled(nextState);
+                setNodeLog({
+                  title: nextState ? "Node monitoring resumed" : "Away Mode enabled",
+                  sub: nextState
+                    ? "Sensor alerts, voice check-in and escalation are active again."
+                    : "Sensor alerts and voice recording are paused while the resident is away.",
+                });
+              }}
+              locked={!canPause}
+              lockHint="Primary caregiver only"
+            />
           </div>
         </div>
 
-        <div className="space-y-2">
-        {SHOW_RESTART_DEVICE && (
-          <NodeControl
-            icon={<RotateCw className="w-5 h-5" />}
-            title="Restart device"
-            onClick={() =>
-              canRestart &&
-              setNodeLog({
-                title: "Restart requested",
-                sub: "Device will reconnect in about 30 seconds.",
-              })
-            }
-            locked={!canRestart}
-            lockHint="Primary caregiver only"
-          />
-        )}
-
-        <NodeControl
-          icon={<Stethoscope className="w-5 h-5" />}
-          title="Run self-test"
-          onClick={() => canSelfTest && go("selftest")}
-          locked={!canSelfTest}
-          lockHint="Primary caregiver only"
-        />
-
-        {SHOW_UPDATE_CHECKIN_SCHEDULE && (
-          <NodeControl
-            icon={<Clock className="w-5 h-5" />}
-            title="Update check-in schedule"
-            onClick={() =>
-              canRestart &&
-              setNodeLog({
-                title: "Check-in schedule updated",
-                sub: "The resident's next routine voice check-in has been scheduled.",
-              })
-            }
-            locked={!canRestart}
-            lockHint="Primary caregiver only"
-          />
-        )}
-
-        <NodeControl
-          icon={<Pause className="w-5 h-5" />}
-          title={
-            sensorMonitoringEnabled
-              ? "Enable Away Mode / Pause Node"
-              : "Resume Node Monitoring"
-          }
-          onClick={() => {
-            if (!canPause) return;
-
-            const nextState = !sensorMonitoringEnabled;
-            setSensorMonitoringEnabled(nextState);
-
-            setNodeLog({
-              title: nextState ? "Node monitoring resumed" : "Away Mode enabled",
-              sub: nextState
-                ? "Sensor alerts, voice check-in and escalation are active again."
-                : "Sensor alerts and voice recording are paused while the resident is away.",
-            });
-          }}
-          locked={!canPause}
-          lockHint="Primary caregiver only"
-        />
-
-        {SHOW_PAUSE_LOW_RISK_MONITORING && (
-          <NodeControl
-            icon={<Pause className="w-5 h-5" />}
-            title="Pause low-risk monitoring"
-            onClick={() => canPause && go("pause")}
-            locked={!canPause}
-            lockHint="Primary caregiver only"
-          />
-        )}
-
-        {SHOW_REPORT_DEVICE_ISSUE && (
-          <NodeControl
-            icon={<AlertTriangle className="w-5 h-5" />}
-            title="Report device issue"
-            onClick={() =>
-              setNodeLog({
-                title: "Device issue reported",
-                sub: "EchoSync support has been notified.",
-              })
-            }
-          />
-        )}
-      </div>
-
-        {SHOW_RESTRICTED_SECTION && (
-          <div>
-            <div className="text-xs uppercase tracking-wide text-slate-500 mb-2">
-              Restricted
-            </div>
-
-            <div className="space-y-2">
-              <LockedControl title="Turn off emergency escalation" />
-              <LockedControl title="Disable critical alerts" />
-              <LockedControl title="Delete audit logs" />
-            </div>
-          </div>
-        )}
-
-        <Card className="border-slate-200 bg-slate-100">
-          <CardContent className="p-3 flex gap-2 items-start">
-            <Shield className="w-4 h-4 text-slate-600 mt-0.5 shrink-0" />
-            <p className="text-xs text-slate-700">
-              Caregiver controls are limited to prevent accidental delay during emergencies.
-              Critical alerts, no-response alerts, and high-risk events remain active even when low-risk monitoring is
-              paused.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="flex items-start gap-3 rounded-2xl bg-slate-100 p-3">
+          <Shield className="mt-0.5 h-4 w-4 shrink-0 text-slate-600" />
+          <p className="text-xs leading-relaxed text-slate-700">
+            Critical and high-risk alerts remain active even when low-risk monitoring is paused.
+          </p>
+        </div>
       </ScreenScroll>
     </>
   );
 }
 
-function NodeStat({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+function NodeMetric({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
-    <div>
-      <div className="flex items-center gap-1 text-xs text-emerald-700">
-        {icon} {label}
+    <div className="rounded-2xl bg-slate-50 p-3">
+      <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+        <span className="text-indigo-500">{icon}</span>
+        {label}
       </div>
-      <div className="text-emerald-900 mt-0.5">{value}</div>
+      <div className="mt-1 text-sm font-semibold text-slate-900">{value}</div>
+    </div>
+  );
+}
+
+function StateChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-full border px-3 py-1 text-xs font-medium ${
+        active ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-200 bg-white text-slate-600"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function ActionHint({ n, text }: { n: number; text: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-red-700">
+        {n}
+      </span>
+      <span>{text}</span>
     </div>
   );
 }
@@ -330,12 +216,14 @@ function NodeStat({ icon, label, value }: { icon: ReactNode; label: string; valu
 function NodeControl({
   icon,
   title,
+  sub,
   onClick,
   locked,
   lockHint,
 }: {
   icon: ReactNode;
   title: string;
+  sub?: string;
   onClick?: () => void;
   locked?: boolean;
   lockHint?: string;
@@ -344,45 +232,22 @@ function NodeControl({
     <button
       onClick={locked ? undefined : onClick}
       disabled={locked}
-      className={`w-full flex items-center gap-3 rounded-xl border p-4 text-left ${
+      className={`w-full flex items-center gap-3 rounded-2xl border p-4 text-left ${
         locked
           ? "bg-slate-100 border-slate-200 cursor-not-allowed"
-          : "bg-white border-slate-200 hover:border-slate-300"
+          : "bg-white border-slate-100 hover:border-slate-200"
       }`}
     >
-      <div
-        className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-          locked ? "bg-slate-200 text-slate-400" : "bg-slate-100 text-slate-700"
-        }`}
-      >
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${locked ? "bg-slate-200 text-slate-400" : "bg-indigo-50 text-indigo-600"}`}>
         {locked ? <Lock className="w-5 h-5" /> : icon}
       </div>
 
       <div className="flex-1">
-        <div className={`text-sm ${locked ? "text-slate-500" : "text-slate-800"}`}>{title}</div>
-        {locked && lockHint && (
-          <div className="text-[11px] text-slate-500 mt-0.5">{lockHint}</div>
-        )}
+        <div className={`text-sm font-semibold ${locked ? "text-slate-500" : "text-slate-800"}`}>{title}</div>
+        <div className="mt-0.5 text-xs text-slate-500">{locked && lockHint ? lockHint : sub}</div>
       </div>
 
-      {locked ? (
-        <ToneBadge tone="grey">Locked</ToneBadge>
-      ) : (
-        <ChevronRight className="w-5 h-5 text-slate-400" />
-      )}
+      {locked ? <ToneBadge tone="grey">Locked</ToneBadge> : <ChevronRight className="w-5 h-5 text-slate-400" />}
     </button>
-  );
-}
-
-function LockedControl({ title }: { title: string }) {
-  return (
-    <div className="w-full flex items-center gap-3 rounded-xl bg-slate-100 border border-slate-200 p-4 opacity-80">
-      <div className="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center text-slate-500">
-        <Lock className="w-5 h-5" />
-      </div>
-
-      <div className="flex-1 text-sm text-slate-600">{title}</div>
-      <ToneBadge tone="grey">Locked</ToneBadge>
-    </div>
   );
 }
