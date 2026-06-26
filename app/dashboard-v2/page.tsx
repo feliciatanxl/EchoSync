@@ -206,7 +206,7 @@ const initialIncidents: Incident[] = [
     type: 'Possible Fall / Medical Distress',
     elapsedTime: '00:08:22',
     severity: 'Critical',
-    flagged: true,
+    flagged: false,
     status: 'Active',
     assignedUnit: 'Emergency operator review',
     lastUpdated: '19:50',
@@ -299,7 +299,7 @@ const initialIncidents: Incident[] = [
     type: 'Unresponsive Resident',
     elapsedTime: '00:35:00',
     severity: 'Medium',
-    flagged: true,
+    flagged: false,
     status: 'Active',
     assignedUnit: 'Unassigned',
     lastUpdated: '19:30',
@@ -600,7 +600,7 @@ function liveEventToIncident(event: SensorApiEvent, index: number): Incident | n
       }),
     elapsedTime: 'Live',
     severity,
-    flagged: severity === 'Critical',
+    flagged: false,
     status: 'Active',
     assignedUnit: assignedUnitFromRisk(severity),
     lastUpdated: piTime.toLocaleTimeString('en-SG', {
@@ -2094,17 +2094,30 @@ export default function DashboardV2() {
           .filter((incident): incident is Incident => incident !== null);
 
         if (active && liveIncidents.length) {
-          liveDataActive.current = true;
-          setIncidents(liveIncidents);
+        liveDataActive.current = true;
 
-          setSelectedId((current) => {
-            if (userClosedSelection.current) return current;
+        setIncidents((prev) => {
+          const existingFlagState = new Map(
+            prev.map((incident) => [incident.id, incident.flagged])
+          );
 
-            return liveIncidents.some((incident) => incident.id === current)
-              ? current
-              : liveIncidents[0].id;
-          });
-        } else if (active && liveDataActive.current) {
+          return liveIncidents.map((incident) => ({
+            ...incident,
+
+            // New cases start unflagged.
+            // Existing cases keep whatever SCDF manually selected.
+            flagged: existingFlagState.get(incident.id) ?? false,
+          }));
+        });
+
+        setSelectedId((current) => {
+          if (userClosedSelection.current) return current;
+
+          return liveIncidents.some((incident) => incident.id === current)
+            ? current
+            : liveIncidents[0].id;
+        });
+      } else if (active && liveDataActive.current) {
           liveDataActive.current = false;
           setIncidents(initialIncidents);
 
@@ -2330,7 +2343,7 @@ export default function DashboardV2() {
         type: alert.caseType,
         elapsedTime: alert.immobileTime,
         severity,
-        flagged: severity === 'Critical',
+        flagged: false,
         status: statusFromRisk(severity),
         assignedUnit: assignedUnitFromRisk(severity),
         lastUpdated: now,
