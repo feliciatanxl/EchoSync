@@ -198,8 +198,6 @@ function popupContent(inc: Incident): string {
   const alertIconSvg =
     '<svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
 
-  const compactSummary = getCompactPopupSummary(inc.description);
-
   return `
     <div class="echosync-popup-scroll" style="font-family:Inter,system-ui,-apple-system,sans-serif;">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
@@ -359,25 +357,55 @@ export default function IncidentMap({
     }).addTo(map);
 
     const handleClick = (event: MouseEvent) => {
-    const target = event.target as HTMLElement | null;
+      const target = event.target as HTMLElement | null;
 
-    if (!target?.closest('.incident-popup-close')) return;
+      const closeButton = target?.closest('.incident-popup-close');
+      const summaryButton = target?.closest('.incident-popup-summary-btn') as HTMLElement | null;
+      const actionButton = target?.closest('.incident-popup-action-btn') as HTMLElement | null;
 
-    event.preventDefault();
-    event.stopPropagation();
+      if (!closeButton && !summaryButton && !actionButton) return;
 
-    map.closePopup();
-    lastSelectedIdRef.current = null;
-    onSelectIncidentRef.current(null);
+      event.preventDefault();
+      event.stopPropagation();
 
-    setTimeout(() => {
-      map.invalidateSize();
-      map.setView([1.3521, 103.8198], 12, {
-        animate: true,
-        duration: 0.45,
-      });
-    }, 0);
-  };
+      if (summaryButton || actionButton) {
+        const incidentId =
+          summaryButton?.dataset.incidentId ||
+          actionButton?.dataset.incidentId ||
+          null;
+
+        if (incidentId) {
+          onSelectIncidentRef.current(incidentId);
+        }
+
+        const targetId = summaryButton
+          ? 'incident-alert-summary'
+          : 'incident-action-plan';
+
+        map.closePopup();
+
+        setTimeout(() => {
+          document.getElementById(targetId)?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          });
+        }, 160);
+
+        return;
+      }
+
+      map.closePopup();
+      lastSelectedIdRef.current = null;
+      onSelectIncidentRef.current(null);
+
+      setTimeout(() => {
+        map.invalidateSize();
+        map.setView([1.3521, 103.8198], 11.5, {
+          animate: true,
+          duration: 0.45,
+        });
+      }, 0);
+    };
 
     container.addEventListener('click', handleClick);
 

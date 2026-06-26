@@ -1325,26 +1325,41 @@ function splitSummarySentences(text: string) {
     .filter(Boolean);
 }
 
-function AiSummaryCard({ summary }: { summary: string }) {
-  const sections = parseSummarySections(summary);
+function AiSummaryCard({
+  summary,
+  onlyTitle,
+  hideSectionTitle = false,
+}: {
+  summary: string;
+  onlyTitle?: string;
+  hideSectionTitle?: boolean;
+}) {
+  const allSections = parseSummarySections(summary);
+  const sections = onlyTitle
+    ? allSections.filter((section) => section.title.toLowerCase() === onlyTitle.toLowerCase())
+    : allSections;
+
+  const visibleSections = sections.length > 0 ? sections : allSections.slice(0, 1);
 
   return (
     <div className="px-0 py-0">
-      <div className="space-y-2">
-        {sections.map((section, index) => (
+      <div className="space-y-1">
+        {visibleSections.map((section, index) => (
           <div
             key={`${section.title}-${index}`}
-            className="rounded-md border border-indigo-100 bg-indigo-50/60 px-2 py-2"
+            className="px-0 py-0"
           >
-            <p className="text-[8px] font-bold uppercase tracking-wider text-indigo-700 mb-1">
-              {section.title}
-            </p>
+            {!hideSectionTitle && (
+              <p className="mb-1 text-[8px] font-bold uppercase tracking-wider text-slate-500">
+                {section.title}
+              </p>
+            )}
 
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {splitSummarySentences(section.body).map((sentence, sentenceIndex) => (
                 <p
                   key={`${section.title}-${sentenceIndex}`}
-                  className="text-[10.5px] font-semibold text-slate-700 leading-relaxed"
+                  className="text-[10.5px] font-semibold text-slate-700 leading-snug"
                 >
                   {sentence}
                 </p>
@@ -1437,58 +1452,128 @@ function IncidentDetailStrip({
     );
   };
 
+  const readableFlag = (
+    value: string | undefined,
+    positiveText: string,
+    negativeText: string,
+  ) => {
+    const normalised = String(value || '').trim().toLowerCase();
+
+    if (!normalised || normalised === 'not provided') return 'Not provided';
+
+    if (normalised === '1' || normalised === 'true' || normalised === 'yes') {
+      return positiveText;
+    }
+
+    if (normalised === '0' || normalised === 'false' || normalised === 'no') {
+      return negativeText;
+    }
+
+    return value || 'Not provided';
+  };
+
+  const readableDistance = () => {
+    const distance = getSensor('distanceCm');
+    return distance ? `${distance} cm from sensor` : 'Not provided';
+  };
+
+  const readableLoad = () => {
+    const loadNet = getSensor('loadNet');
+    return loadNet ? `Load change value ${loadNet}` : 'Not provided';
+  };
+
   const compactEvidenceText =
     rawEvidenceParts.length > 0
       ? rawEvidenceParts.join(' + ')
       : 'Sensor evidence contributed to this alert.';
 
+  const soundStatus = readableFlag(
+    getSensor('soundDetected'),
+    'Impact sound heard',
+    'No strong impact sound',
+  );
+
+  const micStatus = readableFlag(
+    getSensor('micDigital'),
+    'Mic trigger active',
+    'Mic trigger not active',
+  );
+
+  const pirStatus = readableFlag(
+    getSensor('pirMotion'),
+    'Movement detected',
+    'No PIR movement',
+  );
+
+  const nearStatus = readableFlag(
+    getSensor('nearDetected'),
+    'Resident/object near sensor',
+    'No near-distance trigger',
+  );
+
+  const fallStatus = readableFlag(
+    getSensor('possibleFall'),
+    'Possible fall pattern',
+    'No clear fall pattern',
+  );
+
+  const alertStatus = readableFlag(
+    getSensor('alert'),
+    'Alert triggered',
+    'No alert flag',
+  );
+
   const groupedEvidence = hasStructuredSignals
     ? [
         {
           title: 'Sound / impact',
-          badge: isPositiveSignal(getSensor('soundDetected')) ? 'Impact detected' : 'Low signal',
-          summary: isPositiveSignal(getSensor('soundDetected'))
-            ? 'Impact-related sound signal contributed to this alert.'
-            : 'Sound level alone is low, but it is considered with other sensors.',
+          icon: <Activity className="h-3.5 w-3.5 text-amber-700" />,
+          badge: soundStatus,
+          summary:
+            soundStatus === 'Impact sound heard'
+              ? 'EchoSync heard an impact-like sound and compared it with the other sensors.'
+              : 'No strong impact sound was heard, so sound alone is not the main trigger.',
           details: [
-            { label: 'Sound level', value: getSensor('soundLevel') || 'Not provided' },
-            { label: 'Sound detected', value: getSensor('soundDetected') || 'Not provided' },
-            { label: 'Mic digital', value: getSensor('micDigital') || 'Not provided' },
+            { label: 'Sound level', value: getSensor('soundLevel') ? `Level ${getSensor('soundLevel')}` : 'Not provided' },
+            { label: 'Sound status', value: soundStatus },
+            { label: 'Mic status', value: micStatus },
           ],
         },
         {
           title: 'Motion / presence',
-          badge: isPositiveSignal(getSensor('nearDetected')) ? 'Presence anomaly' : 'Movement low',
-          summary: 'PIR, near-distance and ultrasonic readings are checked for abnormal presence or no movement.',
+          icon: <MapPin className="h-3.5 w-3.5 text-blue-700" />,
+          badge: nearStatus,
+          summary: 'EchoSync checks whether the resident is nearby, moving normally, or unusually still.',
           details: [
-            { label: 'PIR motion', value: getSensor('pirMotion') || 'Not provided' },
-            {
-              label: 'Distance',
-              value: getSensor('distanceCm') ? `${getSensor('distanceCm')} cm` : 'Not provided',
-            },
-            { label: 'Near detected', value: getSensor('nearDetected') || 'Not provided' },
+            { label: 'PIR movement', value: pirStatus },
+            { label: 'Distance', value: readableDistance() },
+            { label: 'Presence', value: nearStatus },
           ],
         },
         {
           title: 'Load / fall pattern',
-          badge:
-            isPositiveSignal(getSensor('possibleFall')) || isPositiveSignal(getSensor('alert'))
-              ? 'Fall pattern'
-              : 'Load change',
+          icon: <HeartPulse className="h-3.5 w-3.5 text-red-700" />,
+          badge: fallStatus,
           summary:
-            'Mattress/load readings are compared with motion and sound to check if a fall pattern may be present.',
+            fallStatus === 'Possible fall pattern'
+              ? 'Load, sound and presence signals together suggest a possible fall pattern.'
+              : 'Load sensor changes are being checked against motion and sound before escalation.',
           details: [
-            { label: 'Possible fall', value: getSensor('possibleFall') || 'Not provided' },
-            { label: 'Alert flag', value: getSensor('alert') || 'Not provided' },
-            { label: 'Load net', value: getSensor('loadNet') || 'Not provided' },
+            { label: 'Fall pattern', value: fallStatus },
+            { label: 'Alert flag', value: alertStatus },
+            { label: 'Mattress/load', value: readableLoad() },
           ],
         },
       ]
     : [
         {
           title: 'Trigger pattern',
+          icon: <Activity className="h-3.5 w-3.5 text-amber-700" />,
           badge: incident.severity,
-          summary: compactEvidenceText,
+          summary:
+            rawEvidenceParts.length > 0
+              ? rawEvidenceParts.slice(0, 2).join('. ')
+              : 'EchoSync received a sensor trigger that requires review.',
           details: rawEvidenceParts.slice(0, 3).map((part, index) => ({
             label: `Evidence ${index + 1}`,
             value: part,
@@ -1496,11 +1581,12 @@ function IncidentDetailStrip({
         },
         {
           title: 'Likely concern',
+          icon: <AlertTriangle className="h-3.5 w-3.5 text-red-700" />,
           badge: incident.severity === 'Critical' ? 'Urgent' : 'Review',
           summary:
             incident.severity === 'Critical'
-              ? 'Combined signals suggest possible fall or no resident response.'
-              : 'Signals require operator review before responder coordination.',
+              ? 'This case should be reviewed quickly because the alert is critical.'
+              : 'This case needs operator review before responder coordination.',
           details: [
             { label: 'Priority', value: incident.severity },
             { label: 'Status', value: incident.status },
@@ -1509,6 +1595,7 @@ function IncidentDetailStrip({
         },
         {
           title: 'Next action',
+          icon: <Radio className="h-3.5 w-3.5 text-teal-700" />,
           badge: 'Operator-led',
           summary:
             incident.simulation?.recommendedAction ||
@@ -1523,22 +1610,35 @@ function IncidentDetailStrip({
   const sensorEvidenceRows = incident.simulation
     ? [
         {
+          icon: <Activity className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-600" />,
           label: 'PIR / motion',
-          value: incident.simulation.detectorEvidence.thermal,
+          value: hasStructuredSignals
+            ? `${pirStatus}. ${nearStatus}.`
+            : incident.simulation.detectorEvidence.thermal,
         },
         {
+          icon: <Bell className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-600" />,
           label: 'Sound sensor',
-          value: incident.simulation.detectorEvidence.acoustic,
+          value: hasStructuredSignals
+            ? `${soundStatus}. Sound level ${getSensor('soundLevel') || 'not provided'}.`
+            : incident.simulation.detectorEvidence.acoustic,
         },
         {
+          icon: <HeartPulse className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-600" />,
           label: 'Mattress load sensor',
-          value: incident.simulation.detectorEvidence.loadMat,
+          value: hasStructuredSignals
+            ? `${fallStatus}. ${readableLoad()}.`
+            : incident.simulation.detectorEvidence.loadMat,
         },
         {
+          icon: <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-600" />,
           label: 'Ultrasonic sensor',
-          value: incident.simulation.detectorEvidence.doorFridge,
+          value: hasStructuredSignals
+            ? `Distance reading: ${readableDistance()}.`
+            : incident.simulation.detectorEvidence.doorFridge,
         },
         {
+          icon: <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-600" />,
           label: 'Mic + speaker check-in',
           value: incident.simulation.detectorEvidence.voice,
         },
@@ -1587,7 +1687,7 @@ function IncidentDetailStrip({
       </div>
 
       {/* Action buttons */}
-      <div className="inline-grid w-fit max-w-full grid-cols-2 gap-1.5">
+      <div id="incident-actions" className="inline-grid w-fit max-w-full grid-cols-2 gap-1.5">
         <button
           type="button"
           onClick={() => onSendToMyResponder(incident)}
@@ -1640,21 +1740,21 @@ function IncidentDetailStrip({
 
       {/* Why alert was raised */}
       {groupedEvidence.length > 0 && (
-        <div className="mt-1 rounded-lg border border-amber-200 bg-amber-50/70 p-3 shadow-sm">
-          <div className="mb-2 grid grid-cols-[130px_minmax(0,1fr)] items-center gap-2">
-            <span className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider text-amber-700 leading-tight">
-              <AlertTriangle className="h-3 w-3 shrink-0" />
-              <span>Why raised</span>
-            </span>
+        <div id="incident-why-raised" className="mt-1 scroll-mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+          <div className="mb-3 grid grid-cols-1 gap-2 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+            <p className="flex items-center gap-1.5 text-[8px] font-bold uppercase tracking-wider text-slate-700">
+              <AlertTriangle className="h-3.5 w-3.5 text-slate-700" />
+              Why this alert was raised
+            </p>
 
-            <div className="grid grid-cols-3 gap-1.5 justify-self-end">
+            <div className="grid grid-cols-3 gap-1.5 justify-self-start xl:justify-self-end">
               {simulationControls.map((control) => (
                 <button
                   key={control.id}
                   type="button"
                   onClick={() => onRunSimulation(control.id)}
                   disabled={simulationLoading === control.id}
-                  className="h-7 w-[110px] whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 text-[9px] font-bold leading-none text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+                  className="h-6 w-[112px] whitespace-nowrap rounded-md border border-slate-200 bg-white px-1.5 text-[8px] font-semibold leading-none text-slate-600 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
                 >
                   {simulationLoading === control.id ? 'Loading...' : control.label}
                 </button>
@@ -1666,38 +1766,27 @@ function IncidentDetailStrip({
             {groupedEvidence.map((group) => (
               <div
                 key={group.title}
-                className="rounded-md border border-amber-100 bg-white px-3 py-2"
+                className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2.5 shadow-sm"
               >
-                <div className="mb-1.5 flex items-center justify-between gap-2">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                <div className="mb-2 flex min-w-0 items-center gap-2">
+                  <div className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-md bg-white shadow-sm ring-1 ring-slate-100">
+                    {group.icon}
+                  </div>
+
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500 leading-tight">
                     {group.title}
                   </p>
-
-                  <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[8.5px] font-bold text-amber-700">
-                    {group.badge}
-                  </span>
                 </div>
 
                 <p className="text-[10.5px] font-semibold leading-snug text-slate-800">
                   {group.summary}
                 </p>
-
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {group.details.map((detail) => (
-                    <span
-                      key={`${group.title}-${detail.label}`}
-                      className="rounded border border-slate-100 bg-slate-50 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600"
-                    >
-                      {detail.label}:{' '}
-                      <span className="text-slate-900">{detail.value}</span>
-                    </span>
-                  ))}
-                </div>
               </div>
             ))}
           </div>
         </div>
       )}
+
 
       {incident.simulation && (
         <div className="grid gap-2 rounded-md border border-slate-100 bg-slate-50/70 p-2.5">
@@ -1727,11 +1816,11 @@ function IncidentDetailStrip({
 
             <div className="grid gap-x-4 gap-y-2 md:grid-cols-2">
               {sensorEvidenceRows.map((sensor) => (
-                <div key={sensor.label} className="flex items-start gap-2">
-                  <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-teal-500" />
+                <div key={sensor.label} className="flex items-start gap-2 rounded-md border border-slate-100 bg-slate-50/70 px-2 py-2">
+                  {sensor.icon}
 
                   <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                    <p className="text-[8.5px] font-bold uppercase tracking-wider text-slate-500">
                       {sensor.label}
                     </p>
 
@@ -1744,30 +1833,55 @@ function IncidentDetailStrip({
             </div>
           </div>
 
-          <div className="rounded bg-white px-2 py-1.5 border border-slate-100">
-            <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
-              Recommended action
+          <div id="incident-alert-summary" className="scroll-mt-3 rounded-xl border border-blue-100 bg-blue-50/50 px-3 py-2.5">
+            <p className="flex items-center gap-1.5 text-[8px] font-bold uppercase tracking-wider text-blue-700">
+              <ClipboardList className="h-3.5 w-3.5" />
+              Alert summary
             </p>
-            <p className="text-[10.5px] font-bold text-slate-800">
-              {incident.simulation.recommendedAction}
-            </p>
+
+            {incident.simulation.aiSummary ? (
+              <div className="mt-2">
+                <AiSummaryCard
+                  summary={incident.simulation.aiSummary.summary}
+                  onlyTitle="Alert Summary"
+                  hideSectionTitle
+                />
+              </div>
+            ) : (
+              <p className="mt-1 text-[10.5px] font-semibold leading-snug text-slate-700">
+                {incident.description || 'EchoSync alert received. Review the sensor evidence and decide the next operator action.'}
+              </p>
+            )}
           </div>
 
-          <div className="rounded bg-white px-2 py-1.5 border border-slate-100">
-            <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+          <div id="incident-action-plan" className="scroll-mt-3 rounded-xl border border-emerald-100 bg-emerald-50/40 px-3 py-2.5">
+            <p className="flex items-center gap-1.5 text-[8px] font-bold uppercase tracking-wider text-emerald-700">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              AI recommended action
+            </p>
+              {incident.simulation.aiSummary ? (
+                <AiSummaryCard
+                  summary={incident.simulation.aiSummary.summary}
+                  onlyTitle="Recommendation"
+                  hideSectionTitle
+                />
+              ) : (
+                <p className="text-[10.5px] font-semibold leading-snug text-slate-800">
+                  {incident.simulation.recommendedAction}
+                </p>
+              )}
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+            <p className="flex items-center gap-1.5 text-[8px] font-bold uppercase tracking-wider text-slate-600">
+              <Activity className="h-3.5 w-3.5 text-indigo-600" />
               AI sensor explanation
             </p>
-            <p className="text-[10.5px] font-semibold text-slate-700">
-              Generated from fused sensor-only triggers: mic/speaker, ultrasonic,
-              PIR, motion, sound impact, and mattress load signals.
+            <p className="mt-1 text-[10.5px] font-semibold leading-snug text-slate-700">
+              EchoSync combines voice check-in, PIR motion, ultrasonic distance,
+              sound impact, and mattress/load readings into one operator-friendly risk view.
             </p>
           </div>
-
-          {incident.simulation.aiSummary && (
-            <AiSummaryCard
-              summary={incident.simulation.aiSummary.summary}
-            />
-          )}
         </div>
       )}
     </div>
