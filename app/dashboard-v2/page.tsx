@@ -2416,8 +2416,7 @@ export default function DashboardV2() {
       />
 
       {/* 3-column grid: Incidents | Map+Detail | OpsLog */}
-      <div className={`min-h-0 flex-1 grid overflow-hidden transition-all duration-300 ease-in-out ${isOpsLogOpen ? 'grid-cols-[clamp(320px,30vw,430px)_minmax(0,1fr)]' : 'grid-cols-[clamp(320px,30vw,430px)_minmax(0,1fr)_clamp(300px,24vw,420px)]'}`}>
-
+      <div className={`min-h-0 flex-1 grid overflow-hidden transition-all duration-300 ease-in-out ${isOpsLogOpen ? 'grid-cols-[clamp(300px,21vw,350px)_minmax(0,1fr)]' : 'grid-cols-[clamp(300px,21vw,350px)_minmax(0,1fr)_clamp(285px,19vw,360px)]'}`}>
         {/* ═══ LEFT: Incident List ═══ */}
         <div className="min-h-0 min-w-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden">
           {/* Sticky header */}
@@ -2431,8 +2430,7 @@ export default function DashboardV2() {
             </span>
           </div>
           {/* Filter tabs */}
-          <div className="px-2 py-2 border-b border-slate-100 flex items-center gap-1 overflow-visible flex-shrink-0 flex-nowrap justify-between">
-            {(['All', 'Critical', 'Flagged', 'Unflagged', 'Active'] as const).map(f => {
+          <div className="px-1.5 py-2 border-b border-slate-100 flex items-center gap-0.5 overflow-hidden flex-shrink-0 flex-nowrap justify-start">            {(['All', 'Critical', 'Flagged', 'Unflagged'] as const).map(f => {
               const count = incidents.filter(inc => {
                 if (f === 'All') return true;
                 if (f === 'Critical') return inc.severity === 'Critical';
@@ -2446,7 +2444,7 @@ export default function DashboardV2() {
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`px-2 py-1 rounded text-xs whitespace-nowrap font-semibold transition-colors flex items-center gap-1 border border-transparent ${filter === f
+                  className={`px-1.5 py-1 rounded text-[10px] leading-none whitespace-nowrap font-semibold transition-colors flex items-center gap-0.5 border border-transparent ${filter === f
                       ? (f === 'Critical' ? 'bg-red-50 text-red-700 border-red-100' : 'bg-teal-50 text-teal-700 border-teal-100')
                       : 'text-slate-500 hover:bg-slate-50 border-slate-100'
                     }`}

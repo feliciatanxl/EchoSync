@@ -348,24 +348,35 @@ export default function IncidentMap({
     const map = L.map(container, {
       center: [1.3521, 103.8198],
       zoom: 12,
+      zoomSnap: 0.25,
+      zoomDelta: 0.25,
       zoomControl: false,
       attributionControl: false,
     });
-
     L.tileLayer('https://www.onemap.gov.sg/maps/tiles/Default/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.onemap.gov.sg/">OneMap</a>',
     }).addTo(map);
 
     const handleClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
+    const target = event.target as HTMLElement | null;
 
-      if (!target?.closest('.incident-popup-close')) return;
+    if (!target?.closest('.incident-popup-close')) return;
 
-      event.preventDefault();
-      event.stopPropagation();
-      map.closePopup();
-      onSelectIncidentRef.current(null);
-    };
+    event.preventDefault();
+    event.stopPropagation();
+
+    map.closePopup();
+    lastSelectedIdRef.current = null;
+    onSelectIncidentRef.current(null);
+
+    setTimeout(() => {
+      map.invalidateSize();
+      map.setView([1.3521, 103.8198], 12, {
+        animate: true,
+        duration: 0.45,
+      });
+    }, 0);
+  };
 
     container.addEventListener('click', handleClick);
 
@@ -432,24 +443,19 @@ export default function IncidentMap({
       return () => clearTimeout(popupTimer);
     }
 
-    lastSelectedIdRef.current = null;
+   lastSelectedIdRef.current = null;
     map.closePopup();
-    const singaporeBounds: L.LatLngBoundsExpression = [
-    [1.20, 103.60],
-    [1.48, 104.08],
-  ];
 
-  const resetTimer = setTimeout(() => {
-    map.invalidateSize();
+    const resetTimer = setTimeout(() => {
+      map.invalidateSize();
 
-    map.fitBounds(singaporeBounds, {
-      padding: [20, 20],
-      animate: true,
-      duration: 0.45,
-    });
-  }, 0);
+      map.setView([1.3521, 103.8198], 12, {
+        animate: true,
+        duration: 0.45,
+      });
+    }, 0);
 
-  return () => clearTimeout(resetTimer);
+    return () => clearTimeout(resetTimer);
   }, [incidents, selectedId, selectedIncident]);
 
   return (
