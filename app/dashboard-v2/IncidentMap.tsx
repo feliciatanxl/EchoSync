@@ -241,24 +241,6 @@ function popupContent(inc: Incident): string {
         </span>
       </div>
 
-      <div style="margin-top:9px;border-left:3px solid #2563eb;padding-left:9px;">
-        <div style="font-size:8.5px;font-weight:850;color:#2563eb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">
-          Alert summary
-        </div>
-        <div style="font-size:12px;color:#334155;line-height:1.38;white-space:normal;overflow-wrap:anywhere;">
-          ${escapeHtml(compactSummary.summary)}
-        </div>
-      </div>
-
-      <div style="margin-top:9px;border-left:3px solid #0f766e;padding-left:9px;">
-        <div style="font-size:8.5px;font-weight:850;color:#0f766e;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">
-          Action
-        </div>
-        <div style="font-size:11.5px;color:#334155;line-height:1.35;white-space:normal;overflow-wrap:anywhere;">
-          ${escapeHtml(compactSummary.recommendation)}
-        </div>
-      </div>
-
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;">
         <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:6px 7px;border-radius:8px;">
           <div style="font-size:8px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">
@@ -303,6 +285,25 @@ function popupContent(inc: Incident): string {
             ${escapeHtml(inc.status)}
           </div>
         </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px;">
+        <button
+          type="button"
+          class="incident-popup-summary-btn"
+          data-incident-id="${escapeHtml(inc.id)}"
+          style="height:30px;border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:8px;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:0.04em;cursor:pointer;"
+        >
+          Alert summary
+        </button>
+
+        <button
+          type="button"
+          class="incident-popup-action-btn"
+          data-incident-id="${escapeHtml(inc.id)}"
+          style="height:30px;border:1px solid #99f6e4;background:#f0fdfa;color:#0f766e;border-radius:8px;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:0.04em;cursor:pointer;"
+        >
+          Actions
+        </button>
       </div>
     </div>
   `;
