@@ -44,10 +44,10 @@ export default function TriggerAlert() {
 
   const trigger = async (preset) => {
     setLoading(true);
-    await base44.entities.EmergencyAlert.create({ ...preset, status: 'pending' });
+    await base44.entities.EmergencyAlert.create({ ...preset, status: 'accepted' });
     setLoading(false);
-    toast.success('🚨 Alert triggered! Go to Home to respond.');
-    navigate('/home');
+    toast.success('Alert accepted. Opening active response.');
+    navigate('/active-response');
   };
 
   return (
