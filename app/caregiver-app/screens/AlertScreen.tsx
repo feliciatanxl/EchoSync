@@ -299,6 +299,29 @@ export function AlertScreen({
   const currentRisk = normaliseRisk(liveAlert?.riskLevel, risk);
   const isHigh = currentRisk === "high" || currentRisk === "critical";
   const tone = getTone(currentRisk);
+
+  const timerClass =
+    tone === "green"
+      ? {
+          text: "text-emerald-700",
+          track: "bg-emerald-100",
+          fill: "bg-emerald-500",
+          label: "Review by",
+        }
+      : tone === "red"
+        ? {
+            text: "text-red-700",
+            track: "bg-red-100",
+            fill: "bg-red-500",
+            label: "Verify by",
+          }
+        : {
+            text: "text-amber-700",
+            track: "bg-amber-100",
+            fill: "bg-amber-500",
+            label: "Verify by",
+          };
+
   const confidence = getConfidence(liveAlert, currentRisk);
   const voice = liveAlert?.voiceCheckIn as VoiceCheckIn | undefined;
   const liveEvidence = getEvidenceItems(liveAlert);
@@ -375,15 +398,15 @@ export function AlertScreen({
 
             <div className="mt-4 rounded-2xl border border-white/70 bg-white/80 p-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-medium text-red-700">
+                <div className={`flex items-center gap-2 text-sm font-medium ${timerClass.text}`}>
                   <Clock className="h-4 w-4" />
-                  Verify by
+                  {timerClass.label}
                 </div>
-                <div className="font-semibold tabular-nums text-red-700">{mm}:{ss}</div>
+                <div className={`font-semibold tabular-nums ${timerClass.text}`}>{mm}:{ss}</div>
               </div>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-red-100">
+              <div className={`mt-2 h-1.5 overflow-hidden rounded-full ${timerClass.track}`}>
                 <div
-                  className="h-full rounded-full bg-red-500 transition-all"
+                  className={`h-full rounded-full transition-all ${timerClass.fill}`}
                   style={{ width: `${(seconds / 60) * 100}%` }}
                 />
               </div>

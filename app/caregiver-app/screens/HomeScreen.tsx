@@ -44,11 +44,12 @@ export function HomeScreen({
     riskLevel: "Medium",
     confidence: 78,
   } : null);
+  const homeAlertTone = getHomeAlertTone(visibleAlert?.riskLevel);
+  const homeAlertClass = getHomeAlertClass(homeAlertTone);
   const lastUpdated = new Date().toLocaleTimeString("en-SG", {
     hour: "2-digit",
     minute: "2-digit",
   });
-
   return (
     <>
       <header className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 px-5 pb-8 pt-12 text-white">
@@ -102,20 +103,22 @@ export function HomeScreen({
         {visibleAlert ? (
           <button
             onClick={() => go("alert")}
-            className="flex w-full items-start gap-3 rounded-2xl bg-amber-50 p-4 text-left transition-transform active:scale-[0.99]"
+            className={`flex w-full items-start gap-3 rounded-2xl p-4 text-left transition-transform active:scale-[0.99] ${homeAlertClass.card}`}
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${homeAlertClass.iconBg}`}>
+              <AlertTriangle className={`h-5 w-5 ${homeAlertClass.iconText}`} />
             </div>
             <div className="flex-1 pt-0.5">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold text-amber-900">Verification needed</h3>
-                <ToneBadge tone="amber">{visibleAlert.riskLevel || "Medium"}</ToneBadge>
+                <h3 className={`text-sm font-semibold ${homeAlertClass.title}`}>
+                  {homeAlertTone === "green" ? "Low-risk event logged" : "Verification needed"}
+                </h3>
+                <ToneBadge tone={homeAlertTone}>{visibleAlert.riskLevel || "Medium"}</ToneBadge>
               </div>
-              <p className="mt-1 text-xs leading-relaxed text-amber-700">
+              <p className={`mt-1 text-xs leading-relaxed ${homeAlertClass.body}`}>
                 {visibleAlert.eventType || "Sensor anomaly"} detected. Confidence {Math.round(visibleAlert.confidence || 0)}%.
               </p>
-              <p className="mt-1.5 text-[11px] font-medium text-amber-800">Review alert</p>
+              <p className={`mt-1.5 text-[11px] font-medium ${homeAlertClass.link}`}>Review alert</p>
             </div>
           </button>
         ) : (
@@ -220,4 +223,46 @@ function QuickAction({
       <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 transition-all group-hover:translate-x-0.5 group-hover:text-slate-500" />
     </button>
   );
+}
+
+function getHomeAlertTone(riskLevel?: string): "green" | "amber" | "red" {
+  const risk = String(riskLevel || "medium").toLowerCase();
+
+  if (risk === "low") return "green";
+  if (risk === "high" || risk === "critical") return "red";
+
+  return "amber";
+}
+
+function getHomeAlertClass(tone: "green" | "amber" | "red") {
+  if (tone === "green") {
+    return {
+      card: "bg-emerald-50",
+      iconBg: "bg-emerald-100",
+      iconText: "text-emerald-600",
+      title: "text-emerald-900",
+      body: "text-emerald-700",
+      link: "text-emerald-800",
+    };
+  }
+
+  if (tone === "red") {
+    return {
+      card: "bg-red-50",
+      iconBg: "bg-red-100",
+      iconText: "text-red-600",
+      title: "text-red-900",
+      body: "text-red-700",
+      link: "text-red-800",
+    };
+  }
+
+  return {
+    card: "bg-amber-50",
+    iconBg: "bg-amber-100",
+    iconText: "text-amber-600",
+    title: "text-amber-900",
+    body: "text-amber-700",
+    link: "text-amber-800",
+  };
 }
