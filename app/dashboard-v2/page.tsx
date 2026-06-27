@@ -1801,10 +1801,9 @@ function IncidentDetailStrip({
 
       {incident.simulation && (
         <div className="grid gap-2 rounded-md border border-slate-100 bg-slate-50/70 p-2.5">
-          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
             {[
               { label: 'Confidence', value: `${incident.simulation.confidence}%` },
-              { label: 'Immobile', value: incident.simulation.immobileTime },
               { label: 'Detect-to-alert', value: incident.simulation.detectionToAlert },
               { label: 'Risk', value: incident.simulation.riskLevel },
               { label: 'Voice result', value: incident.simulation.voiceResult },
@@ -1866,22 +1865,25 @@ function IncidentDetailStrip({
           </div>
 
           <div id="incident-action-plan" className="scroll-mt-3 rounded-xl border border-emerald-100 bg-emerald-50/40 px-3 py-2.5">
-            <p className="flex items-center gap-1.5 text-[8px] font-bold uppercase tracking-wider text-emerald-700">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              AI recommended action
-            </p>
-              {incident.simulation.aiSummary ? (
-                <AiSummaryCard
-                  summary={incident.simulation.aiSummary.summary}
-                  onlyTitle="Recommendation"
-                  hideSectionTitle
-                />
-              ) : (
-                <p className="text-[10.5px] font-semibold leading-snug text-slate-800">
-                  {incident.simulation.recommendedAction}
-                </p>
-              )}
-          </div>
+              <p className="flex items-center gap-1.5 text-[8px] font-bold uppercase tracking-wider text-emerald-700">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                AI recommended action
+              </p>
+
+              <div className="mt-2">
+                {incident.simulation.aiSummary ? (
+                  <AiSummaryCard
+                    summary={incident.simulation.aiSummary.summary}
+                    onlyTitle="Recommendation"
+                    hideSectionTitle
+                  />
+                ) : (
+                  <p className="text-[10.5px] font-semibold leading-snug text-slate-800">
+                    {incident.simulation.recommendedAction}
+                  </p>
+                )}
+              </div>
+            </div>
 
           <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
             <p className="flex items-center gap-1.5 text-[8px] font-bold uppercase tracking-wider text-slate-600">
