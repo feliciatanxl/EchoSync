@@ -113,7 +113,7 @@ function parseAlertDate(value?: string) {
 function formatAlertDateTime(value?: string) {
   const date = parseAlertDate(value);
 
-  if (!date) return value || "—";
+  if (!date) return value || "Not available";
 
   return date.toLocaleString("en-SG", {
     day: "2-digit",
@@ -161,12 +161,7 @@ function parseAiSummary(text?: string) {
   const matches = [...clean.matchAll(headingRegex)];
 
   if (matches.length === 0) {
-    return [
-      {
-        title: "Summary",
-        body: clean,
-      },
-    ];
+    return [{ title: "Summary", body: clean }];
   }
 
   return matches
@@ -227,42 +222,37 @@ function getEvidenceItems(liveAlert: CaregiverLiveAlert | null) {
 function getNextStepText(risk: string, voiceIntent?: string) {
   if (voiceIntent === "ok") {
     return [
-      "Resident responded okay.",
-      "Caregiver should confirm resident is safe.",
+      "Confirm the resident is safe.",
+      "Submit verification if everything is okay.",
       "Alert remains logged for audit trail.",
-      "If caregiver cannot verify, escalate for review.",
     ];
   }
 
   if (voiceIntent === "help") {
     return [
       "Help request detected.",
-      "Alert is sent for emergency operator review.",
-      "Caregiver can still add context.",
-      "Caregiver cannot cancel this emergency escalation.",
+      "Emergency operator review is started.",
+      "Add context if you have helpful information.",
     ];
   }
 
   if (risk === "critical" || risk === "high") {
     return [
-      "Strong emergency signal detected.",
-      "EchoSync sends alert for emergency operator review.",
-      "Caregiver is notified for context.",
-      "Caregiver cannot cancel high or critical escalation.",
+      "Emergency operator review is started.",
+      "Caregiver can add context but cannot cancel escalation.",
+      "Call the resident if it is safe to do so.",
     ];
   }
 
   if (risk === "medium") {
     return [
-      "You have 60 seconds to verify.",
+      "Verify within the countdown window.",
       "If resident is okay, submit verification.",
       "If no one responds, EchoSync escalates for review.",
-      "Medium alerts can be verified by caregiver.",
     ];
   }
 
   return [
-    "Low-risk alert sent to caregiver.",
     "Check on the resident if needed.",
     "Submit verification if resident is okay.",
     "Alert is logged for history.",
@@ -283,6 +273,7 @@ export function AlertScreen({
   liveAlert: CaregiverLiveAlert | null;
 }) {
   const [seconds, setSeconds] = useState(58);
+  const [callLog, setCallLog] = useState<{ time: string; text: string }[]>([]);
 
   useEffect(() => {
     setSeconds(58);
@@ -294,37 +285,37 @@ export function AlertScreen({
   }, []);
 
   const currentLiveAlert = liveAlert as ExtendedCaregiverLiveAlert | null;
-
   const alertTriggeredAt =
     currentLiveAlert?.timestamp || currentLiveAlert?.receivedAt;
-
   const alertReceivedAt = currentLiveAlert?.receivedAt;
   const alertTimeText = formatAlertDateTime(alertTriggeredAt);
   const alertAgeText = getAlertAge(alertTriggeredAt);
-
   const receivedTimeText = alertReceivedAt
     ? formatAlertDateTime(alertReceivedAt)
     : null;
 
   const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
   const ss = String(seconds % 60).padStart(2, "0");
-
   const currentRisk = normaliseRisk(liveAlert?.riskLevel, risk);
   const isHigh = currentRisk === "high" || currentRisk === "critical";
-  const isMedium = currentRisk === "medium";
-  const isLow = currentRisk === "low";
   const tone = getTone(currentRisk);
   const confidence = getConfidence(liveAlert, currentRisk);
-
   const voice = liveAlert?.voiceCheckIn as VoiceCheckIn | undefined;
-  const voiceIntent = voice?.intent;
-
   const liveEvidence = getEvidenceItems(liveAlert);
+  const evidenceItems =
+    liveEvidence.length > 0
+      ? liveEvidence
+      : [
+          "Loud impact detected",
+          "No movement for 45s",
+          "Resident did not reply",
+          "Device online",
+        ];
   const timedOut = seconds === 0;
   const canVerify = can(role, "verify");
   const canCancelOrVerify = canVerify && !isHigh && !timedOut;
-
-  const [callLog, setCallLog] = useState<{ time: string; text: string }[]>([]);
+  const nextSteps = getNextStepText(currentRisk, voice?.intent);
+  const aiSummarySections = parseAiSummary(liveAlert?.aiSummary).slice(0, 2);
 
   const log = (text: string) => {
     const time = new Date().toLocaleTimeString("en-SG", {
@@ -335,136 +326,64 @@ export function AlertScreen({
     setCallLog((l) => [...l, { time, text }]);
   };
 
-  const nextSteps = getNextStepText(currentRisk, voiceIntent);
-  const aiSummarySections = parseAiSummary(liveAlert?.aiSummary);
-
   return (
     <>
       <TopBar title="Active alert" onBack={() => go("home")} />
 
       <ScreenScroll>
-        <div className="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 space-y-1.5">
-          {liveAlert ? (
-            <>
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-[11px] text-emerald-700 uppercase tracking-wide">
-                  Live Pi alert connected
-                </div>
+        <AlertSourceBar
+          liveAlert={liveAlert}
+          alertAgeText={alertAgeText}
+          alertTimeText={alertTimeText}
+          receivedTimeText={receivedTimeText}
+          risk={risk}
+          setRisk={setRisk}
+        />
 
-                <div className="text-[11px] text-emerald-700 font-medium">
-                  {alertAgeText}
-                </div>
-              </div>
-
-              <div className="text-xs text-slate-600 leading-relaxed">
-                Triggered:{" "}
-                <span className="text-slate-900">{alertTimeText}</span>
-                {receivedTimeText ? (
-                  <>
-                    {" "}
-                    · Received:{" "}
-                    <span className="text-slate-900">{receivedTimeText}</span>
-                  </>
-                ) : null}
-              </div>
-
-              <div className="text-[11px] text-slate-500">
-                Showing latest alert from Raspberry Pi / Arduino JSON.
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="text-[11px] text-slate-500">
-                Demo controls — for prototype walkthrough only
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">Risk level:</span>
-
-                <button
-                  onClick={() => setRisk("medium")}
-                  className={`text-xs px-2.5 py-1 rounded-full border ${
-                    risk === "medium"
-                      ? "bg-amber-600 text-white border-amber-600"
-                      : "bg-white text-slate-600 border-slate-200"
-                  }`}
-                >
-                  Medium
-                </button>
-
-                <button
-                  onClick={() => setRisk("high")}
-                  className={`text-xs px-2.5 py-1 rounded-full border ${
-                    risk === "high"
-                      ? "bg-red-700 text-white border-red-700"
-                      : "bg-white text-slate-600 border-slate-200"
-                  }`}
-                >
-                  High
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-
-        <Card
-          className={`${
-            tone === "red"
-              ? "border-red-400 from-red-50"
-              : tone === "green"
-              ? "border-emerald-300 from-emerald-50"
-              : "border-amber-300 from-amber-50"
-          } bg-gradient-to-b to-white`}
-        >
+        <Card className={`${getHeroClass(tone)} overflow-hidden`}>
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <ToneBadge
-                tone={
-                  tone === "green" ? "green" : tone === "red" ? "red" : "amber"
-                }
-              >
-                <AlertTriangle className="w-3 h-3" /> {riskLabel(currentRisk)}{" "}
-                risk
-              </ToneBadge>
-
-              <span className="text-xs text-slate-500">
-                Confidence {confidence}%
-              </span>
-            </div>
-
-            <div className="mt-3 text-slate-900 text-lg">
-              {liveAlert?.eventType || "Possible Fall / No Response"}
-            </div>
-
-            <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-              <MapPin className="w-3 h-3" />
-              Registered HDB unit: {liveAlert?.location || RESIDENT.address}
-            </div>
-
-            {liveAlert && (
-              <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                <Clock className="w-3 h-3" />
-                Alert triggered:{" "}
-                <span className="text-slate-800">{alertTimeText}</span>
-                <span className="text-emerald-700">({alertAgeText})</span>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${getIconClass(tone)}`}>
+                  <AlertTriangle className="h-5 w-5" />
+                </span>
+                <div>
+                  <ToneBadge tone={tone === "red" ? "red" : tone === "green" ? "green" : "amber"}>
+                    {riskLabel(currentRisk)} risk
+                  </ToneBadge>
+                  <h2 className="mt-2 text-lg font-semibold text-slate-950">
+                    {liveAlert?.eventType || "Possible Fall / No Response"}
+                  </h2>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-slate-600">
+                    <MapPin className="h-3.5 w-3.5" />
+                    {liveAlert?.location || RESIDENT.address}
+                  </p>
+                </div>
               </div>
-            )}
+              <div className="text-right">
+                <div className="text-xl font-semibold tabular-nums text-slate-950">
+                  {confidence}%
+                </div>
+                <div className="text-[11px] text-slate-500">confidence</div>
+              </div>
+            </div>
 
-            <div className="mt-4 rounded-xl bg-white border border-red-200 p-3">
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <AlertMetric icon={<Clock className="h-4 w-4" />} label="Triggered" value={alertAgeText} />
+              <AlertMetric icon={<Shield className="h-4 w-4" />} label="Role" value={ROLE_LABEL[role]} />
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-white/70 bg-white/80 p-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-red-700">
-                  <Clock className="w-4 h-4" />
-                  <span className="text-sm">Verification window</span>
+                <div className="flex items-center gap-2 text-sm font-medium text-red-700">
+                  <Clock className="h-4 w-4" />
+                  Verify by
                 </div>
-
-                <div className="text-red-700 tabular-nums">
-                  {mm}:{ss}
-                </div>
+                <div className="font-semibold tabular-nums text-red-700">{mm}:{ss}</div>
               </div>
-
-              <div className="h-1.5 mt-2 bg-red-100 rounded-full overflow-hidden">
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-red-100">
                 <div
-                  className="h-full bg-red-500 transition-all"
+                  className="h-full rounded-full bg-red-500 transition-all"
                   style={{ width: `${(seconds / 60) * 100}%` }}
                 />
               </div>
@@ -472,75 +391,22 @@ export function AlertScreen({
           </CardContent>
         </Card>
 
-        <div>
-          <div className="text-xs uppercase tracking-wide text-slate-500 mb-2">
-            Why this alert was raised
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {liveEvidence.map((item) => (
-              <Evidence
-                key={item}
-                icon={<AlertTriangle className="w-3 h-3" />}
-                text={item}
-              />
-            ))}
-
-            {liveEvidence.length === 0 && (
-              <>
-                <Evidence
-                  icon={<Volume2 className="w-3 h-3" />}
-                  text="Loud impact detected"
-                />
-                <Evidence
-                  icon={<Footprints className="w-3 h-3" />}
-                  text="No movement for 45s"
-                />
-                <Evidence
-                  icon={<PhoneCall className="w-3 h-3" />}
-                  text="Resident did not reply to voice check-in"
-                />
-                <Evidence
-                  icon={<DoorClosed className="w-3 h-3" />}
-                  text="No door exit detected"
-                />
-                <Evidence
-                  icon={<Wifi className="w-3 h-3" />}
-                  text="Device online"
-                />
-              </>
-            )}
-          </div>
-        </div>
-
         {aiSummarySections.length > 0 && (
-          <Card className="border-indigo-200 bg-indigo-50">
+          <Card className="border-indigo-100 bg-white">
             <CardContent className="p-4">
-              {/* <div className="text-xs uppercase tracking-wide text-indigo-700 mb-3">
-                GB10 AI summary
-              </div> */}
-
-              <div className="space-y-3">
+              <SectionTitle icon={<FileText className="h-4 w-4" />} label="AI summary" />
+              <div className="mt-3 space-y-3">
                 {aiSummarySections.map((section, sectionIndex) => (
-                  <div
-                    key={`${section.title}-${sectionIndex}`}
-                    className="rounded-xl bg-white border border-indigo-100 p-3"
-                  >
-                    <div className="text-xs font-semibold text-indigo-800 uppercase tracking-wide mb-1.5">
+                  <div key={`${section.title}-${sectionIndex}`}>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
                       {section.title}
                     </div>
-
-                    <div className="space-y-1.5">
-                      {splitSummarySentences(section.body).map(
-                        (sentence, index) => (
-                          <p
-                            key={`${section.title}-${index}`}
-                            className="text-sm text-slate-800 leading-relaxed"
-                          >
-                            {sentence}
-                          </p>
-                        )
-                      )}
+                    <div className="mt-1 space-y-1">
+                      {splitSummarySentences(section.body).slice(0, 2).map((sentence, index) => (
+                        <p key={`${section.title}-${index}`} className="text-sm leading-relaxed text-slate-700">
+                          {sentence}
+                        </p>
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -549,275 +415,271 @@ export function AlertScreen({
           </Card>
         )}
 
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="border-slate-100 bg-white">
           <CardContent className="p-4">
-            <div className="text-xs uppercase tracking-wide text-blue-700 mb-2">
-              What happens next?
-            </div>
-
-            <ol className="space-y-1.5 text-sm text-blue-900 list-decimal pl-5">
-              {nextSteps.map((step) => (
-                <li key={step}>{step}</li>
+            <SectionTitle icon={<AlertTriangle className="h-4 w-4" />} label="Key evidence" />
+            <div className="mt-3 grid gap-2">
+              {evidenceItems.slice(0, 5).map((item) => (
+                <Evidence key={item} icon={getEvidenceIcon(item)} text={item} />
               ))}
-            </ol>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 bg-white">
+        <Card className="border-blue-100 bg-blue-50">
           <CardContent className="p-4">
-            <div className="text-xs uppercase tracking-wide text-slate-500 mb-3">
-              Escalation path
-            </div>
-
-            <ol className="space-y-3">
-              <EscStep n={1} text="EchoSync detected anomaly" done />
-              <EscStep n={2} text="Caregiver notified" done />
-
-              {isLow && (
-                <>
-                  <EscStep
-                    n={3}
-                    text="Low-risk alert remains with caregiver"
-                    active
-                  />
-                  <EscStep
-                    n={4}
-                    text="No emergency escalation unless risk increases"
-                  />
-                </>
-              )}
-
-              {isMedium && (
-                <>
-                  <EscStep
-                    n={3}
-                    text="myResponder verification queue notified"
-                    active
-                  />
-                  <EscStep
-                    n={4}
-                    text="Escalate if unable to verify or risk increases"
-                  />
-                </>
-              )}
-
-              {isHigh && (
-                <>
-                  <EscStep
-                    n={3}
-                    text="Emergency operator review started"
-                    active={!timedOut}
-                    done={timedOut}
-                  />
-                  <EscStep
-                    n={4}
-                    text="Caregiver can add context but cannot cancel escalation"
-                    active
-                  />
-                </>
-              )}
-            </ol>
-          </CardContent>
-        </Card>
-
-        <Card className="border-slate-200 bg-slate-50">
-          <CardContent className="p-3 text-xs text-slate-700 space-y-1">
-            <div className="flex items-center gap-2">
-              <Shield className="w-3.5 h-3.5 text-slate-600" />
-              <span>
-                Caregiver cancellation available:{" "}
-                <span className="text-slate-900">
-                  {isLow || isMedium
-                    ? "Low / Medium risk only"
-                    : "Not available for high-risk alerts"}
-                </span>
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Lock className="w-3.5 h-3.5 text-slate-600" />
-              <span>
-                Emergency operator review required if no response or strong
-                signal
-              </span>
+            <SectionTitle icon={<CheckCircle2 className="h-4 w-4" />} label="What to do now" />
+            <div className="mt-3 space-y-2">
+              {nextSteps.map((step, index) => (
+                <div key={step} className="flex gap-3 text-sm text-blue-950">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-blue-700">
+                    {index + 1}
+                  </span>
+                  <span>{step}</span>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
 
         {timedOut && (
-          <Card className="border-red-300 bg-red-50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-red-800">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm">Verification window ended</span>
-              </div>
-
-              <ul className="text-xs text-red-800 mt-2 space-y-1 list-disc pl-5">
-                <li>No caregiver verification received.</li>
-                <li>Alert moved to emergency operator review.</li>
-                <li>
-                  Caregiver can still add context, but cannot cancel this alert.
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
+          <NoticeCard
+            tone="red"
+            icon={<Clock className="h-5 w-5" />}
+            title="Verification window ended"
+            text="Alert moved to emergency operator review. You can still add context, but cannot cancel this alert."
+          />
         )}
 
-        <div className="space-y-2">
-          {isHigh || timedOut ? (
-            <div className="w-full rounded-xl border border-red-300 bg-red-50 p-4 flex items-start gap-2">
-              <Lock className="w-5 h-5 text-red-700 mt-0.5 shrink-0" />
+        <Card className="border-slate-100 bg-white">
+          <CardContent className="space-y-3 p-4">
+            <SectionTitle icon={<PhoneCall className="h-4 w-4" />} label="Actions" />
 
-              <div>
-                <div className="text-red-800 text-sm">
-                  {timedOut
-                    ? "Cancellation no longer available"
-                    : "High-risk alert — cancellation restricted"}
-                </div>
+            {isHigh || timedOut ? (
+              <NoticeCard
+                tone="red"
+                icon={<Lock className="h-5 w-5" />}
+                title={timedOut ? "Cancellation no longer available" : "Cancellation restricted"}
+                text="Emergency operator review cannot be cancelled for this alert."
+              />
+            ) : canCancelOrVerify ? (
+              <Button
+                className="w-full h-12"
+                onClick={() => go("verify")}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Confirm resident is okay
+              </Button>
+            ) : (
+              <NoticeCard
+                tone="grey"
+                icon={<Lock className="h-5 w-5" />}
+                title="Verification restricted"
+                text={`Your role (${ROLE_LABEL[role]}) can add context or acknowledge the check request.`}
+              />
+            )}
 
-                <div className="text-xs text-red-700 mt-0.5">
-                  You may still add context, call the resident, or request a
-                  callback. Emergency operator review cannot be cancelled.
-                </div>
-              </div>
+            <div className="grid grid-cols-1 gap-2">
+              <Button
+                variant="outline"
+                className="w-full h-12 border-slate-200"
+                onClick={() => log("Tan Mei Ling started verification call")}
+              >
+                <PhoneCall className="w-4 h-4" />
+                Calling resident
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full h-12 border-slate-200"
+                onClick={() => log("Callback requested - EchoSync operator will attempt callback")}
+              >
+                <Phone className="w-4 h-4" />
+                Request callback
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full h-12 border-slate-200"
+                onClick={() => go("context")}
+              >
+                <FileText className="w-4 h-4" />
+                {isHigh || timedOut ? "Add context for operator" : "Unable to verify"}
+              </Button>
             </div>
-          ) : canCancelOrVerify ? (
-            <Button
-              className="w-full h-12 bg-slate-950 hover:bg-slate-900 text-white"
-              onClick={() => go("verify")}
-            >
-              <CheckCircle2 className="w-4 h-4 mr-2" /> Confirm resident is
-              okay
-            </Button>
-          ) : (
-            <div className="w-full rounded-xl border border-slate-200 bg-slate-100 p-4 flex items-start gap-2">
-              <Lock className="w-5 h-5 text-slate-500 mt-0.5 shrink-0" />
-
-              <div className="text-xs text-slate-700">
-                Verification is restricted for your role ({ROLE_LABEL[role]}).
-                You may add context or acknowledge the check request below.
-              </div>
-            </div>
-          )}
-
-          <Button
-            variant="outline"
-            className="w-full h-12 border-slate-300"
-            onClick={() => log("Tan Mei Ling started verification call")}
-          >
-            <PhoneCall className="w-4 h-4 mr-2" /> I am calling resident now
-          </Button>
-
-          <Button
-            variant="outline"
-            className="w-full h-12 border-slate-300"
-            onClick={() =>
-              log("Callback requested — EchoSync operator will attempt callback")
-            }
-          >
-            <Phone className="w-4 h-4 mr-2" /> Request callback
-          </Button>
-
-          {isHigh || timedOut ? (
-            <Button
-              variant="outline"
-              className="w-full h-12 border-slate-300"
-              onClick={() => go("context")}
-            >
-              <FileText className="w-4 h-4 mr-2" /> Add context for operator
-            </Button>
-          ) : (
-            <Button
-              variant="outline"
-              className="w-full h-12 border-slate-300"
-              onClick={() => go("context")}
-            >
-              <AlertTriangle className="w-4 h-4 mr-2" /> Unable to verify
-            </Button>
-          )}
-        </div>
+          </CardContent>
+        </Card>
 
         {callLog.length > 0 && (
-          <Card className="border-emerald-200 bg-emerald-50">
-            <CardContent className="p-4 space-y-1.5">
-              <div className="text-xs uppercase tracking-wide text-emerald-700">
-                Status updated
-              </div>
-
-              {callLog.map((e, i) => (
-                <div key={i} className="text-xs text-emerald-900">
-                  <span className="tabular-nums">{e.time}</span> — {e.text}
-                </div>
-              ))}
-
-              <div className="text-[11px] text-emerald-700 pt-1">
-                Action logged to audit trail.
+          <Card className="border-emerald-100 bg-emerald-50">
+            <CardContent className="p-4">
+              <SectionTitle icon={<CheckCircle2 className="h-4 w-4" />} label="Status updated" />
+              <div className="mt-2 space-y-1">
+                {callLog.map((e, i) => (
+                  <div key={i} className="text-xs text-emerald-900">
+                    <span className="tabular-nums">{e.time}</span> - {e.text}
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
         )}
 
-        <Card className="border-slate-200 bg-slate-100">
-          <CardContent className="p-3 flex gap-2 items-start">
-            <Lock className="w-4 h-4 text-slate-600 mt-0.5 shrink-0" />
-
-            <p className="text-xs text-slate-700">
-              For strong emergency signals or no-response alerts, EchoSync
-              continues to emergency operator review even if caregiver
-              verification is pending.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-red-300 bg-red-50">
-          <CardContent className="p-3 flex gap-2 items-start">
-            <Phone className="w-4 h-4 text-red-700 mt-0.5 shrink-0" />
-
-            <p className="text-xs text-red-800">
-              For immediate life-threatening emergencies, call{" "}
-              <span className="text-red-900">995</span>.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="flex items-start gap-3 rounded-2xl bg-red-50 p-3">
+          <Phone className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+          <p className="text-xs leading-relaxed text-red-800">
+            For immediate life-threatening emergencies, call <span className="font-bold text-red-900">995</span>.
+          </p>
+        </div>
       </ScreenScroll>
     </>
   );
 }
 
-function EscStep({
-  n,
-  text,
-  done,
-  active,
+function AlertSourceBar({
+  liveAlert,
+  alertAgeText,
+  alertTimeText,
+  receivedTimeText,
+  risk,
+  setRisk,
 }: {
-  n: number;
-  text: string;
-  done?: boolean;
-  active?: boolean;
+  liveAlert: CaregiverLiveAlert | null;
+  alertAgeText: string;
+  alertTimeText: string;
+  receivedTimeText: string | null;
+  risk: "medium" | "high";
+  setRisk: (r: "medium" | "high") => void;
 }) {
-  const tone = done
-    ? "bg-emerald-600 text-white"
-    : active
-    ? "bg-red-600 text-white"
-    : "bg-slate-200 text-slate-600";
+  if (liveAlert) {
+    return (
+      <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+            <Wifi className="h-4 w-4" />
+            Live Pi alert
+          </div>
+          <span className="text-xs font-medium text-emerald-700">{alertAgeText}</span>
+        </div>
+        <p className="mt-1 text-xs leading-relaxed text-emerald-900">
+          Triggered {alertTimeText}
+          {receivedTimeText ? `, received ${receivedTimeText}` : ""}
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <li className="flex items-start gap-3">
-      <div
-        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${tone}`}
-      >
-        {n}
+    <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-3 py-2">
+      <div className="mb-2 text-[11px] text-slate-500">Demo controls for prototype walkthrough only</div>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-slate-500">Risk:</span>
+        {(["medium", "high"] as const).map((level) => (
+          <button
+            key={level}
+            onClick={() => setRisk(level)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium ${
+              risk === level
+                ? level === "high"
+                  ? "border-red-600 bg-red-600 text-white"
+                  : "border-amber-500 bg-amber-500 text-white"
+                : "border-slate-200 bg-white text-slate-600"
+            }`}
+          >
+            {riskLabel(level)}
+          </button>
+        ))}
       </div>
+    </div>
+  );
+}
 
-      <div className="text-sm text-slate-800 pt-0.5">{text}</div>
-    </li>
+function AlertMetric({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-white/80 p-3">
+      <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+        {icon}
+        {label}
+      </div>
+      <div className="mt-1 text-sm font-medium text-slate-900">{value}</div>
+    </div>
+  );
+}
+
+function SectionTitle({ icon, label }: { icon: ReactNode; label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <span className="text-indigo-500">{icon}</span>
+      {label}
+    </div>
   );
 }
 
 function Evidence({ icon, text }: { icon: ReactNode; text: string }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-white border border-slate-200 px-2.5 py-1 text-xs text-slate-700">
-      {icon} {text}
-    </span>
+    <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-3 py-2 text-sm text-slate-700">
+      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-indigo-600">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1 break-words">{text}</span>
+    </div>
   );
+}
+
+function NoticeCard({
+  tone,
+  icon,
+  title,
+  text,
+}: {
+  tone: "red" | "grey";
+  icon: ReactNode;
+  title: string;
+  text: string;
+}) {
+  const toneClass =
+    tone === "red"
+      ? "border-red-100 bg-red-50 text-red-800"
+      : "border-slate-100 bg-slate-50 text-slate-700";
+
+  return (
+    <div className={`flex items-start gap-3 rounded-2xl border p-3 ${toneClass}`}>
+      <span className="mt-0.5 shrink-0">{icon}</span>
+      <div>
+        <div className="text-sm font-semibold">{title}</div>
+        <div className="mt-0.5 text-xs leading-relaxed">{text}</div>
+      </div>
+    </div>
+  );
+}
+
+function getHeroClass(tone: string) {
+  if (tone === "red") return "border-red-200 bg-gradient-to-b from-red-50 to-white";
+  if (tone === "green") return "border-emerald-200 bg-gradient-to-b from-emerald-50 to-white";
+  return "border-amber-200 bg-gradient-to-b from-amber-50 to-white";
+}
+
+function getIconClass(tone: string) {
+  if (tone === "red") return "bg-red-100 text-red-600";
+  if (tone === "green") return "bg-emerald-100 text-emerald-600";
+  return "bg-amber-100 text-amber-600";
+}
+
+function getEvidenceIcon(text: string) {
+  const lower = text.toLowerCase();
+
+  if (lower.includes("voice") || lower.includes("reply") || lower.includes("transcript")) {
+    return <Volume2 className="h-4 w-4" />;
+  }
+  if (lower.includes("movement") || lower.includes("motion")) {
+    return <Footprints className="h-4 w-4" />;
+  }
+  if (lower.includes("door")) {
+    return <DoorClosed className="h-4 w-4" />;
+  }
+  if (lower.includes("device") || lower.includes("wifi") || lower.includes("online")) {
+    return <Wifi className="h-4 w-4" />;
+  }
+
+  return <AlertTriangle className="h-4 w-4" />;
 }

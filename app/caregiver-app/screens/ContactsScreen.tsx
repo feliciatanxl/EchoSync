@@ -1,6 +1,11 @@
 import {
+  Activity,
+  Clock,
+  FileText,
   Lock,
+  MapPin,
   Phone,
+  ShieldCheck,
   User,
   Button,
   Card,
@@ -11,7 +16,8 @@ import {
   can,
   TopBar,
   ScreenScroll,
-  BottomCTA
+  BottomCTA,
+  type ReactNode
 } from "../shared";
 
 export function ContactsScreen({
@@ -29,6 +35,7 @@ export function ContactsScreen({
     { role: "Secondary caregiver", name: "Tan Wei Jie (Son)", phone: "+65 9876 5432" },
     { role: "Neighbour / helper", name: "Mdm Lim (#08-110)", phone: "+65 8800 2233" },
   ];
+
   return (
     <>
       <TopBar title="Emergency contacts" onBack={() => go("home")} />
@@ -36,7 +43,7 @@ export function ContactsScreen({
         {contacts.map((c) => (
           <Card key={c.role} className="border-slate-200">
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-700">
+              <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
                 <User className="w-5 h-5" />
               </div>
               <div className="flex-1">
@@ -44,7 +51,7 @@ export function ContactsScreen({
                 <div className="text-slate-900 text-sm">{c.name}</div>
                 <div className="text-xs text-slate-500">{c.phone}</div>
               </div>
-              <Button size="icon" variant="outline" className="border-slate-300">
+              <Button size="icon" variant="outline" className="border-slate-300" aria-label={`Call ${c.name}`}>
                 <Phone className="w-4 h-4" />
               </Button>
             </CardContent>
@@ -53,16 +60,20 @@ export function ContactsScreen({
 
         <Card className="border-slate-200">
           <CardContent className="p-4 space-y-2">
-            <div className="text-xs uppercase tracking-wide text-slate-500">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-500">
+              <MapPin className="h-4 w-4 text-indigo-500" />
               Preferred hospital / clinic
             </div>
             <div className="text-sm text-slate-800">Ang Mo Kio Polyclinic</div>
             <Separator />
-            <div className="text-xs uppercase tracking-wide text-slate-500">Medical context</div>
-            <ul className="text-sm text-slate-800 space-y-1">
-              <li>• Uses walking aid</li>
-              <li>• Hearing difficulty</li>
-              <li>• Usually naps 2–4 PM</li>
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-500">
+              <FileText className="h-4 w-4 text-indigo-500" />
+              Medical context
+            </div>
+            <ul className="space-y-2 text-sm text-slate-800">
+              <MedicalNote icon={<Activity className="h-4 w-4" />} text="Uses walking aid" />
+              <MedicalNote icon={<ShieldCheck className="h-4 w-4" />} text="Hearing difficulty" />
+              <MedicalNote icon={<Clock className="h-4 w-4" />} text="Usually naps 2-4 PM" />
             </ul>
           </CardContent>
         </Card>
@@ -98,5 +109,16 @@ export function ContactsScreen({
         </div>
       )}
     </>
+  );
+}
+
+function MedicalNote({ icon, text }: { icon: ReactNode; text: string }) {
+  return (
+    <li className="flex items-center gap-2">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+        {icon}
+      </span>
+      <span>{text}</span>
+    </li>
   );
 }
