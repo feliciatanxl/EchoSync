@@ -300,9 +300,9 @@ export default function ActiveResponseScreen({ alert, onCancel, onParamedicsArri
           </Marker>
         </MapContainer>
 
-        <div className="absolute top-4 left-4 rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-[#1e3a8a] shadow-md border border-blue-100">
+        {/* <div className="absolute top-4 left-4 rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-[#1e3a8a] shadow-md border border-blue-100">
           YOU → INCIDENT
-        </div>
+        </div> */}
 
         <div className="absolute bottom-4 right-4 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md">
           <span className="text-sm">🧭</span>
@@ -310,7 +310,12 @@ export default function ActiveResponseScreen({ alert, onCancel, onParamedicsArri
       </div>
 
       {/* Bottom card */}
-      <div className="bg-white px-5 pt-5 pb-24 shadow-2xl rounded-t-3xl -mt-20 min-h-[420px] relative z-10">
+      <div
+          className={`absolute left-0 right-0 bottom-16 bg-white px-5 pt-5 shadow-2xl rounded-t-3xl z-[500] transition-all duration-200 ${            collapsed
+              ? 'pb-4 min-h-0 max-h-[180px] overflow-hidden'
+              : 'pb-5 max-h-[68vh] overflow-y-auto'
+          }`}
+        >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="text-xl">{isEchoSync ? '🏠' : isCardiac ? '💗' : '🔥'}</span>
@@ -322,6 +327,28 @@ export default function ActiveResponseScreen({ alert, onCancel, onParamedicsArri
             {collapsed ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
           </button>
         </div>
+
+        {collapsed && (
+          <div className="mt-3 rounded-2xl bg-blue-50 border border-blue-100 p-3 text-xs text-gray-700">
+            <div className="flex items-start gap-2">
+              <MapPin className="w-4 h-4 text-[#1e3a8a] mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="font-bold text-gray-900">
+                  {alert.location_name || alert.location || 'Registered HDB unit'}
+                </div>
+                <div className="text-gray-500">
+                  {alert.location_address || alert.location || 'Blk 302 Ang Mo Kio Ave 3, #08-112'}
+                </div>
+                <div className="mt-2 font-semibold text-[#1e3a8a]">
+                  {alert.riskLevel || 'High'} risk · {alert.confidence || 86}% confidence
+                </div>
+                <div className="mt-1 text-gray-600">
+                  Tap the arrow to view full verification details.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {!collapsed && (
           <>
