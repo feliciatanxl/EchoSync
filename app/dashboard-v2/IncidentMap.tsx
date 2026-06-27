@@ -382,8 +382,9 @@ export default function IncidentMap({
           ? 'incident-alert-summary'
           : 'incident-action-plan';
 
-        map.closePopup();
-
+        // Keep the map popup open while the right-side incident panel scrolls.
+        // Previously map.closePopup() was called here, so clicking Alert Summary / Actions
+        // made the popup card disappear, especially when the selected incident ID stayed the same.
         setTimeout(() => {
           document.getElementById(targetId)?.scrollIntoView({
             behavior: 'smooth',

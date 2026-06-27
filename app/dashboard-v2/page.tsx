@@ -1384,7 +1384,7 @@ function IncidentDetailStrip({
   simulationLoading,
   onSendToMyResponder,
   myResponderSending,
-  myResponderStatus,
+  myResponderStatusByIncidentId,
   myResponderSentIncidentIds,
 }: {
   incident: Incident | null;
@@ -1392,7 +1392,7 @@ function IncidentDetailStrip({
   simulationLoading: EchoSyncScenarioId | null;
   onSendToMyResponder: (incident: Incident) => void;
   myResponderSending: boolean;
-  myResponderStatus: string | null;
+  myResponderStatusByIncidentId: Record<string, string>;
   myResponderSentIncidentIds: string[];
 }) {
   if (!incident) {
@@ -1405,6 +1405,11 @@ function IncidentDetailStrip({
 
   const sev = severityColor(incident.severity);
   const myResponderAlreadySent = myResponderSentIncidentIds.includes(incident.id);
+  const myResponderStatus =
+    myResponderStatusByIncidentId[incident.id] ||
+    (myResponderAlreadySent
+      ? 'Sent to myResponder for CFR/AED coordination.'
+      : null);
 
   const alertEvidenceLine =
     incident.simulation?.aiReasoningLine ||
@@ -2162,8 +2167,8 @@ export default function DashboardV2() {
   const [broadcastToast, setBroadcastToast] = useState<{ acknowledged: number; total: number; complete: boolean } | null>(null);
   const [simulationLoading, setSimulationLoading] = useState<EchoSyncScenarioId | null>(null);
   const [simulationToast, setSimulationToast] = useState<SimulationToastState | null>(null);
-  const [myResponderSending, setMyResponderSending] = useState(false);
-  const [myResponderStatus, setMyResponderStatus] = useState<string | null>(null);
+  const [myResponderSendingIncidentId, setMyResponderSendingIncidentId] = useState<string | null>(null);
+  const [myResponderStatusByIncidentId, setMyResponderStatusByIncidentId] = useState<Record<string, string>>({});
   const [myResponderSentIncidentIds, setMyResponderSentIncidentIds] = useState<string[]>([]);
   const [mounted, setMounted] = useState(false);
   const broadcastTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -2361,17 +2366,27 @@ export default function DashboardV2() {
 
     const handleSendToMyResponder = useCallback(async (incident: Incident) => {
     if (incident.severity !== 'High' && incident.severity !== 'Critical') {
-      setMyResponderStatus('Only High/Critical alerts can be sent to myResponder.');
+      setMyResponderStatusByIncidentId((prev) => ({
+        ...prev,
+        [incident.id]: 'Only High/Critical alerts can be sent to myResponder.',
+      }));
       return;
     }
 
     if (myResponderSentIncidentIds.includes(incident.id)) {
-      setMyResponderStatus('Already sent to myResponder for CFR/AED coordination.');
+      setMyResponderStatusByIncidentId((prev) => ({
+        ...prev,
+        [incident.id]: 'Already sent to myResponder for CFR/AED coordination.',
+      }));
       return;
     }
 
-    setMyResponderSending(true);
-    setMyResponderStatus(null);
+    setMyResponderSendingIncidentId(incident.id);
+    setMyResponderStatusByIncidentId((prev) => {
+      const next = { ...prev };
+      delete next[incident.id];
+      return next;
+    });
 
     try {
       const payload = {
@@ -2420,7 +2435,10 @@ export default function DashboardV2() {
         );
       }
 
-      setMyResponderStatus('Sent to myResponder for CFR/AED coordination.');
+      setMyResponderStatusByIncidentId((prev) => ({
+        ...prev,
+        [incident.id]: 'Sent to myResponder for CFR/AED coordination.',
+      }));
 
       setMyResponderSentIncidentIds((prev) =>
         prev.includes(incident.id) ? prev : [...prev, incident.id]
@@ -2440,13 +2458,15 @@ export default function DashboardV2() {
         ...prev,
       ]);
     } catch (error) {
-      setMyResponderStatus(
-        error instanceof Error
-          ? error.message
-          : 'Failed to send alert to myResponder.'
-      );
+      setMyResponderStatusByIncidentId((prev) => ({
+        ...prev,
+        [incident.id]:
+          error instanceof Error
+            ? error.message
+            : 'Failed to send alert to myResponder.',
+      }));
     } finally {
-      setMyResponderSending(false);
+      setMyResponderSendingIncidentId(null);
     }
   }, [myResponderSentIncidentIds]);
 
@@ -2674,8 +2694,8 @@ export default function DashboardV2() {
               onRunSimulation={handleRunSimulation}
               simulationLoading={simulationLoading}
               onSendToMyResponder={handleSendToMyResponder}
-              myResponderSending={myResponderSending}
-              myResponderStatus={myResponderStatus}
+              myResponderSending={myResponderSendingIncidentId === selectedIncident?.id}
+              myResponderStatusByIncidentId={myResponderStatusByIncidentId}
               myResponderSentIncidentIds={myResponderSentIncidentIds}
             />
           )}
