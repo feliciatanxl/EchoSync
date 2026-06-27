@@ -23,6 +23,26 @@ function getCompletedCount() {
   return (window as any).__echosyncMyResponderCompletedCount || 0;
 }
 
+function getCancelledIds() {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(
+      window.localStorage.getItem("echosync-myresponder-cancelled-ids") || "[]"
+    );
+  } catch {
+    return [];
+  }
+}
+
+function shouldHideLiveAlert(alert) {
+  if (!alert?.id) return false;
+
+  return (
+    getCompletedIds().includes(alert.id) ||
+    getCancelledIds().includes(alert.id)
+  );
+}
+
 const [completedEchoSyncCases, setCompletedEchoSyncCases] =
   useState(getCompletedCount);
   const notifyCaregiverFromMyResponder = async () => {
@@ -74,6 +94,9 @@ const [completedEchoSyncCases, setCompletedEchoSyncCases] =
       type: "echosync_verification",
       status: "accepted",
       source: "raspberry_pi",
+      nodeId: liveAlert.nodeId || liveAlert.id,
+      lat: liveAlert.lat,
+      lng: liveAlert.lng,
       title: liveAlert.eventType || "EchoSync Verification Alert",
       riskLevel: liveAlert.riskLevel || "Medium",
       confidence: liveAlert.confidence || 72,
@@ -125,16 +148,14 @@ const [completedEchoSyncCases, setCompletedEchoSyncCases] =
         const data = await response.json();
 
         if (data.latest) {
-        const completedIds = getCompletedIds();
-
-        if (completedIds.includes(data.latest.id)) {
-          setLiveAlert(null);
+          if (shouldHideLiveAlert(data.latest)) {
+            setLiveAlert(null);
+          } else {
+            setLiveAlert(data.latest);
+          }
         } else {
-          setLiveAlert(data.latest);
+          setLiveAlert(null);
         }
-      } else {
-        setLiveAlert(null);
-      }
       } catch (error) {
         console.error("Failed to fetch myResponder alert", error);
       }

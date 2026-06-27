@@ -2397,6 +2397,8 @@ export default function DashboardV2() {
         nodeId: incident.nodeId || incident.id,
         resident: 'Mdm Tan Siew Lan',
         location: incident.location,
+        lat: incident.lat,
+        lng: incident.lng,
         eventType: incident.type,
         riskLevel: incident.severity,
         confidence:

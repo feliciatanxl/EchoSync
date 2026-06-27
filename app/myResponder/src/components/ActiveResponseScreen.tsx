@@ -2,8 +2,144 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, ChevronDown, ChevronUp, Phone } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Polyline, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+
+const SINGAPORE_BOUNDS = [
+  [1.144, 103.535],
+  [1.494, 104.502],
+];
+
+const ONEMAP_ATTRIBUTION =
+  '<img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" style="height:20px;width:20px;vertical-align:middle;" alt="OneMap" />&nbsp;' +
+  '<a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener noreferrer">OneMap</a>&nbsp;&copy;&nbsp;contributors&nbsp;|&nbsp;' +
+  '<a href="https://www.sla.gov.sg/" target="_blank" rel="noopener noreferrer">Singapore Land Authority</a>';
+
+const incidentIcon = L.divIcon({
+  html: `<div style="width:34px;height:34px;border-radius:50%;background:#ef4444;border:4px solid white;box-shadow:0 4px 14px rgba(239,68,68,.45);display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:13px;">!</div>`,
+  className: '',
+  iconSize: [34, 34],
+  iconAnchor: [17, 17],
+});
+
+const responderIcon = L.divIcon({
+  html: `<div style="width:32px;height:32px;border-radius:50%;background:#1e3a8a;border:3px solid white;box-shadow:0 4px 12px rgba(30,58,138,.35);display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:10px;">YOU</div>`,
+  className: '',
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+});
+
+function getIncidentCoords(alert) {
+  const lat = Number(
+    alert.lat ?? alert.incidentLat ?? alert.latitude ?? alert.locationLat
+  );
+  const lng = Number(
+    alert.lng ?? alert.incidentLng ?? alert.longitude ?? alert.locationLng
+  );
+
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    return [lat, lng];
+  }
+
+  const text = `${alert.nodeId || ''} ${alert.location_address || ''} ${alert.location_name || ''} ${alert.location || ''}`.toLowerCase();
+
+  if (text.includes('tam') || text.includes('tampines') || text.includes('124')) {
+    return [1.34518428911075, 103.949793325094];
+  }
+
+  if (text.includes('amk') || text.includes('ang mo kio') || text.includes('302')) {
+    return [1.36708983179046, 103.845660199054];
+  }
+
+  if (text.includes('jurong') || text.includes('518')) {
+    return [1.34508681384068, 103.717978485296];
+  }
+
+  if (text.includes('woodlands') || text.includes('789')) {
+    return [1.44337046612204, 103.802406420773];
+  }
+
+  return [1.3521, 103.8198];
+}
+
+function getResponderCoords(incidentCoords) {
+  return [incidentCoords[0] + 0.0012, incidentCoords[1] - 0.0013];
+}
+
+function markEchoSyncAlertCancelled(alertId) {
+  if (typeof window === 'undefined' || !alertId) return;
+
+  try {
+    const key = 'echosync-myresponder-cancelled-ids';
+    const existing = JSON.parse(window.localStorage.getItem(key) || '[]');
+
+    if (!existing.includes(alertId)) {
+      window.localStorage.setItem(key, JSON.stringify([...existing, alertId]));
+    }
+
+    window.dispatchEvent(new Event('echosync-myresponder-cancelled'));
+  } catch {
+    // Demo should still continue even if localStorage is unavailable.
+  }
+}
+
+function makeResponderReason(alert) {
+  const risk = alert.riskLevel || 'High';
+  const confidence = alert.confidence ? `${alert.confidence}% confidence` : 'high confidence';
+  const location =
+    alert.location_address ||
+    alert.location_name ||
+    alert.location ||
+    'the registered HDB unit';
+
+  const rawText = `${alert.eventType || ''} ${alert.title || ''} ${alert.reason || ''} ${alert.aiSummary || ''}`.toLowerCase();
+  const voiceText = JSON.stringify(alert.voiceCheckIn || '').toLowerCase();
+  const sensorText = JSON.stringify(alert.sensorData || '').toLowerCase();
+
+  const points = [];
+
+  if (rawText.includes('fall') || sensorText.includes('fall')) {
+    points.push('Possible fall or medical distress was detected.');
+  }
+
+  if (
+    rawText.includes('no response') ||
+    rawText.includes('no-response') ||
+    voiceText.includes('no response') ||
+    voiceText.includes('no-response') ||
+    voiceText.includes('failed')
+  ) {
+    points.push('The resident did not respond to the automated voice check-in.');
+  }
+
+  if (
+    rawText.includes('motion') ||
+    rawText.includes('movement') ||
+    sensorText.includes('pir') ||
+    sensorText.includes('motion')
+  ) {
+    points.push('Motion readings suggest the resident may be immobile.');
+  }
+
+  if (
+    rawText.includes('sound') ||
+    rawText.includes('impact') ||
+    sensorText.includes('sound') ||
+    sensorText.includes('impact')
+  ) {
+    points.push('Sound or impact sensors may have detected a fall-like event.');
+  }
+
+  if (!points.length) {
+    points.push('SCDF operator requested a quick welfare verification.');
+  }
+
+  return `${risk} EchoSync alert at ${location} (${confidence}). ${points.join(' ')} On arrival, check whether the resident is conscious, breathing, and able to respond. Do not force entry; call 995 if there is danger or no response.`;
+}
+
 
 export default function ActiveResponseScreen({ alert, onCancel, onParamedicsArrived }) {
   const [seconds, setSeconds] = useState(0);
@@ -18,8 +154,19 @@ export default function ActiveResponseScreen({ alert, onCancel, onParamedicsArri
   const secs = seconds % 60;
   const isEchoSync = alert.type === 'echosync_verification';
   const isCardiac = alert.type === 'cardiac_arrest';
+  const incidentCoords = getIncidentCoords(alert);
+  const responderCoords = getResponderCoords(incidentCoords);
+  const readableReason = makeResponderReason(alert);
 
   const handleCancel = async () => {
+    if (isEchoSync) {
+      markEchoSyncAlertCancelled(alert.id);
+      sessionStorage.removeItem('echosync-myresponder-active-alert');
+      toast.info('Response cancelled');
+      onCancel();
+      return;
+    }
+
     await base44.entities.EmergencyAlert.update(alert.id, { status: 'cancelled' });
     toast.info('Response cancelled');
     onCancel();
@@ -110,50 +257,53 @@ export default function ActiveResponseScreen({ alert, onCancel, onParamedicsArri
         <span className="text-white/70 text-sm ml-1">since emergency happened</span>
       </div>
 
-      {/* Map area */}
+      {/* OneMap area */}
       <div className="flex-1 relative bg-[#e8eff8] overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=600&q=60"
-          alt="map"
-          className="absolute inset-0 w-full h-full object-cover opacity-40"
-        />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative">
-            <div className="w-20 h-20 rounded-full bg-blue-200/50 absolute -inset-4 animate-ping" />
-            <div className="w-14 h-14 rounded-full bg-blue-300/40 absolute -inset-1" />
-            <div className="w-12 h-12 rounded-full bg-[#1e3a8a]/20 flex items-center justify-center z-10 relative border-2 border-[#1e3a8a]/40">
-              <span className="text-2xl">{isCardiac ? '💗' : '🔥'}</span>
-            </div>
-          </div>
+        <MapContainer
+          center={incidentCoords}
+          zoom={16}
+          minZoom={11}
+          maxZoom={19}
+          maxBounds={SINGAPORE_BOUNDS}
+          maxBoundsViscosity={1}
+          style={{ height: '100%', width: '100%' }}
+          className="z-0"
+        >
+          <TileLayer
+            attribution={ONEMAP_ATTRIBUTION}
+            detectRetina
+            minZoom={11}
+            maxZoom={19}
+            url="https://www.onemap.gov.sg/maps/tiles/Default/{z}/{x}/{y}.png"
+          />
+
+          <Polyline
+            positions={[responderCoords, incidentCoords]}
+            pathOptions={{
+              color: '#1e3a8a',
+              weight: 4,
+              dashArray: '8, 8',
+              opacity: 0.85,
+            }}
+          />
+
+          <Marker position={responderCoords} icon={responderIcon}>
+            <Popup>You are here</Popup>
+          </Marker>
+
+          <Marker position={incidentCoords} icon={incidentIcon}>
+            <Popup>
+              <div className="text-xs font-semibold">
+                {alert.location_address || alert.location || 'Incident location'}
+              </div>
+            </Popup>
+          </Marker>
+        </MapContainer>
+
+        <div className="absolute top-4 left-4 rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-[#1e3a8a] shadow-md border border-blue-100">
+          YOU → INCIDENT
         </div>
-        <div className="absolute top-6 left-6 flex flex-col items-center gap-1">
-          <div className="bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-md border-2 border-red-500">
-            <span className="text-xs font-black text-red-600">AED</span>
-          </div>
-        </div>
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <svg width="100%" height="100%" viewBox="0 0 300 300" className="absolute">
-            <line x1="60" y1="80" x2="150" y2="150" stroke="#1e3a8a" strokeWidth="2" strokeDasharray="6,4" />
-          </svg>
-        </div>
-        <div className="absolute" style={{ bottom: '35%', left: '28%' }}>
-          <div className="bg-[#1e3a8a] rounded-full w-10 h-10 flex items-center justify-center shadow border-2 border-white text-xl">
-            🧑
-          </div>
-          <span className="text-[9px] font-black text-[#1e3a8a] bg-white px-1 rounded block text-center mt-0.5">YOU</span>
-        </div>
-        {['👨', '👩'].map((emoji, i) => (
-          <div
-            key={i}
-            className="absolute flex flex-col items-center gap-0.5"
-            style={{ bottom: `${30 + i * 20}%`, left: `${12 + i * 15}%` }}
-          >
-            <div className="bg-[#1e3a8a] rounded-full w-9 h-9 flex items-center justify-center shadow border-2 border-white text-lg">
-              {emoji}
-            </div>
-            <span className="text-[9px] font-black text-[#1e3a8a] bg-white px-1 rounded">CFR</span>
-          </div>
-        ))}
+
         <div className="absolute bottom-4 right-4 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md">
           <span className="text-sm">🧭</span>
         </div>
@@ -189,8 +339,8 @@ export default function ActiveResponseScreen({ alert, onCancel, onParamedicsArri
                       {alert.riskLevel || "Medium"} · {alert.confidence || 72}% confidence
                     </p>
                     <p>
-                      <span className="font-bold text-[#1e3a8a]">Reason:</span>{" "}
-                      {alert.reason || "Resident said they are okay after voice check-in"}
+                      <span className="font-bold text-[#1e3a8a]">What to expect:</span>{" "}
+                      {readableReason}
                     </p>
                     <p>
                       <span className="font-bold text-[#1e3a8a]">Task:</span>{" "}
