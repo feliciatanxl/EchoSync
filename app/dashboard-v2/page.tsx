@@ -1732,7 +1732,7 @@ function IncidentDetailStrip({
         </p>
       )}
 
-      {(incident.severity === 'High' || incident.severity === 'Critical') && (
+      {/* {(incident.severity === 'High' || incident.severity === 'Critical') && (
         <div className="rounded-md border border-teal-100 bg-teal-50/70 px-2.5 py-2">
           <p className="text-[9px] font-bold uppercase tracking-wider text-teal-700">
             Operator-led CFR / AED coordination
@@ -1742,7 +1742,7 @@ function IncidentDetailStrip({
             Use CFR/AED coordination only when an operator decides responder support is needed.
           </p>
         </div>
-      )}
+      )} */}
 
       {/* Why alert was raised */}
       {groupedEvidence.length > 0 && (
