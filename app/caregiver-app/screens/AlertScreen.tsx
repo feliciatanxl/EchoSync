@@ -617,11 +617,11 @@ function SectionTitle({ icon, label }: { icon: ReactNode; label: string }) {
 
 function Evidence({ icon, text }: { icon: ReactNode; text: string }) {
   return (
-    <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-3 py-2 text-sm text-slate-700">
-      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-indigo-600">
+    <div className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-2 text-sm text-slate-700">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-indigo-600">
         {icon}
       </span>
-      <span className="min-w-0 flex-1 break-words">{text}</span>
+      <span className="min-w-0 flex-1 break-words leading-snug">{text}</span>
     </div>
   );
 }
