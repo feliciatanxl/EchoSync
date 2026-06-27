@@ -346,7 +346,8 @@ export default function IncidentMap({
 
     const map = L.map(container, {
       center: [1.3521, 103.8198],
-      zoom: 12,
+      // Start from the full Singapore overview instead of a zoomed-in estate view.
+      zoom: 11.5,
       zoomSnap: 0.25,
       zoomDelta: 0.25,
       zoomControl: false,
@@ -458,17 +459,16 @@ export default function IncidentMap({
       lastSelectedIdRef.current = selectedIncident.id;
 
       if (shouldMoveMap) {
+        // Operator clicked a triage queue card or map marker:
+        // zoom down to the actual HDB block-level pin, then open the popup card.
         map.flyTo([selectedIncident.lat, selectedIncident.lng], 17, {
           duration: 0.45,
         });
       }
 
-      const popupTimer = setTimeout(
-        () => {
-          markerRefs.current[selectedIncident.id]?.openPopup();
-        },
-        shouldMoveMap ? 450 : 0
-      );
+      const popupTimer = setTimeout(() => {
+        markerRefs.current[selectedIncident.id]?.openPopup();
+      }, shouldMoveMap ? 450 : 0);
 
       return () => clearTimeout(popupTimer);
     }
@@ -479,7 +479,7 @@ export default function IncidentMap({
     const resetTimer = setTimeout(() => {
       map.invalidateSize();
 
-      map.setView([1.3521, 103.8198], 12, {
+      map.setView([1.3521, 103.8198], 11.5, {
         animate: true,
         duration: 0.45,
       });

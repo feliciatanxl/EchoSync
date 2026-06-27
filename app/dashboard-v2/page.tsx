@@ -2158,7 +2158,7 @@ function FullOpsLogWorkspace({
 export default function DashboardV2() {
   const [incidents, setIncidents] = useState<Incident[]>(initialDashboardIncidents);
   const [broadcastOpsLog, setBroadcastOpsLog] = useState<GlobalOpsLogEntry[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>('INC-2026-089');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'All' | 'Critical' | 'Flagged' | 'Unflagged' | 'Active'>('All');
   const [notifAcknowledged, setNotifAcknowledged] = useState(false);
   const [notifDismissed, setNotifDismissed] = useState(false);
@@ -2237,19 +2237,22 @@ export default function DashboardV2() {
         });
 
         setSelectedId((current) => {
-          if (userClosedSelection.current) return current;
+          // Do not auto-open a map popup when the dashboard first loads
+          // or when new live sensor JSON arrives. Keep the SG overview until
+          // the SCDF operator manually clicks a triage card or map marker.
+          if (!current) return null;
 
           return liveIncidents.some((incident) => incident.id === current)
             ? current
-            : liveIncidents[0].id;
+            : null;
         });
       } else if (active && liveDataActive.current) {
           liveDataActive.current = false;
           setIncidents(initialDashboardIncidents);
 
-          if (!userClosedSelection.current) {
-            setSelectedId('INC-2026-089');
-          }
+          // Return to full Singapore overview when live data stops.
+          // Do not automatically select the hard-coded demo critical case.
+          setSelectedId(null);
         }
       } catch {
         // Existing demo incidents remain visible when the live endpoint is unavailable.
