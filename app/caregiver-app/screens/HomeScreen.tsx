@@ -181,10 +181,10 @@ export function HomeScreen({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 border-t border-slate-100 pt-4">
-          <Phone className="h-4 w-4 shrink-0 text-red-500" />
-          <p className="text-xs leading-relaxed text-slate-500">
-            For immediate life-threatening emergencies, call <span className="font-bold text-red-600">995</span>.
+        <div className="flex items-start gap-3 rounded-2xl bg-red-50 p-3">
+          <Phone className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+          <p className="text-xs leading-relaxed text-red-800">
+            For immediate life-threatening emergencies, call <span className="font-bold text-red-900">995</span>.
           </p>
         </div>
       </ScreenScroll>
