@@ -85,7 +85,7 @@ export default function CaregiverApp() {
     "caregiver"
   );
 
-  const [risk, setRisk] = useState<"medium" | "high">("medium");
+  const [risk, setRisk] = useState<"medium" | "low">("medium");
   const [nodeOnline, setNodeOnline] = useState(true);
   const [pauseDuration, setPauseDuration] = useState("30");
   const [pauseReason, setPauseReason] = useState("family");

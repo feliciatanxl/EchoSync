@@ -58,7 +58,7 @@ type ExtendedCaregiverLiveAlert = CaregiverLiveAlert & {
   receivedAt?: string;
 };
 
-function normaliseRisk(value?: string, fallback?: "medium" | "high") {
+function normaliseRisk(value?: string, fallback?: "medium" | "low") {
   const risk = String(value || fallback || "medium").toLowerCase();
 
   if (risk === "critical") return "critical";
@@ -267,8 +267,8 @@ export function AlertScreen({
   liveAlert,
 }: {
   go: (s: ScreenId) => void;
-  risk: "medium" | "high";
-  setRisk: (r: "medium" | "high") => void;
+  risk: "medium" | "low";
+  setRisk: (r: "medium" | "low") => void;
   role: Role;
   liveAlert: CaregiverLiveAlert | null;
 }) {
@@ -548,8 +548,8 @@ function AlertSourceBar({
   alertAgeText: string;
   alertTimeText: string;
   receivedTimeText: string | null;
-  risk: "medium" | "high";
-  setRisk: (r: "medium" | "high") => void;
+  risk: "medium" | "low";
+  setRisk: (r: "medium" | "low") => void;
 }) {
   if (liveAlert) {
     return (
@@ -574,16 +574,16 @@ function AlertSourceBar({
       <div className="mb-2 text-[11px] text-slate-500">Demo controls for prototype walkthrough only</div>
       <div className="flex items-center gap-2">
         <span className="text-xs text-slate-500">Risk:</span>
-        {(["medium", "high"] as const).map((level) => (
+        {(["medium", "low"] as const).map((level) => (
           <button
             key={level}
             onClick={() => setRisk(level)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium ${
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
               risk === level
-                ? level === "high"
-                  ? "border-red-600 bg-red-600 text-white"
+                ? level === "low"
+                  ? "border-emerald-500 bg-emerald-500 text-white"
                   : "border-amber-500 bg-amber-500 text-white"
-                : "border-slate-200 bg-white text-slate-600"
+                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
             }`}
           >
             {riskLabel(level)}

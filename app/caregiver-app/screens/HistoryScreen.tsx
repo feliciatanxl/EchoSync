@@ -251,13 +251,13 @@ export function HistoryScreen() {
     },
     {
       time: "10:26 AM",
-      title: "Sent for emergency operator review",
-      tone: "red",
-      confidence: "91%",
-      evidence: "Impact + no response",
-      action: "Auto-escalate",
-      outcome: "Emergency operator engaged",
-      cats: ["Escalated"],
+      title: "Low-risk proximity check",
+      tone: "green",
+      confidence: "46%",
+      evidence: "Ultrasonic proximity only; no fall pattern",
+      action: "Caregiver review optional",
+      outcome: "Logged for monitoring",
+      cats: ["Verified okay"],
     },
   ];
 
