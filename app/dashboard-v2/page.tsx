@@ -1747,20 +1747,20 @@ function IncidentDetailStrip({
       {/* Why alert was raised */}
       {groupedEvidence.length > 0 && (
         <div id="incident-why-raised" className="mt-1 scroll-mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
-          <div className="mb-3 grid grid-cols-1 gap-2 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+          <div className="mb-3 grid grid-cols-1 gap-2 xl:grid-cols-[auto_minmax(0,1fr)] xl:items-center">
             <p className="flex items-center gap-1.5 text-[8px] font-bold uppercase tracking-wider text-slate-700">
               <AlertTriangle className="h-3.5 w-3.5 text-slate-700" />
               Why this alert was raised
             </p>
 
-            <div className="grid grid-cols-3 gap-1.5 justify-self-start xl:justify-self-end">
+            <div className="flex flex-wrap items-center justify-start gap-1.5 xl:justify-end">
               {simulationControls.map((control) => (
                 <button
                   key={control.id}
                   type="button"
                   onClick={() => onRunSimulation(control.id)}
                   disabled={simulationLoading === control.id}
-                  className="h-6 w-[112px] whitespace-nowrap rounded-md border border-slate-200 bg-white px-1.5 text-[8px] font-semibold leading-none text-slate-600 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+                  className="h-6 min-w-[104px] whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 text-[8px] font-semibold leading-none text-slate-600 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
                 >
                   {simulationLoading === control.id ? 'Loading...' : control.label}
                 </button>
