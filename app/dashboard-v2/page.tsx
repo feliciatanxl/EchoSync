@@ -67,7 +67,6 @@ const broadcastRecipients = [
 
 const simulationControls: { id: EchoSyncScenarioId; label: string }[] = [
   { id: 'critical-no-response', label: 'Critical No Response' },
-  { id: 'false-alarm-filtered', label: 'False Alarm Filtered' },
   { id: 'needs-dispatcher-review', label: 'Needs Review' },
 ];
 
@@ -766,6 +765,13 @@ function getDetectorFindings(alert: EchoSyncSimulationResult, scenario: EchoSync
       };
   }
 }
+
+
+function isScdfDashboardCase(incident: Incident) {
+  return incident.severity === 'High' || incident.severity === 'Critical';
+}
+
+const initialDashboardIncidents = initialIncidents.filter(isScdfDashboardCase);
 
 // ─────────────────────────────────────────────────────────
 // Top Navigation Bar (48px)
@@ -2145,7 +2151,7 @@ function FullOpsLogWorkspace({
 // ─────────────────────────────────────────────────────────
 
 export default function DashboardV2() {
-  const [incidents, setIncidents] = useState<Incident[]>(initialIncidents);
+  const [incidents, setIncidents] = useState<Incident[]>(initialDashboardIncidents);
   const [broadcastOpsLog, setBroadcastOpsLog] = useState<GlobalOpsLogEntry[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>('INC-2026-089');
   const [filter, setFilter] = useState<'All' | 'Critical' | 'Flagged' | 'Unflagged' | 'Active'>('All');
@@ -2205,7 +2211,8 @@ export default function DashboardV2() {
         const liveIncidents = liveEvents
           .filter((event) => !isMyResponderCompletion(event))
           .map(liveEventToIncident)
-          .filter((incident): incident is Incident => incident !== null);
+          .filter((incident): incident is Incident => incident !== null)
+          .filter(isScdfDashboardCase);
 
         if (active && liveIncidents.length) {
         liveDataActive.current = true;
@@ -2233,7 +2240,7 @@ export default function DashboardV2() {
         });
       } else if (active && liveDataActive.current) {
           liveDataActive.current = false;
-          setIncidents(initialIncidents);
+          setIncidents(initialDashboardIncidents);
 
           if (!userClosedSelection.current) {
             setSelectedId('INC-2026-089');
@@ -2252,7 +2259,12 @@ export default function DashboardV2() {
   }, []);
 
 
-  const filteredIncidents = incidents.filter(inc => {
+  const dashboardIncidents = useMemo(
+    () => incidents.filter(isScdfDashboardCase),
+    [incidents]
+  );
+
+  const filteredIncidents = dashboardIncidents.filter(inc => {
     if (filter === 'All') return true;
     if (filter === 'Critical') return inc.severity === 'Critical';
     if (filter === 'Flagged') return inc.flagged;
@@ -2261,7 +2273,7 @@ export default function DashboardV2() {
     return true;
   });
 
-  const selectedIncident = incidents.find(i => i.id === selectedId) || null;
+  const selectedIncident = dashboardIncidents.find(i => i.id === selectedId) || null;
 
   const handleSelectIncident = useCallback((id: string | null) => {
     if (id === null) {
@@ -2273,9 +2285,9 @@ export default function DashboardV2() {
     userClosedSelection.current = false;
     setSelectedId(id);
   }, []);
-  const notifIncident = incidents.find(i => i.severity === 'Critical') || incidents[0];
+  const notifIncident = dashboardIncidents.find(i => i.severity === 'Critical') || dashboardIncidents[0];
   const allOpsLogEntries = useMemo<GlobalOpsLogEntry[]>(() => {
-    const incidentOpsLog = incidents.flatMap((inc) =>
+    const incidentOpsLog = dashboardIncidents.flatMap((inc) =>
       inc.opsLog.map((entry) => ({
         ...entry,
         incidentId: inc.id,
@@ -2297,7 +2309,7 @@ export default function DashboardV2() {
     return [...broadcastOpsLog, ...incidentOpsLog].sort(
       (a, b) => getTimeValue(b.time) - getTimeValue(a.time)
     );
-  }, [broadcastOpsLog, incidents]);
+  }, [broadcastOpsLog, dashboardIncidents]);
 
   const handleToggleFlag = useCallback((id: string) => {
     setIncidents(prev => prev.map(inc =>
@@ -2447,6 +2459,13 @@ export default function DashboardV2() {
 
       const alert = await response.json() as EchoSyncSimulationResult;
       const severity = riskToSeverity(alert.riskLevel);
+
+      // SCDF dashboard only shows High and Critical alerts.
+      // Low and Medium alerts are handled by the caregiver flow instead.
+      if (severity !== 'High' && severity !== 'Critical') {
+        return;
+      }
+
       const resolvedLocation = resolveIncidentLocation(alert.caseId) || resolveIncidentLocation(alert.location);
       const now = currentDashboardTime();
       const evidenceChips = getEvidenceChips(scenario, alert.immobileTime);
@@ -2592,7 +2611,7 @@ export default function DashboardV2() {
           </div>
           {/* Filter tabs */}
           <div className="px-1.5 py-2 border-b border-slate-100 flex items-center gap-0.5 overflow-hidden flex-shrink-0 flex-nowrap justify-start">            {(['All', 'Critical', 'Flagged', 'Unflagged'] as const).map(f => {
-              const count = incidents.filter(inc => {
+              const count = dashboardIncidents.filter(inc => {
                 if (f === 'All') return true;
                 if (f === 'Critical') return inc.severity === 'Critical';
                 if (f === 'Flagged') return inc.flagged;
@@ -2636,13 +2655,13 @@ export default function DashboardV2() {
             {isOpsLogOpen ? (
               <FullOpsLogWorkspace
                 opsLog={allOpsLogEntries}
-                selectedIncident={selectedIncident ?? incidents[0] ?? initialIncidents[0]}
+                selectedIncident={selectedIncident ?? dashboardIncidents[0] ?? initialDashboardIncidents[0]}
                 onClose={() => setIsOpsLogOpen(false)}
                 onAddEntry={handleAddOpsLogEntry}
               />
             ) : (
               <IncidentMap
-                incidents={incidents}
+                incidents={dashboardIncidents}
                 selectedId={selectedId}
                 onSelectIncident={handleSelectIncident}
               />
