@@ -618,8 +618,21 @@ function liveEventToIncident(event: SensorApiEvent, index: number): Incident | n
   if (!severity) return null;
   if (severity !== 'High' && severity !== 'Critical' && !isCaregiverDashboardCase) return null;
 
-  const resolvedLocation = (event.nodeId ? resolveIncidentLocation(event.nodeId) : null)
-    || (event.location ? resolveIncidentLocation(event.location) : null);
+  const demoLiveNodeIds = [
+  'NODE-HDB-302-08-112',
+  'NODE-TAM-124-04-12',
+  'NODE-JW-518-03-44',
+  'NODE-BED-411-08-15',
+  'NODE-WDL-789-06-22',
+];
+
+  const demoNodeId = demoLiveNodeIds[index % demoLiveNodeIds.length];
+
+  const resolvedLocation =
+    event.nodeId === 'NODE-HDB-302-08-112'
+      ? resolveIncidentLocation(demoNodeId)
+      : (event.nodeId ? resolveIncidentLocation(event.nodeId) : null)
+        || (event.location ? resolveIncidentLocation(event.location) : null);
   const sensorEvidence = describeUnknown(event.sensorData);
   const caregiverEvidence = caregiverContextToEvidence(event);
   const evidence = [...caregiverEvidence, ...sensorEvidence];
