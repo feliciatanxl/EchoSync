@@ -42,6 +42,9 @@ type SensorData = {
   loadDetected?: number;
   possibleFall?: number;
   alert?: number;
+  directHelpRequest?: number;
+  loadSuddenChange?: number;
+  lowRiskDemoAlert?: number;
 };
 
 type VoiceCheckIn = {
@@ -194,26 +197,74 @@ function getEvidenceItems(liveAlert: CaregiverLiveAlert | null) {
 
   const items: string[] = [];
 
-  if (sensor && typeof sensor === "object") {
-    Object.entries(sensor).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        items.push(`${key}: ${String(value)}`);
-      }
-    });
+  const directHelpRequest = Number(sensor?.directHelpRequest || 0);
+  const possibleFall = Number(sensor?.possibleFall || 0);
+  const soundLevel = Number(sensor?.soundLevel || 0);
+  const distanceCm = Number(sensor?.distanceCm || 0);
+  const loadSuddenChange = Number(sensor?.loadSuddenChange || 0);
+  const nearDetected = Number(sensor?.nearDetected || 0);
+  const loadDetected = Number(sensor?.loadDetected || 0);
+  const pirMotion = Number(sensor?.pirMotion || 0);
+
+  if (!sensor && !voice) {
+    return [
+      "Impact or unusual activity was detected.",
+      "Resident response is pending.",
+      "Caregiver verification is recommended.",
+      "Device is online.",
+    ];
+  }
+
+  if (directHelpRequest === 1) {
+    items.push("Resident asked for help earlier.");
   }
 
   if (voice?.intent === "ok") {
-    items.push("Resident responded okay");
+    items.push("Resident confirmed they are okay after EchoSync check-in.");
   } else if (voice?.intent === "help") {
-    items.push("Resident requested help");
+    items.push("Resident repeated that they need help.");
   } else if (voice?.intent === "unclear") {
-    items.push("Unclear voice response");
+    items.push("Resident response was unclear and needs follow-up.");
   } else if (voice?.intent === "no_response") {
-    items.push("No response to voice check-in");
+    items.push("Resident did not respond to the voice check-in.");
+  } else if (voice?.intent === "not_required") {
+    items.push("No voice check-in needed for this low-risk event.");
+  }
+
+  if (pirMotion === 1) {
+    items.push("PIR motion sensor detected movement in the room.");
+  } else {
+    items.push("No PIR movement detected.");
+  }
+
+  if (possibleFall === 1) {
+    items.push("Possible fall pattern detected by sensors.");
+  } else {
+    items.push("No fall pattern detected by the sensors.");
+  }
+
+  if (loadSuddenChange === 1) {
+    items.push("Sudden pressure change detected on the load sensor.");
+  } else {
+    items.push("No sudden pressure change detected.");
+  }
+
+  if (nearDetected === 1) {
+    items.push(`Nearby movement/object detected at about ${distanceCm || "unknown"} cm.`);
+  } else if (distanceCm > 0) {
+    items.push(`Distance sensor stable at about ${distanceCm} cm.`);
+  }
+
+  if (loadDetected === 1) {
+    items.push("Pressure sensor detected presence, but no emergency pattern.");
+  }
+
+  if (soundLevel > 0) {
+    items.push(`Sound level: ${soundLevel}.`);
   }
 
   if (voice?.transcript) {
-    items.push(`Transcript: ${voice.transcript}`);
+    items.push(`Resident said: “${voice.transcript}”`);
   }
 
   return items;
@@ -440,9 +491,9 @@ export function AlertScreen({
 
         <Card className="border-slate-100 bg-white">
           <CardContent className="p-4">
-            <SectionTitle icon={<AlertTriangle className="h-4 w-4" />} label="Key evidence" />
-            <div className="mt-3 grid gap-2">
-              {evidenceItems.slice(0, 5).map((item) => (
+            <SectionTitle icon={<AlertTriangle className="h-4 w-4" />} label="What EchoSync detected" />
+            <div className="mt-3 space-y-2">
+              {evidenceItems.slice(0, 6).map((item) => (
                 <Evidence key={item} icon={getEvidenceIcon(item)} text={item} />
               ))}
             </div>
@@ -640,11 +691,13 @@ function SectionTitle({ icon, label }: { icon: ReactNode; label: string }) {
 
 function Evidence({ icon, text }: { icon: ReactNode; text: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-2 text-sm text-slate-700">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-indigo-600">
+    <div className="grid min-h-[48px] grid-cols-[32px_minmax(0,1fr)] items-center gap-3 rounded-2xl bg-slate-50 px-3 py-2.5 text-sm text-slate-700">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-indigo-600 [&_svg]:h-4 [&_svg]:w-4">
         {icon}
       </span>
-      <span className="min-w-0 flex-1 break-words leading-snug">{text}</span>
+      <span className="block min-w-0 text-left leading-snug">
+        {text}
+      </span>
     </div>
   );
 }

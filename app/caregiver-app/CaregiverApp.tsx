@@ -71,6 +71,33 @@ export type CaregiverLiveAlert = {
   receivedAt?: string;
 };
 
+const DEMO_CAREGIVER_ALERT: CaregiverLiveAlert = {
+  nodeId: "NODE-HDB-302-08-112",
+  resident: "Mdm Tan Siew Lan",
+  location: "Blk 302 Ang Mo Kio Ave 3, #08-112",
+  eventType: "Resident Verified After Help",
+  riskLevel: "Medium",
+  confidence: 72,
+  reason: "Resident initially called help but confirmed they are okay after EchoSync check-in",
+  sensorData: {
+    directHelpRequest: 1,
+    possibleFall: 0,
+    soundLevel: 5,
+    distanceCm: 76,
+    loadSuddenChange: 0,
+  },
+  voiceCheckIn: {
+    preferredLanguage: "en",
+    responded: true,
+    voiceLevel: 145,
+    transcript: "I am okay",
+    intent: "ok",
+  },
+  aiSummary:
+    "**Alert Summary**\nA senior living alone in a Singapore HDB flat triggered a caregiver verification alert. The resident confirmed they are okay after EchoSync check-in.\n\n**Recommendation**\nCaregiver verification is recommended to ensure the resident's well-being.",
+  source: "Demo caregiver mock alert",
+};
+
 export default function CaregiverApp() {
   const [screen, setScreen] = useState<ScreenId>("welcome");
   const [tab, setTab] = useState<Tab>("home");
@@ -98,6 +125,8 @@ export default function CaregiverApp() {
   const [sensorMonitoringEnabled, setSensorMonitoringEnabled] = useState(true);
   const [language, setLanguage] = useState<"en" | "zh" | "ms" | "ta">("en");
   const [liveAlert, setLiveAlert] = useState<CaregiverLiveAlert | null>(null);
+  const [showDemoAlert, setShowDemoAlert] = useState(false);
+  const displayedAlert = showDemoAlert ? DEMO_CAREGIVER_ALERT : liveAlert;
 
   const updateLanguage = (nextLanguage: "en" | "zh" | "ms" | "ta") => {
     setLanguage(nextLanguage);
@@ -276,26 +305,28 @@ export default function CaregiverApp() {
 
       {screen === "home" && (
         <HomeScreen
-          go={go}
-          role={role}
-          pause={pause}
-          clearPause={() => {
-            void updatePause(false);
-          }}
-          contactsSaved={contactsSaved}
-          clearContactsSaved={() => setContactsSaved(false)}
-          liveAlert={liveAlert}
-        />
+            go={go}
+            role={role}
+            pause={pause}
+            clearPause={() => {
+              void updatePause(false);
+            }}
+            contactsSaved={contactsSaved}
+            clearContactsSaved={() => setContactsSaved(false)}
+            liveAlert={displayedAlert}
+            showDemoAlert={showDemoAlert}
+            toggleDemoAlert={() => setShowDemoAlert((value) => !value)}
+          />
       )}
 
       {screen === "alert" && (
         <AlertScreen
-          go={go}
-          risk={risk}
-          setRisk={setRisk}
-          role={role}
-          liveAlert={liveAlert}
-        />
+            go={go}
+            risk={risk}
+            setRisk={setRisk}
+            role={role}
+            liveAlert={displayedAlert}
+          />
       )}
 
       {screen === "verify" && <VerifyScreen go={go} />}

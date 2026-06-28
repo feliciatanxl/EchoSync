@@ -1,5 +1,5 @@
 import {
-  useState,
+  // useState,
   Shield,
   ShieldCheck,
   CheckCircle2,
@@ -28,22 +28,21 @@ export function HomeScreen({
   contactsSaved,
   clearContactsSaved,
   liveAlert,
-}: {
-  go: (s: ScreenId) => void;
-  role: Role;
-  pause: { reasonLabel: string; resumeAt: string } | null;
-  clearPause: () => void;
-  contactsSaved: boolean;
-  clearContactsSaved: () => void;
-  liveAlert: CaregiverLiveAlert | null;
-}) {
+  showDemoAlert,
+  toggleDemoAlert,
+  }: {
+    go: (s: ScreenId) => void;
+    role: Role;
+    pause: { reasonLabel: string; resumeAt: string } | null;
+    clearPause: () => void;
+    contactsSaved: boolean;
+    clearContactsSaved: () => void;
+    liveAlert: CaregiverLiveAlert | null;
+    showDemoAlert: boolean;
+    toggleDemoAlert: () => void;
+  }) {
   const canContacts = can(role, "contacts");
-  const [showAlert, setShowAlert] = useState(false);
-  const visibleAlert = liveAlert || (showAlert ? {
-    eventType: "Possible fall",
-    riskLevel: "Medium",
-    confidence: 78,
-  } : null);
+  const visibleAlert = liveAlert;
   const homeAlertTone = getHomeAlertTone(visibleAlert?.riskLevel);
   const homeAlertClass = getHomeAlertClass(homeAlertTone);
   const lastUpdated = new Date().toLocaleTimeString("en-SG", {
@@ -143,10 +142,10 @@ export function HomeScreen({
             Demo controls for prototype walkthrough only
           </div>
           <button
-            onClick={() => setShowAlert((v) => !v)}
+            onClick={toggleDemoAlert}
             className="whitespace-nowrap rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-medium text-white"
           >
-            {showAlert ? "Hide" : "Show"}
+            {showDemoAlert ? "Hide" : "Show"}
           </button>
         </div>
 
