@@ -57,7 +57,7 @@ export function OutcomeScreen({ go, role }: { go: (s: ScreenId) => void; role: R
           </CardContent>
         </Card>
       </ScreenScroll>
-      <BottomCTA label="Back to dashboard" onClick={() => go("home")} />
+      <BottomCTA label="Back to home" onClick={() => go("home")} />
     </>
   );
 }

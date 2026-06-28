@@ -68,6 +68,7 @@ export function ContextScreen({ go }: { go: (s: ScreenId) => void }) {
             placeholder="e.g. Reached door, no answer. Asking neighbour to check."
           />
         </div>
+        <div className="h-24" />
       </ScreenScroll>
       <BottomCTA label="Send context to operator" onClick={() => go("contextOutcome")} />
     </>

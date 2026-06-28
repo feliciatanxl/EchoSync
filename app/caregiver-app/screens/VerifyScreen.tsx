@@ -62,6 +62,7 @@ export function VerifyScreen({ go }: { go: (s: ScreenId) => void }) {
             </p>
           </CardContent>
         </Card>
+        <div className="h-24" />
       </ScreenScroll>
       <BottomCTA label="Submit verification" onClick={() => go("outcome")} disabled={!all} />
     </>
