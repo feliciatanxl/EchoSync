@@ -58,11 +58,11 @@ export function ContextScreen({
       location: liveAlert?.location || "Blk 302 Ang Mo Kio Ave 3, #08-112",
 
       eventType: "Caregiver Unable to Verify",
-      riskLevel: "High",
-      confidence: Math.max(originalConfidence, 76),
+      riskLevel: "Medium",
+      confidence: originalConfidence,
 
       reason:
-        "Caregiver could not verify the resident after a medium-risk EchoSync alert. SCDF operator review is requested before myResponder coordination.",
+        "Caregiver could not verify the resident after a medium-risk EchoSync alert. SCDF operator review is requested. Operator may consider myResponder coordination if the risk is confirmed.",
 
       sensorData: liveAlert?.sensorData || {
         note: "Original sensor data was not available from caregiver app.",
@@ -84,10 +84,9 @@ export function ContextScreen({
       },
 
       aiSummary:
-        liveAlert?.aiSummary ||
-        "Caregiver could not verify the resident. Operator review is required before deciding whether to activate myResponder or 995.",
+        "Alert Summary: Caregiver could not verify the resident after a medium-risk EchoSync alert. Original sensor evidence has been forwarded together with the caregiver context. Recommendation: SCDF operator should review the caregiver note and sensor readings, then consider pushing to myResponder for CFR/AED coordination if the situation cannot be verified. Do not auto-dispatch 995 unless emergency signs are confirmed.",
 
-      source: "Caregiver App Context Escalation",
+      source: "Caregiver App Context Update",
       timestamp: now,
     };
 

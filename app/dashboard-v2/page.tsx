@@ -91,6 +91,16 @@ interface Incident {
   description: string;
   evidence: string[];
   opsLog: OpsLogEntry[];
+  fromCaregiverContext?: boolean;
+  caregiverContext?: {
+    submittedBy?: string;
+    role?: string;
+    selectedContext?: string[];
+    note?: string;
+    originalRiskLevel?: string;
+    originalConfidence?: number;
+    submittedAt?: string;
+  };
   simulation?: {
     confidence: number;
     immobileTime: string;
@@ -603,7 +613,10 @@ function liveEventToIncident(event: SensorApiEvent, index: number): Incident | n
   if (isMyResponderCompletion(event)) return null;
 
   const severity = normalizeSeverity(event.riskLevel);
-  if (severity !== 'High' && severity !== 'Critical') return null;
+  const isCaregiverDashboardCase = Boolean(event.caregiverContext);
+
+  if (!severity) return null;
+  if (severity !== 'High' && severity !== 'Critical' && !isCaregiverDashboardCase) return null;
 
   const resolvedLocation = (event.nodeId ? resolveIncidentLocation(event.nodeId) : null)
     || (event.location ? resolveIncidentLocation(event.location) : null);
@@ -622,9 +635,11 @@ function liveEventToIncident(event: SensorApiEvent, index: number): Incident | n
   const liveCaseId = makeLiveIncidentId(index, piTime);
   const liveOpsLog = buildLiveOpsLog(event, severity, confidence, voice, piTime);
   const noResponse = /no[- ]?response|unresponsive|failed/i.test(voice);
-  const recommendedAction = noResponse || severity === 'Critical'
-    ? 'Urgent operator review. Operator may push to myResponder for CFR/AED coordination if emergency signs are confirmed or there is no response.'
-    : 'Operator review. Operator may push to myResponder for CFR/AED coordination if risk is confirmed.';
+  const recommendedAction = event.caregiverContext
+    ? 'Caregiver could not verify this medium alert. Review the caregiver context and original sensor readings, then consider pushing to myResponder for CFR/AED coordination if further verification is needed.'
+    : noResponse || severity === 'Critical'
+      ? 'Urgent operator review. Operator may push to myResponder for CFR/AED coordination if emergency signs are confirmed or there is no response.'
+      : 'Operator review. Operator may push to myResponder for CFR/AED coordination if risk is confirmed.';
 
   return {
     id: liveCaseId,
@@ -642,17 +657,19 @@ function liveEventToIncident(event: SensorApiEvent, index: number): Incident | n
     severity,
     flagged: false,
     status: 'Active',
-    assignedUnit: assignedUnitFromRisk(severity),
+    assignedUnit: event.caregiverContext ? 'Operator review' : assignedUnitFromRisk(severity),
     lastUpdated: piTime.toLocaleTimeString('en-SG', {
       hour: '2-digit',
       minute: '2-digit',
     }),
     description: event.caregiverContext
-      ? `Caregiver could not verify the resident. Operator review is requested. ${cleanAiText(event.aiSummary)}`
+      ? `Caregiver could not verify the resident. Review caregiver context and original sensor evidence before deciding whether to push to myResponder.`
       : cleanAiText(event.aiSummary) || `${event.eventType || 'Anomaly'} detected for ${event.resident || 'registered resident'}.`,
     evidence: evidence.length ? evidence : ['Sensor trigger received', `AI calculated score: ${confidence}%`],
     opsLog: liveOpsLog,
     nodeId: event.nodeId,
+    fromCaregiverContext: isCaregiverDashboardCase,
+    caregiverContext: event.caregiverContext,
     simulation: {
       confidence,
       immobileTime: 'Not provided',
@@ -662,7 +679,13 @@ function liveEventToIncident(event: SensorApiEvent, index: number): Incident | n
       recommendedAction,
       reasoning: evidence,
       aiReasoningLine: [...evidence, `AI calculated score ${confidence}%`].join(' + '),
-      aiSummary: event.aiSummary ? { summary: cleanAiText(event.aiSummary), source: 'NIM' } : undefined,
+      aiSummary: event.caregiverContext
+        ? {
+            summary:
+              `Alert Summary: Caregiver could not verify the resident after a medium-risk EchoSync alert. Context selected: ${event.caregiverContext.selectedContext?.join(', ') || 'Unable to verify'}. ${event.caregiverContext.note ? `Caregiver note: ${event.caregiverContext.note}. ` : ''}Original sensor evidence is shown below for operator review. Recommendation: Review the caregiver context and sensor readings. Consider pushing this case to myResponder for CFR/AED coordination if the resident cannot be verified. Do not auto-dispatch 995 unless emergency signs are confirmed.`,
+            source: 'NIM',
+          }
+        : event.aiSummary ? { summary: cleanAiText(event.aiSummary), source: 'NIM' } : undefined,
       detectorEvidence: {
         thermal: evidence.join('; ') || 'Trigger details not provided',
         acoustic: 'See trigger evidence',
@@ -811,7 +834,7 @@ function getDetectorFindings(alert: EchoSyncSimulationResult, scenario: EchoSync
 
 
 function isScdfDashboardCase(incident: Incident) {
-  return incident.severity === 'High' || incident.severity === 'Critical';
+  return incident.severity === 'High' || incident.severity === 'Critical' || Boolean(incident.fromCaregiverContext);
 }
 
 const initialDashboardIncidents = initialIncidents.filter(isScdfDashboardCase);
@@ -1748,12 +1771,12 @@ function IncidentDetailStrip({
           disabled={
             myResponderSending ||
             myResponderAlreadySent ||
-            (incident.severity !== 'High' && incident.severity !== 'Critical')
+            (incident.severity !== 'High' && incident.severity !== 'Critical' && !incident.fromCaregiverContext)
           }
           className={`flex h-7 w-[150px] min-w-0 items-center justify-center gap-1 rounded-md border px-2 text-[9.5px] font-bold shadow-sm transition-colors ${
             myResponderAlreadySent
               ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
-              : incident.severity === 'High' || incident.severity === 'Critical'
+              : incident.severity === 'High' || incident.severity === 'Critical' || incident.fromCaregiverContext
                 ? 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'
                 : 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300'
           } disabled:cursor-not-allowed disabled:opacity-80`}
@@ -1778,6 +1801,53 @@ function IncidentDetailStrip({
         <p className="text-[10px] font-semibold text-teal-700">
           {myResponderStatus}
         </p>
+      )}
+
+      {incident.caregiverContext && (
+        <div className="rounded-xl border border-violet-100 bg-violet-50/70 px-3 py-2.5">
+          <p className="mb-2 flex items-center gap-1.5 text-[8px] font-bold uppercase tracking-wider text-violet-700">
+            <MessageSquare className="h-3.5 w-3.5" />
+            Caregiver context
+          </p>
+
+          <div className="grid gap-2 md:grid-cols-2">
+            <div className="rounded-lg border border-violet-100 bg-white px-2.5 py-2">
+              <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                Selected by caregiver
+              </p>
+              <p className="mt-1 text-[10.5px] font-semibold leading-snug text-slate-800">
+                {incident.caregiverContext.selectedContext?.join(', ') || 'Unable to verify'}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-violet-100 bg-white px-2.5 py-2">
+              <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                Caregiver note
+              </p>
+              <p className="mt-1 text-[10.5px] font-semibold leading-snug text-slate-800">
+                {incident.caregiverContext.note || 'No note provided'}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-violet-100 bg-white px-2.5 py-2">
+              <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                Submitted by
+              </p>
+              <p className="mt-1 text-[10.5px] font-semibold leading-snug text-slate-800">
+                {incident.caregiverContext.submittedBy || 'Caregiver'} · {incident.caregiverContext.role || 'Role not provided'}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-violet-100 bg-white px-2.5 py-2">
+              <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                Original caregiver alert
+              </p>
+              <p className="mt-1 text-[10.5px] font-semibold leading-snug text-slate-800">
+                {incident.caregiverContext.originalRiskLevel || 'Medium'} · {incident.caregiverContext.originalConfidence || incident.simulation?.confidence || 'not provided'}% confidence
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* {(incident.severity === 'High' || incident.severity === 'Critical') && (
@@ -2413,10 +2483,10 @@ export default function DashboardV2() {
   }, []);
 
     const handleSendToMyResponder = useCallback(async (incident: Incident) => {
-    if (incident.severity !== 'High' && incident.severity !== 'Critical') {
+    if (incident.severity !== 'High' && incident.severity !== 'Critical' && !incident.fromCaregiverContext) {
       setMyResponderStatusByIncidentId((prev) => ({
         ...prev,
-        [incident.id]: 'Only High/Critical alerts can be sent to myResponder.',
+        [incident.id]: 'Only High/Critical alerts or caregiver-unverified Medium cases can be sent to myResponder.',
       }));
       return;
     }
@@ -2463,7 +2533,7 @@ export default function DashboardV2() {
         aiSummary:
           incident.simulation?.aiSummary?.summary ||
           incident.description ||
-          'High/Critical alert pushed from SCDF dashboard to myResponder.',
+          'SCDF dashboard pushed this caregiver-unverified case to myResponder for CFR/AED coordination.',
         source: 'SCDF Dashboard',
         timestamp: new Date().toISOString(),
         dashboardPushedAt: new Date().toISOString(),
@@ -2503,7 +2573,7 @@ export default function DashboardV2() {
           incidentId: incident.id,
           incidentType: incident.type,
           location: incident.location,
-          priority: incident.severity === 'Critical' ? 'Critical' : 'High',
+          priority: incident.severity === 'Critical' ? 'Critical' : incident.severity === 'High' ? 'High' : 'Normal',
         },
         ...prev,
       ]);
