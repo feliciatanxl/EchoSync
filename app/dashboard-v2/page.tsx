@@ -2518,22 +2518,28 @@ export default function DashboardV2() {
         riskLevel: incident.severity,
         confidence:
           incident.simulation?.confidence ??
-          (incident.severity === 'Critical' ? 95 : 86),
+          (incident.severity === 'Critical' ? 95 : incident.severity === 'High' ? 86 : 76),
         reason:
-          incident.simulation?.aiReasoningLine ||
-          incident.description ||
-          'SCDF dashboard pushed alert for myResponder CFR/AED coordination.',
+          incident.fromCaregiverContext
+            ? 'Caregiver could not verify a medium-risk EchoSync alert. SCDF operator is pushing this case to myResponder for CFR/AED verification support.'
+            : incident.simulation?.aiReasoningLine ||
+              incident.description ||
+              'SCDF dashboard pushed alert for myResponder CFR/AED coordination.',
         sensorData: {
           evidence: incident.evidence,
           detectorEvidence: incident.simulation?.detectorEvidence,
+          caregiverContext: incident.caregiverContext,
         },
         voiceCheckIn: {
           result: incident.simulation?.voiceResult || 'Not recorded',
         },
+        caregiverContext: incident.caregiverContext,
         aiSummary:
-          incident.simulation?.aiSummary?.summary ||
-          incident.description ||
-          'SCDF dashboard pushed this caregiver-unverified case to myResponder for CFR/AED coordination.',
+          incident.fromCaregiverContext
+            ? 'Medium-risk caregiver-unverified case. myResponder operator should verify resident safety and escalate only if the resident cannot be reached or emergency signs are confirmed.'
+            : incident.simulation?.aiSummary?.summary ||
+              incident.description ||
+              'SCDF dashboard pushed this case to myResponder for CFR/AED coordination.',
         source: 'SCDF Dashboard',
         timestamp: new Date().toISOString(),
         dashboardPushedAt: new Date().toISOString(),
@@ -2568,7 +2574,9 @@ export default function DashboardV2() {
         {
           time: currentDashboardTime(),
           title: 'myResponder Coordination Suggested',
-          description: `${incident.severity} alert pushed from SCDF dashboard to myResponder for CFR/AED coordination.`,
+          description: incident.fromCaregiverContext
+            ? 'Medium caregiver-unverified alert pushed from SCDF dashboard to myResponder for CFR/AED verification support.'
+            : `${incident.severity} alert pushed from SCDF dashboard to myResponder for CFR/AED coordination.`,
           source: 'SCDF Dashboard',
           incidentId: incident.id,
           incidentType: incident.type,

@@ -16,6 +16,15 @@ type MyResponderAlert = {
   timestamp?: string;
   receivedAt?: string;
   dashboardPushedAt?: string;
+  caregiverContext?: {
+    submittedBy?: string;
+    role?: string;
+    selectedContext?: string[];
+    note?: string;
+    originalRiskLevel?: string;
+    originalConfidence?: number;
+    submittedAt?: string;
+  };
 };
 
 const globalStore = globalThis as typeof globalThis & {
@@ -39,16 +48,31 @@ export async function POST(request: Request) {
     const body = await request.json();
     const riskLevel = String(body.riskLevel || "").toLowerCase();
 
-    // Latest EchoSync flow:
-    // Low / Medium stay in caregiver app.
-    // myResponder only receives High / Critical when SCDF dashboard/operator pushes it.
-    if (riskLevel !== "high" && riskLevel !== "critical") {
+    const source = String(body.source || "").toLowerCase();
+    const eventType = String(body.eventType || "").toLowerCase();
+    const hasCaregiverContext = Boolean(body.caregiverContext);
+
+    // EchoSync flow:
+    // - High / Critical alerts can be pushed by SCDF dashboard.
+    // - Medium alerts are accepted only when SCDF dashboard pushes a caregiver-unverified case.
+    // - Low/normal caregiver-only alerts are still ignored.
+    const isHighOrCritical = riskLevel === "high" || riskLevel === "critical";
+    const isCaregiverUnverifiedMedium =
+      riskLevel === "medium" &&
+      source.includes("scdf dashboard") &&
+      (
+        hasCaregiverContext ||
+        eventType.includes("caregiver unable") ||
+        eventType.includes("unable to verify")
+      );
+
+    if (!isHighOrCritical && !isCaregiverUnverifiedMedium) {
       return NextResponse.json(
         {
           ok: true,
           ignored: true,
           message:
-            "Only High/Critical alerts pushed by SCDF dashboard are accepted by myResponder.",
+            "Only High/Critical alerts or SCDF-pushed caregiver-unverified Medium cases are accepted by myResponder.",
         },
         { status: 202 }
       );
@@ -77,7 +101,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      message: "High/Critical alert received by myResponder",
+      message: "Alert received by myResponder",
       latest: alert,
       alerts: globalStore.__echosyncMyResponderAlerts,
     });
