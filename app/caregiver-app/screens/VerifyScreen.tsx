@@ -9,7 +9,7 @@ import {
   type ScreenId,
   TopBar,
   ScreenScroll,
-  BottomCTA
+  BottomCTAAboveNav,
 } from "../shared";
 
 export function VerifyScreen({ go }: { go: (s: ScreenId) => void }) {
@@ -64,7 +64,7 @@ export function VerifyScreen({ go }: { go: (s: ScreenId) => void }) {
         </Card>
         <div className="h-24" />
       </ScreenScroll>
-      <BottomCTA label="Submit verification" onClick={() => go("outcome")} disabled={!all} />
+      <BottomCTAAboveNav label="Submit verification" onClick={() => go("outcome")} disabled={!all} />
     </>
   );
 }

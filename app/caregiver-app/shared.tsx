@@ -792,6 +792,31 @@ export function BottomCTA({
   const icon = getCtaIcon(label);
 
   return (
+    <div className="fixed bottom-0 left-1/2 z-[9999] w-full max-w-[430px] -translate-x-1/2 border-t border-slate-200 bg-white px-4 py-3">
+      <Button
+        className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white"
+        onClick={onClick}
+        disabled={disabled}
+      >
+        {icon}
+        {label}
+      </Button>
+    </div>
+  );
+}
+
+export function BottomCTAAboveNav({
+  label,
+  onClick,
+  disabled,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  const icon = getCtaIcon(label);
+
+  return (
     <div className="fixed bottom-[72px] left-1/2 z-[9999] w-full max-w-[430px] -translate-x-1/2 border-t border-slate-200 bg-white px-4 py-3">
       <Button
         className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white"

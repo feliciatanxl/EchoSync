@@ -9,7 +9,7 @@ import {
   type ScreenId,
   TopBar,
   ScreenScroll,
-  BottomCTA
+  BottomCTAAboveNav
 } from "../shared";
 
 export function ContextScreen({ go }: { go: (s: ScreenId) => void }) {
@@ -70,7 +70,7 @@ export function ContextScreen({ go }: { go: (s: ScreenId) => void }) {
         </div>
         <div className="h-24" />
       </ScreenScroll>
-      <BottomCTA label="Send context to operator" onClick={() => go("contextOutcome")} />
+      <BottomCTAAboveNav label="Send context to operator" onClick={() => go("contextOutcome")} />
     </>
   );
 }
