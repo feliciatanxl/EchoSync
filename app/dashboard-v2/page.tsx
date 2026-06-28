@@ -130,6 +130,15 @@ type SensorApiEvent = {
   reason?: string;
   source?: string;
   dashboardPushedAt?: string;
+  caregiverContext?: {
+  submittedBy?: string;
+  role?: string;
+  selectedContext?: string[];
+  note?: string;
+  originalRiskLevel?: string;
+  originalConfidence?: number;
+  submittedAt?: string;
+};
 };
 
 
@@ -509,6 +518,18 @@ function buildLiveOpsLog(
     },
   ];
 
+
+  if (event.caregiverContext) {
+    logs.push({
+      time: timeAt(52_000),
+      title: 'Caregiver Context Added',
+      description: `${event.caregiverContext.submittedBy || 'Caregiver'} reported: ${
+        event.caregiverContext.selectedContext?.join(', ') || 'Unable to verify'
+      }${event.caregiverContext.note ? `. Note: ${event.caregiverContext.note}` : ''}`,
+      source: 'Caregiver app',
+    });
+  }
+
   if (severity === 'Critical') {
     logs.push(
       {
@@ -560,6 +581,24 @@ function buildLiveOpsLog(
   return logs;
 }
 
+
+function caregiverContextToEvidence(event: SensorApiEvent): string[] {
+  const context = event.caregiverContext;
+
+  if (!context) return [];
+
+  const selectedContext = Array.isArray(context.selectedContext)
+    ? context.selectedContext
+    : [];
+
+  return [
+    `Caregiver submitted context: ${selectedContext.join(', ') || 'No quick context selected'}`,
+    context.note ? `Caregiver note: ${context.note}` : '',
+    `Submitted by: ${context.submittedBy || 'Caregiver'} (${context.role || 'Role not provided'})`,
+    `Original caregiver risk: ${context.originalRiskLevel || 'Medium'} at ${context.originalConfidence || 'not provided'}% confidence`,
+  ].filter(Boolean);
+}
+
 function liveEventToIncident(event: SensorApiEvent, index: number): Incident | null {
   if (isMyResponderCompletion(event)) return null;
 
@@ -568,7 +607,9 @@ function liveEventToIncident(event: SensorApiEvent, index: number): Incident | n
 
   const resolvedLocation = (event.nodeId ? resolveIncidentLocation(event.nodeId) : null)
     || (event.location ? resolveIncidentLocation(event.location) : null);
-  const evidence = describeUnknown(event.sensorData);
+  const sensorEvidence = describeUnknown(event.sensorData);
+  const caregiverEvidence = caregiverContextToEvidence(event);
+  const evidence = [...caregiverEvidence, ...sensorEvidence];
   const voice = voiceResult(event.voiceCheckIn);
   const confidence = Math.round(event.confidence ?? 0);
   // Prefer Raspberry Pi timestamp.
@@ -606,7 +647,9 @@ function liveEventToIncident(event: SensorApiEvent, index: number): Incident | n
       hour: '2-digit',
       minute: '2-digit',
     }),
-    description: cleanAiText(event.aiSummary) || `${event.eventType || 'Anomaly'} detected for ${event.resident || 'registered resident'}.`,
+    description: event.caregiverContext
+      ? `Caregiver could not verify the resident. Operator review is requested. ${cleanAiText(event.aiSummary)}`
+      : cleanAiText(event.aiSummary) || `${event.eventType || 'Anomaly'} detected for ${event.resident || 'registered resident'}.`,
     evidence: evidence.length ? evidence : ['Sensor trigger received', `AI calculated score: ${confidence}%`],
     opsLog: liveOpsLog,
     nodeId: event.nodeId,

@@ -7,12 +7,23 @@ import {
   Textarea,
   Label,
   type ScreenId,
+  type Role,
+  ROLE_LABEL,
   TopBar,
   ScreenScroll,
   BottomCTAAboveNav
 } from "../shared";
+import type { CaregiverLiveAlert } from "../CaregiverApp";
 
-export function ContextScreen({ go }: { go: (s: ScreenId) => void }) {
+export function ContextScreen({
+  go,
+  role,
+  liveAlert,
+}: {
+  go: (s: ScreenId) => void;
+  role: Role;
+  liveAlert: CaregiverLiveAlert | null;
+}) {
   const options = [
     "I am calling resident now",
     "I am on the way",
@@ -20,19 +31,91 @@ export function ContextScreen({ go }: { go: (s: ScreenId) => void }) {
     "Resident is hard of hearing",
     "Unable to verify",
   ];
+
   const [selected, setSelected] = useState<string[]>([]);
+  const [note, setNote] = useState("");
+  const [sending, setSending] = useState(false);
+
   const toggle = (o: string) =>
     setSelected((s) => (s.includes(o) ? s.filter((x) => x !== o) : [...s, o]));
+
+  const sendContextToDashboard = async () => {
+    if (sending) return;
+
+    setSending(true);
+
+    const now = new Date().toISOString();
+    const selectedContext =
+      selected.length > 0 ? selected : ["Unable to verify"];
+
+    const originalRisk = liveAlert?.riskLevel || "Medium";
+    const originalConfidence =
+      typeof liveAlert?.confidence === "number" ? liveAlert.confidence : 72;
+
+    const payload = {
+      nodeId: liveAlert?.nodeId || "NODE-HDB-302-08-112",
+      resident: liveAlert?.resident || "Mdm Tan Siew Lan",
+      location: liveAlert?.location || "Blk 302 Ang Mo Kio Ave 3, #08-112",
+
+      eventType: "Caregiver Unable to Verify",
+      riskLevel: "High",
+      confidence: Math.max(originalConfidence, 76),
+
+      reason:
+        "Caregiver could not verify the resident after a medium-risk EchoSync alert. SCDF operator review is requested before myResponder coordination.",
+
+      sensorData: liveAlert?.sensorData || {
+        note: "Original sensor data was not available from caregiver app.",
+      },
+
+      voiceCheckIn: liveAlert?.voiceCheckIn || {
+        intent: "not_available",
+        transcript: "",
+      },
+
+      caregiverContext: {
+        submittedBy: "Tan Mei Ling",
+        role: ROLE_LABEL[role],
+        selectedContext,
+        note: note.trim(),
+        originalRiskLevel: originalRisk,
+        originalConfidence,
+        submittedAt: now,
+      },
+
+      aiSummary:
+        liveAlert?.aiSummary ||
+        "Caregiver could not verify the resident. Operator review is required before deciding whether to activate myResponder or 995.",
+
+      source: "Caregiver App Context Escalation",
+      timestamp: now,
+    };
+
+    try {
+      await fetch("/api/sensor-alert", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+    } finally {
+      setSending(false);
+      go("contextOutcome");
+    }
+  };
+
   return (
     <>
       <TopBar title="Add context" onBack={() => go("alert")} />
+
       <ScreenScroll>
         <Card className="border-red-200 bg-red-50">
           <CardContent className="p-3 flex gap-2 items-start">
             <AlertTriangle className="w-4 h-4 text-red-700 mt-0.5 shrink-0" />
             <p className="text-xs text-red-800">
-              High-risk alert remains under emergency operator review. Your context helps
-              responders, but cannot cancel this alert.
+              If you are unable to verify the resident, this context will be sent
+              to the SCDF operator review dashboard.
             </p>
           </CardContent>
         </Card>
@@ -65,12 +148,20 @@ export function ContextScreen({ go }: { go: (s: ScreenId) => void }) {
           <Textarea
             className="mt-2"
             rows={3}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
             placeholder="e.g. Reached door, no answer. Asking neighbour to check."
           />
         </div>
+
         <div className="h-24" />
       </ScreenScroll>
-      <BottomCTAAboveNav label="Send context to operator" onClick={() => go("contextOutcome")} />
+
+      <BottomCTAAboveNav
+        label={sending ? "Sending context..." : "Send context to operator"}
+        onClick={sendContextToDashboard}
+        disabled={sending}
+      />
     </>
   );
 }

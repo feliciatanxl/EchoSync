@@ -330,7 +330,13 @@ export default function CaregiverApp() {
       )}
 
       {screen === "verify" && <VerifyScreen go={go} />}
-      {screen === "context" && <ContextScreen go={go} />}
+      {screen === "context" && (
+        <ContextScreen
+          go={go}
+          role={role}
+          liveAlert={displayedAlert}
+        />
+      )}
       {screen === "outcome" && <OutcomeScreen go={go} role={role} />}
       {screen === "contextOutcome" && (
         <ContextOutcomeScreen go={go} role={role} />
