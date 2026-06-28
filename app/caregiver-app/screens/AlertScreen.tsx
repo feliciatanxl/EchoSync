@@ -4,6 +4,7 @@ import {
   Shield,
   Lock,
   CheckCircle2,
+  ChevronRight,
   AlertTriangle,
   Phone,
   PhoneCall,
@@ -325,6 +326,7 @@ export function AlertScreen({
 }) {
   const [seconds, setSeconds] = useState(58);
   const [callLog, setCallLog] = useState<{ time: string; text: string }[]>([]);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
 
   useEffect(() => {
     setSeconds(58);
@@ -385,6 +387,7 @@ export function AlertScreen({
           "Resident did not reply",
           "Device online",
         ];
+  const visibleEvidenceItems = evidenceItems.slice(0, 6);
   const timedOut = seconds === 0;
   const canVerify = can(role, "verify");
   const canCancelOrVerify = canVerify && !isHigh && !timedOut;
@@ -490,13 +493,33 @@ export function AlertScreen({
         )}
 
         <Card className="border-slate-100 bg-white">
-          <CardContent className="p-4">
-            <SectionTitle icon={<AlertTriangle className="h-4 w-4" />} label="What EchoSync detected" />
-            <div className="mt-3 space-y-2">
-              {evidenceItems.slice(0, 6).map((item) => (
-                <Evidence key={item} icon={getEvidenceIcon(item)} text={item} />
-              ))}
-            </div>
+          <CardContent className="p-0">
+            <button
+              type="button"
+              onClick={() => setEvidenceOpen((open) => !open)}
+              className="flex w-full items-center justify-between gap-3 p-4 text-left"
+              aria-expanded={evidenceOpen}
+            >
+              <div className="min-w-0">
+                <SectionTitle icon={<AlertTriangle className="h-4 w-4" />} label="What EchoSync detected" />
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                  {evidenceOpen
+                    ? "Showing sensor evidence from EchoSync."
+                    : `Tap to view ${visibleEvidenceItems.length} sensor signal${visibleEvidenceItems.length === 1 ? "" : "s"}.`}
+                </p>
+              </div>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+                <ChevronRight className={`h-4 w-4 transition-transform ${evidenceOpen ? "rotate-90" : ""}`} />
+              </span>
+            </button>
+
+            {evidenceOpen && (
+              <div className="space-y-2 border-t border-slate-100 px-4 pb-4 pt-3">
+                {visibleEvidenceItems.map((item) => (
+                  <Evidence key={item} icon={getEvidenceIcon(item)} text={item} />
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
