@@ -632,11 +632,22 @@ export function ResidentCard({ peekable = false }: { peekable?: boolean }) {
                 isPeeking ? "mt-4 max-h-40 opacity-100" : "max-h-0 opacity-0"
               )}
             >
-              <div className="grid grid-cols-2 gap-2">
-                <PeekStat icon={<CheckCircle2 className="h-4 w-4" />} label="Status" value="All normal" />
-                <PeekStat icon={<Clock className="h-4 w-4" />} label="Last activity" value="9:42 AM" />
-                <PeekStat icon={<Wifi className="h-4 w-4" />} label="Node" value="Online" />
-                <PeekStat icon={<Volume2 className="h-4 w-4" />} label="Voice check-in" value="9:30 AM" />
+              <div className="space-y-2">
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
+                  <div className="flex items-center gap-2 text-[11px] font-medium text-emerald-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Current status
+                  </div>
+                  <div className="mt-1 text-base font-bold text-emerald-900">All normal</div>
+                  <div className="mt-0.5 text-[11px] text-emerald-700">
+                    No active alert detected.
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <PeekStat icon={<Clock className="h-4 w-4" />} label="Last activity" value="9:42 AM" />
+                  <PeekStat icon={<Wifi className="h-4 w-4" />} label="Node status" value="Online" />
+                </div>
               </div>
             </div>
           </div>
