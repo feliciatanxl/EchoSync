@@ -121,16 +121,16 @@ export function HomeScreen({
             </div>
           </button>
         ) : (
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+          <div className="flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-emerald-100">
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
             </div>
             <div className="flex-1 pt-1">
-              <h3 className="text-sm font-semibold text-slate-900">No active alerts</h3>
-              <p className="mt-1 text-xs leading-relaxed text-slate-500">
+              <h3 className="text-sm font-semibold text-emerald-900">No active alerts</h3>
+              <p className="mt-1 text-xs leading-relaxed text-emerald-700">
                 Mdm Tan&apos;s EchoSync device is monitoring normally.
               </p>
-              <p className="mt-1.5 text-[11px] text-slate-400">
+              <p className="mt-1.5 text-[11px] font-medium text-emerald-600">
                 Last check-in 30 seconds ago &middot; Updated {lastUpdated}
               </p>
             </div>

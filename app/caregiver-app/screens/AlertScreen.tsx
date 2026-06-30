@@ -36,16 +36,31 @@ type SensorData = {
   pirMotion?: number;
   distanceCm?: number;
   soundDetected?: number;
+  soundBaseline?: number;
   nearDetected?: number;
   loadReady?: number;
   loadRaw?: number;
   loadNet?: number;
+  loadChange?: number;
   loadDetected?: number;
   possibleFall?: number;
   alert?: number;
   directHelpRequest?: number;
   loadSuddenChange?: number;
   lowRiskDemoAlert?: number;
+  distanceJump?: number;
+  freshSoundForFall?: number;
+  bedFallLikely?: number;
+  groundFallLikely?: number;
+  groundFallStrong?: number;
+  soundImpactTrigger?: number;
+  nearRiskTriggerCm?: number;
+  distanceJumpTriggerCm?: number;
+  groundDistanceChangeTriggerCm?: number;
+  loadPresenceTrigger?: number;
+  loadSuddenChangeTrigger?: number;
+  helpVoiceTrigger?: number;
+  painVoiceTrigger?: number;
 };
 
 type VoiceCheckIn = {
@@ -198,14 +213,38 @@ function getEvidenceItems(liveAlert: CaregiverLiveAlert | null) {
 
   const items: string[] = [];
 
-  const directHelpRequest = Number(sensor?.directHelpRequest || 0);
-  const possibleFall = Number(sensor?.possibleFall || 0);
-  const soundLevel = Number(sensor?.soundLevel || 0);
-  const distanceCm = Number(sensor?.distanceCm || 0);
-  const loadSuddenChange = Number(sensor?.loadSuddenChange || 0);
-  const nearDetected = Number(sensor?.nearDetected || 0);
-  const loadDetected = Number(sensor?.loadDetected || 0);
-  const pirMotion = Number(sensor?.pirMotion || 0);
+  const num = (value: unknown, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  const fmt = (value: number) => {
+    if (!Number.isFinite(value)) return "unknown";
+    return Number.isInteger(value) ? String(value) : value.toFixed(2);
+  };
+
+  const directHelpRequest = num(sensor?.directHelpRequest);
+  const possibleFall = num(sensor?.possibleFall);
+  const soundLevel = num(sensor?.soundLevel);
+  const soundDetected = num(sensor?.soundDetected);
+  const soundBaseline = num(sensor?.soundBaseline);
+  const pirMotion = num(sensor?.pirMotion);
+  const distanceCm = num(sensor?.distanceCm);
+  const nearDetected = num(sensor?.nearDetected);
+  const distanceJump = num(sensor?.distanceJump);
+  const loadNet = num(sensor?.loadNet);
+  const loadChange = num(sensor?.loadChange);
+  const loadDetected = num(sensor?.loadDetected);
+  const loadSuddenChange = num(sensor?.loadSuddenChange);
+  const bedFallLikely = num(sensor?.bedFallLikely);
+  const groundFallLikely = num(sensor?.groundFallLikely);
+  const groundFallStrong = num(sensor?.groundFallStrong);
+
+  const soundImpactTrigger = num(sensor?.soundImpactTrigger, 10);
+  const nearRiskTriggerCm = num(sensor?.nearRiskTriggerCm, 50);
+  const distanceJumpTriggerCm = num(sensor?.distanceJumpTriggerCm, 20);
+  const loadPresenceTrigger = num(sensor?.loadPresenceTrigger, 5000);
+  const loadSuddenChangeTrigger = num(sensor?.loadSuddenChangeTrigger, 8000);
 
   if (!sensor && !voice) {
     return [
@@ -221,7 +260,7 @@ function getEvidenceItems(liveAlert: CaregiverLiveAlert | null) {
   }
 
   if (voice?.intent === "ok") {
-    items.push("Resident confirmed they are okay after EchoSync check-in.");
+    items.push("Resident said they are okay after EchoSync check-in.");
   } else if (voice?.intent === "help") {
     items.push("Resident repeated that they need help.");
   } else if (voice?.intent === "unclear") {
@@ -229,39 +268,61 @@ function getEvidenceItems(liveAlert: CaregiverLiveAlert | null) {
   } else if (voice?.intent === "no_response") {
     items.push("Resident did not respond to the voice check-in.");
   } else if (voice?.intent === "not_required") {
-    items.push("No voice check-in needed for this low-risk event.");
+    items.push("No voice check-in was needed for this low-risk event.");
   }
 
   if (pirMotion === 1) {
-    items.push("PIR motion sensor detected movement in the room.");
+    items.push("PIR detected movement in the room.");
   } else {
-    items.push("No PIR movement detected.");
+    items.push("No PIR movement detected at the time of the alert.");
   }
 
-  if (possibleFall === 1) {
-    items.push("Possible fall pattern detected by sensors.");
+  if (directHelpRequest === 1) {
+    items.push("Alert was triggered by the earlier help request; sensors are shown as supporting evidence, not a confirmed fall diagnosis.");
+  } else if (possibleFall === 1 || bedFallLikely === 1 || groundFallLikely === 1 || groundFallStrong === 1) {
+    items.push("Possible fall pattern detected from combined sensor signals.");
   } else {
-    items.push("No fall pattern detected by the sensors.");
+    items.push("No clear fall pattern detected from the sensors.");
   }
 
   if (loadSuddenChange === 1) {
-    items.push("Sudden pressure change detected on the load sensor.");
+    items.push(
+      `Mattress/load sensor changed suddenly. Change ${fmt(loadChange)}; trigger ≥${loadSuddenChangeTrigger}.`
+    );
   } else {
-    items.push("No sudden pressure change detected.");
+    items.push(
+      `No sudden mattress/load change. Change ${fmt(loadChange)}; trigger ≥${loadSuddenChangeTrigger}.`
+    );
   }
 
-  if (nearDetected === 1) {
-    items.push(`Nearby movement/object detected at about ${distanceCm || "unknown"} cm.`);
-  } else if (distanceCm > 0) {
-    items.push(`Distance sensor stable at about ${distanceCm} cm.`);
+  if (distanceCm > 0) {
+    items.push(
+      `Distance reading ${fmt(distanceCm)} cm; near-risk trigger ≤${nearRiskTriggerCm} cm. ${
+        nearDetected === 1 ? "Inside near-risk range." : "Outside near-risk range."
+      }`
+    );
+  }
+
+  if (distanceJump === 1) {
+    items.push(`Ultrasonic distance changed suddenly; jump trigger >${distanceJumpTriggerCm} cm.`);
   }
 
   if (loadDetected === 1) {
-    items.push("Pressure sensor detected presence, but no emergency pattern.");
+    items.push(
+      `Load sensor detected pressure. Reading ${fmt(loadNet)}; presence trigger ≥${loadPresenceTrigger}.`
+    );
+  } else if (loadNet !== 0) {
+    items.push(
+      `Load reading ${fmt(loadNet)}; presence trigger ≥${loadPresenceTrigger}.`
+    );
   }
 
-  if (soundLevel > 0) {
-    items.push(`Sound level: ${soundLevel}.`);
+  if (soundLevel > 0 || soundDetected === 1) {
+    items.push(
+      `Sound reading ${fmt(soundLevel)}; impact trigger ≥${soundImpactTrigger}. ${
+        soundDetected === 1 ? "Above impact threshold." : "Below impact threshold."
+      }${soundBaseline > 0 ? ` Baseline ${fmt(soundBaseline)}.` : ""}`
+    );
   }
 
   if (voice?.transcript) {
@@ -270,7 +331,6 @@ function getEvidenceItems(liveAlert: CaregiverLiveAlert | null) {
 
   return items;
 }
-
 function getNextStepText(risk: string, voiceIntent?: string) {
   if (voiceIntent === "ok") {
     return [
@@ -492,12 +552,12 @@ export function AlertScreen({
           </Card>
         )}
 
-        <Card className="border-slate-100 bg-white">
+        <Card className="overflow-hidden border-slate-100 bg-white">
           <CardContent className="p-0">
             <button
               type="button"
               onClick={() => setEvidenceOpen((open) => !open)}
-              className="flex w-full items-center justify-between gap-3 p-4 text-left"
+              className="flex w-full items-center justify-between gap-3 p-4 text-left focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200 focus-visible:ring-inset"
               aria-expanded={evidenceOpen}
             >
               <div className="min-w-0">

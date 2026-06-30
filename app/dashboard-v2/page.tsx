@@ -1562,15 +1562,75 @@ function IncidentDetailStrip({
     return value || 'Not provided';
   };
 
+  const asNumber = (value?: string) => {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  };
+
+  const soundImpactTrigger = asNumber(getSensor('soundImpactTrigger')) ?? 10;
+  const nearRiskTriggerCm = asNumber(getSensor('nearRiskTriggerCm')) ?? 50;
+  const loadPresenceTrigger = asNumber(getSensor('loadPresenceTrigger')) ?? 5000;
+  const loadSuddenChangeTrigger = asNumber(getSensor('loadSuddenChangeTrigger')) ?? 8000;
+
+  const readableSound = () => {
+    const soundLevel = asNumber(getSensor('soundLevel'));
+    const soundDetected = String(getSensor('soundDetected') || '0') === '1';
+
+    if (soundLevel === null) return 'Sound reading not provided.';
+
+    return `Reading ${soundLevel}; impact trigger ≥${soundImpactTrigger}. ${
+      soundDetected ? 'Above impact threshold.' : 'Below impact threshold.'
+    }`;
+  };
+
   const readableDistance = () => {
-    const distance = getSensor('distanceCm');
-    return distance ? `${distance} cm from sensor` : 'Not provided';
+    const distance = asNumber(getSensor('distanceCm'));
+    const nearDetected = String(getSensor('nearDetected') || '0') === '1';
+
+    if (distance === null || distance <= 0) return 'Distance not provided.';
+
+    return `Distance ${distance} cm from sensor. Near-risk trigger ≤${nearRiskTriggerCm} cm; ${
+      nearDetected ? 'inside near-risk range.' : 'outside near-risk range.'
+    }`;
   };
 
   const readableLoad = () => {
-    const loadNet = getSensor('loadNet');
-    return loadNet ? `Load change value ${loadNet}` : 'Not provided';
+    const loadNet = asNumber(getSensor('loadNet'));
+    const loadChange = asNumber(getSensor('loadChange'));
+    const loadSuddenChange = String(getSensor('loadSuddenChange') || '0') === '1';
+
+    const readingText =
+      loadNet === null ? 'reading not provided' : `reading ${loadNet}`;
+
+    const changeText =
+      loadChange === null
+        ? `sudden-change trigger ≥${loadSuddenChangeTrigger}`
+        : `change ${loadChange}; sudden-change trigger ≥${loadSuddenChangeTrigger}`;
+
+    return `Load ${readingText}; ${changeText}. ${
+      loadSuddenChange
+        ? 'Sudden pressure change detected.'
+        : 'Stable load reading; this sensor alone does not confirm a fall.'
+    }`;
   };
+
+  const loadSuddenStatus = readableFlag(
+    getSensor('loadSuddenChange'),
+    'Sudden pressure change',
+    'Load stable',
+  );
+
+  const loadPresenceStatus = readableFlag(
+    getSensor('loadDetected'),
+    'Pressure/presence detected',
+    'No load presence trigger',
+  );
+
+  const distanceJumpStatus = readableFlag(
+    getSensor('distanceJump'),
+    'Sudden distance change',
+    'Distance stable',
+  );
 
   const compactEvidenceText =
     rawEvidenceParts.length > 0
@@ -1624,7 +1684,7 @@ function IncidentDetailStrip({
               ? 'EchoSync heard an impact-like sound and compared it with the other sensors.'
               : 'No strong impact sound was heard, so sound alone is not the main trigger.',
           details: [
-            { label: 'Sound level', value: getSensor('soundLevel') ? `Level ${getSensor('soundLevel')}` : 'Not provided' },
+            { label: 'Sound reading', value: readableSound() },
             { label: 'Sound status', value: soundStatus },
             { label: 'Mic status', value: micStatus },
           ],
@@ -1633,25 +1693,28 @@ function IncidentDetailStrip({
           title: 'Motion / presence',
           icon: <MapPin className="h-3.5 w-3.5 text-blue-700" />,
           badge: nearStatus,
-          summary: 'EchoSync checks whether the resident is nearby, moving normally, or unusually still.',
+          summary:
+            nearStatus === 'Resident/object near sensor'
+              ? 'Ultrasonic distance is inside the near-risk range and is checked with PIR and load readings.'
+              : 'Ultrasonic distance is outside the near-risk range, so this sensor is not the main trigger.',
           details: [
             { label: 'PIR movement', value: pirStatus },
             { label: 'Distance', value: readableDistance() },
-            { label: 'Presence', value: nearStatus },
+            { label: 'Distance change', value: distanceJumpStatus },
           ],
         },
         {
-          title: 'Load / fall pattern',
+          title: 'Load sensor',
           icon: <HeartPulse className="h-3.5 w-3.5 text-red-700" />,
-          badge: fallStatus,
+          badge: loadSuddenStatus,
           summary:
-            fallStatus === 'Possible fall pattern'
-              ? 'Load, sound and presence signals together suggest a possible fall pattern.'
-              : 'Load sensor changes are being checked against motion and sound before escalation.',
+            loadSuddenStatus === 'Sudden pressure change'
+              ? 'Mattress/load sensor detected a sudden pressure change that may support a fall pattern.'
+              : 'Mattress/load reading is stable, so this sensor alone does not confirm a fall.',
           details: [
-            { label: 'Fall pattern', value: fallStatus },
-            { label: 'Alert flag', value: alertStatus },
-            { label: 'Mattress/load', value: readableLoad() },
+            { label: 'Load status', value: loadSuddenStatus },
+            { label: 'Presence status', value: `${loadPresenceStatus}; presence trigger ≥${loadPresenceTrigger}` },
+            { label: 'Reading / change', value: readableLoad() },
           ],
         },
       ]
@@ -1710,21 +1773,21 @@ function IncidentDetailStrip({
           icon: <Bell className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-600" />,
           label: 'Sound sensor',
           value: hasStructuredSignals
-            ? `${soundStatus}. Sound level ${getSensor('soundLevel') || 'not provided'}.`
+            ? `${soundStatus}. ${readableSound()}`
             : incident.simulation.detectorEvidence.acoustic,
         },
         {
           icon: <HeartPulse className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-600" />,
           label: 'Mattress load sensor',
           value: hasStructuredSignals
-            ? `${fallStatus}. ${readableLoad()}.`
+            ? `${loadSuddenStatus}. ${readableLoad()}`
             : incident.simulation.detectorEvidence.loadMat,
         },
         {
           icon: <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-600" />,
           label: 'Ultrasonic sensor',
           value: hasStructuredSignals
-            ? `Distance reading: ${readableDistance()}.`
+            ? readableDistance()
             : incident.simulation.detectorEvidence.doorFridge,
         },
         {
