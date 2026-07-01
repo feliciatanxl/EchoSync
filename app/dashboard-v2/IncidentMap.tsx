@@ -347,7 +347,7 @@ export default function IncidentMap({
     const map = L.map(container, {
       center: [1.3521, 103.8198],
       // Start from the full Singapore overview instead of a zoomed-in estate view.
-      zoom: 11.5,
+      zoom: 12,
       zoomSnap: 0.25,
       zoomDelta: 0.25,
       zoomControl: false,
@@ -402,7 +402,7 @@ export default function IncidentMap({
 
       setTimeout(() => {
         map.invalidateSize();
-        map.setView([1.3521, 103.8198], 11.5, {
+        map.setView([1.3521, 103.8198], 12, {
           animate: true,
           duration: 0.45,
         });
@@ -479,7 +479,7 @@ export default function IncidentMap({
     const resetTimer = setTimeout(() => {
       map.invalidateSize();
 
-      map.setView([1.3521, 103.8198], 11.5, {
+      map.setView([1.3521, 103.8198], 12, {
         animate: true,
         duration: 0.45,
       });
