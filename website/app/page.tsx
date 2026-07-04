@@ -271,7 +271,7 @@ export default function LandingPage() {
 
           {/* Mobile hamburger */}
           <button
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-text-body transition-colors hover:bg-bg-soft md:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-text-body transition-colors hover:bg-bg-soft lg:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -285,32 +285,39 @@ export default function LandingPage() {
 
         {/* Mobile menu dropdown */}
         <div
-          className={`overflow-hidden border-b border-border/60 bg-white/95 backdrop-blur-xl transition-all duration-300 md:hidden ${
+          className={`overflow-hidden border-b border-border/60 bg-white/95 backdrop-blur-xl transition-all duration-300 lg:hidden ${
             mobileMenuOpen ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0 border-b-0'
           }`}
         >
           <div className="flex flex-col gap-1 px-5 pb-5 pt-2">
             <a
-              href="#how-it-works"
+              href="https://echosync-portal-kaw8xrzjo-feliciatanxls-projects.vercel.app/dashboard-v2"
+              target="_blank"
+              rel="noopener noreferrer"
               className="rounded-lg px-4 py-2.5 text-sm font-medium text-text-body transition-colors hover:bg-bg-soft hover:text-primary"
               onClick={closeMobileMenu}
             >
-              How it Works
+              Dashboard
             </a>
+
             <a
-              href="#privacy"
+              href="https://echosync-portal-kaw8xrzjo-feliciatanxls-projects.vercel.app/caregiver-app"
+              target="_blank"
+              rel="noopener noreferrer"
               className="rounded-lg px-4 py-2.5 text-sm font-medium text-text-body transition-colors hover:bg-bg-soft hover:text-primary"
               onClick={closeMobileMenu}
             >
-              Privacy
+              Caregiver App
             </a>
+
             <a
-              href="/login"
-              className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary to-primary-dark px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/20 transition-all hover:brightness-110"
+              href="https://echosync-portal-kaw8xrzjo-feliciatanxls-projects.vercel.app/myResponder"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg px-4 py-2.5 text-sm font-medium text-text-body transition-colors hover:bg-bg-soft hover:text-primary"
               onClick={closeMobileMenu}
             >
-              SCDF Portal Login
-              <ChevronRight className="h-4 w-4" />
+              myResponder
             </a>
           </div>
         </div>
@@ -411,10 +418,10 @@ export default function LandingPage() {
         <div className="relative mx-auto mt-16 max-w-4xl px-5 sm:px-8">
           <div className="rounded-2xl border border-border bg-white p-6 shadow-lg sm:p-8">
             <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 sm:gap-0 sm:divide-x sm:divide-border">
-              <AnimatedStat value="1 in 4" label="Singaporeans aged 65+ by 2030" delay={0} />
-              <AnimatedStat value="2,500+" label="OHCA cases annually" delay={100} />
-              <AnimatedStat value="Top 5" label="SCDF x Dell finalist" delay={200} />
-              <AnimatedStat value="No CCTV" label="Privacy-first sensing" delay={300} />
+              <AnimatedStat value="Voice" label="Multilingual check-in" delay={0} />
+              <AnimatedStat value="Care" label="Caregiver verification" delay={100} />
+              <AnimatedStat value="SCDF" label="Operator review" delay={200} />
+              <AnimatedStat value="CFR" label="myResponder flow" delay={300} />
             </div>
           </div>
         </div>
@@ -594,50 +601,45 @@ export default function LandingPage() {
           ═══════════════════════════════════════ */}
       <footer className="bg-slate-900 text-slate-300">
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
-        <div className="grid gap-8 py-10 lg:grid-cols-[420px_1fr]">
-          {/* Left content */}
-          <div className="space-y-6">
+        <div className="flex flex-col gap-7 py-8 sm:py-10 lg:flex-row lg:items-start lg:justify-between">
+          {/* Left: logo + short intro */}
+          <div className="max-w-md">
             <div className="flex items-center gap-3">
               <img
                 src="/echosync-logo.png"
                 alt="EchoSync logo"
-                className="h-12 w-12 object-contain"
+                className="h-10 w-10 object-contain"
               />
               <span className="text-xl font-bold tracking-tight text-white">
                 EchoSync
               </span>
             </div>
 
-            <p className="max-w-md text-sm leading-relaxed text-slate-400">
-              AI-assisted pre-arrival intelligence for detecting possible home emergencies earlier,
-              verifying real distress, and supporting faster caregiver, community, and SCDF-style response.
+            <p className="mt-4 text-sm leading-relaxed text-slate-400">
+              AI-assisted pre-arrival intelligence for detecting possible home
+              emergencies earlier, verifying real distress, and supporting faster
+              caregiver, community, and SCDF-style response.
             </p>
-
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
-                About
-              </h4>
-              <p className="max-w-md text-sm leading-relaxed text-slate-400">
-                EchoSync was developed as a hackathon prototype for the SCDF and Dell
-                Lifesavers’ Innovation Challenge 2026, focusing on privacy-first sensing,
-                Edge AI verification, caregiver support, and emergency response coordination.
-              </p>
-            </div>
           </div>
 
-          {/* Middle/right intentionally empty */}
-          <div className="hidden lg:block" />
+          {/* Right: about */}
+          <div className="max-w-md lg:text-left">
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
+              About
+            </h4>
+            <p className="mt-4 text-sm leading-relaxed text-slate-400">
+              Developed for the SCDF and Dell Lifesavers’ Innovation Challenge 2026,
+              EchoSync focuses on privacy-first sensing, Edge AI verification,
+              caregiver support, and emergency response coordination.
+            </p>
+          </div>
         </div>
 
         <div className="h-px bg-slate-800" />
 
-        <div className="flex flex-col items-start justify-between gap-3 py-5 sm:flex-row sm:items-center">
-          <p className="text-xs text-slate-500">
-            © {new Date().getFullYear()} EchoSync. All rights reserved.
-          </p>
-          <p className="text-xs text-slate-500">
-            SCDF x Dell Lifesavers’ Innovation Challenge 2026
-          </p>
+        <div className="flex flex-col gap-2 py-5 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} EchoSync. All rights reserved.</p>
+          <p>SCDF x Dell Lifesavers’ Innovation Challenge 2026</p>
         </div>
       </div>
     </footer>
