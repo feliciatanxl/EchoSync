@@ -14,9 +14,9 @@ The current prototype is hosted on Vercel.
 
 | Application | URL |
 |---|---|
-| SCDF Dashboard | https://echosync-website-brown.vercel.app/dashboard-v2 |
-| Caregiver App | https://echosync-website-brown.vercel.app/caregiver-app |
-| myResponder App | https://echosync-website-brown.vercel.app/myResponder |
+| SCDF Dashboard | https://echosync-portal-kaw8xrzjo-feliciatanxls-projects.vercel.app/dashboard-v2 |
+| Caregiver App | https://echosync-portal-kaw8xrzjo-feliciatanxls-projects.vercel.app/caregiver-app |
+| myResponder App | https://echosync-portal-kaw8xrzjo-feliciatanxls-projects.vercel.app/myResponder |
 
 > Note: Earlier OpenShift deployment links were used during the competition demo environment and may no longer be active. The Vercel links above are the current public demo links.
 
