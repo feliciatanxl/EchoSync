@@ -1,46 +1,30 @@
 # 🚨 EchoSync — AI-Assisted Pre-Arrival Emergency Intelligence Platform
 
-EchoSync is an AI-assisted pre-arrival intelligence and first response ecosystem designed to improve response coordination for unwitnessed home emergencies in high-density HDB environments.
+EchoSync is an SCDF-aligned AI-assisted emergency coordination platform designed to improve pre-arrival response for unwitnessed home emergencies in high-density HDB environments.
 
 The system connects a Raspberry Pi / Arduino sensor node, an SCDF-style triage dashboard, a caregiver verification app, and a myResponder-style community responder interface. EchoSync focuses on privacy-preserving anomaly detection, explainable alert routing, caregiver verification, Community First Responder (CFR) coordination, and operational awareness before ambulance arrival.
 
-EchoSync was developed for the SCDF and Dell Lifesavers’ Innovation Challenge 2026, where it was selected as a Top 5 Finalist out of 81 teams from 17 institutions.
+EchoSync was developed as a software-first operational prototype for the SCDF Innovation Challenge 2026.
 
 ---
 
 ## 🌐 Live Demo Links
 
-The current prototype is hosted on Vercel.
-
 | Application | URL |
 |---|---|
-| SCDF Dashboard | https://echosync-website-brown.vercel.app/dashboard-v2 |
-| Caregiver App | https://echosync-website-brown.vercel.app/caregiver-app |
-| myResponder App | https://echosync-website-brown.vercel.app/myResponder |
-
-> Note: Earlier OpenShift deployment links were used during the competition demo environment and may no longer be active. The Vercel links above are the current public demo links.
+| SCDF Dashboard | https://echosync-echosync.apps.innovate.sg-aie.com/dashboard-v2 |
+| Caregiver App | https://echosync-echosync.apps.innovate.sg-aie.com/caregiver-app |
+| myResponder App | https://echosync-echosync.apps.innovate.sg-aie.com/myResponder |
 
 ---
 
-## 🧠 Project Overview
+## 🏗️ Project Architecture
 
-EchoSync addresses a critical emergency response gap:
-
-> What happens when a senior living alone experiences a fall, collapse, or medical distress, but no one is around to call 995?
-
-Existing solutions such as panic buttons and wearables can help, but they still depend on the resident being conscious, able to move, and able to activate the device.
-
-EchoSync creates the missing first alert before a 995 call exists by detecting possible distress through privacy-first ambient sensors, verifying the situation with Edge AI and voice check-in, and routing alerts based on risk severity.
-
----
-
-## 🏗️ System Architecture
-
-EchoSync uses a multi-application architecture within one prototype ecosystem.
+EchoSync uses a multi-application architecture within one deployment.
 
 ### 1. SCDF Dashboard `/dashboard-v2`
 
-The SCDF-style dashboard is used to review High and Critical alerts.
+The SCDF Dashboard is used by operators to review High and Critical alerts only.
 
 Key features:
 
@@ -48,37 +32,36 @@ Key features:
 - Singapore map-based incident view
 - AI-generated alert summary
 - Human-readable sensor evidence
-- Risk level and confidence score
 - Operator-led CFR / AED coordination
 - myResponder push workflow
 - Full operations log
 - Incident timeline tracking
 - Dashboard-to-myResponder alert handoff
 
-Low and Medium alerts are not shown directly on the SCDF dashboard. They are routed to the caregiver app for verification first.
+Low and Medium risk alerts are not shown on the SCDF dashboard. These are routed to the caregiver app for verification.
 
 ---
 
 ### 2. Caregiver App `/caregiver-app`
 
-The caregiver app supports non-emergency verification and resident-linked response.
+The Caregiver App supports non-emergency verification and resident-linked response.
 
 Key features:
 
-- Caregiver onboarding flow
-- Primary, secondary, and family caregiver role selection
-- Notification permission flow
+- Singpass-style caregiver onboarding flow
+- Primary / secondary / family caregiver role selection
+- Community responder access flow
+- Notification permissions
 - Consent flow
-- Linked node status view
+- Node status view
 - Caregiver-side alert handling
 - Low and Medium alert verification
-- Multilingual check-in support concept
 
 ---
 
 ### 3. myResponder App `/myResponder`
 
-The myResponder-style app demonstrates how Community First Responders may receive responder tasks after SCDF operator approval.
+The myResponder app is a clone-style responder interface inspired by the real myResponder workflow.
 
 Key features:
 
@@ -89,7 +72,7 @@ Key features:
 - Completion logging
 - Sends completion status back to SCDF Ops Log
 
-myResponder does not receive alerts automatically. Alerts are pushed only after an SCDF operator decides that CFR / AED support is needed.
+myResponder does not receive alerts automatically. Alerts are only pushed after an SCDF operator decides CFR / AED support is needed.
 
 ---
 
@@ -121,11 +104,11 @@ EchoSync separates alerts based on risk level.
 | High | SCDF Dashboard | Operator review |
 | Critical | SCDF Dashboard | Urgent operator review |
 
-High and Critical alerts remain under SCDF-style operator control. The operator may then push the case to the myResponder-style flow for CFR / AED coordination.
+High and Critical alerts remain under SCDF operator control. The operator may then push the case to myResponder for CFR / AED coordination.
 
 ---
 
-## ⚙️ Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -133,11 +116,8 @@ Install the following:
 
 - Node.js v20 recommended
 - npm
-- Git
-
-Optional for container deployment:
-
 - Docker Desktop
+- Git
 
 ---
 
@@ -149,31 +129,25 @@ From the project root:
 npm install
 ```
 
-If your local project uses the `website` folder as the main app, run:
+Install myResponder dependencies:
 
 ```bash
-cd website
+cd app/myResponder
 npm install
+cd ../..
 ```
 
 ---
 
 ## ▶️ Running Locally
 
-Run the EchoSync app:
+Run the main EchoSync app:
 
 ```bash
 npm run dev
 ```
 
-If using the `website` folder:
-
-```bash
-cd website
-npm run dev
-```
-
-Open these local URLs:
+Open these URLs:
 
 ```text
 http://localhost:3000/dashboard-v2
@@ -185,24 +159,53 @@ http://localhost:3000/myResponder
 
 ## 🧪 Build Test
 
-Before pushing to GitHub or deploying to Vercel, run:
+Before pushing to Docker or OpenShift, run:
 
 ```bash
 npm run build
 ```
 
-If using the `website` folder:
+The build command also builds the myResponder app before building the main Next.js application.
+
+---
+
+## 🐳 Docker Build and Push
+
+Use a new image tag whenever the dashboard, caregiver app, and myResponder app are all updated together.
+
+Example tag:
+
+```text
+allapps-v1
+```
+
+Build:
 
 ```bash
-cd website
-npm run build
+docker build --no-cache -t ihl-harbor.apps.innovate.sg-aie.com/echosync/echosync:allapps-v1 .
+```
+
+Push:
+
+```bash
+docker push ihl-harbor.apps.innovate.sg-aie.com/echosync/echosync:allapps-v1
+```
+
+Then update the OpenShift deployment image to:
+
+```text
+ihl-harbor.apps.innovate.sg-aie.com/echosync/echosync:allapps-v1
 ```
 
 ---
 
-## 🚀 Deployment
+## ☁️ OpenShift Deployment
 
-The current public demo is deployed on Vercel.
+The deployed OpenShift route is:
+
+```text
+https://echosync-echosync.apps.innovate.sg-aie.com
+```
 
 Main deployed paths:
 
@@ -212,11 +215,7 @@ Main deployed paths:
 /myResponder
 ```
 
-Current Vercel deployment:
-
-```text
-https://echosync-website-brown.vercel.app
-```
+OpenShift should run the latest Harbor image tag selected in the deployment settings.
 
 ---
 
@@ -246,7 +245,7 @@ EchoSync uses internal Next.js API routes for alert exchange.
 - CFR / AED coordination workflow
 - myResponder handoff
 - Full Operations Log
-- SCDF-style operator review flow
+- SCDF operator review flow
 
 ### Caregiver App
 
@@ -286,9 +285,9 @@ Core safeguards:
 - No camera surveillance
 - Edge-first signal processing
 - Human-in-the-loop verification
-- SCDF-style operator override authority
+- SCDF operator override authority
 - Caregiver verification for Low / Medium cases
-- myResponder-style flow activated only after operator action
+- myResponder only activated after SCDF operator action
 - PDPA-aware design approach
 - Opt-in household deployment concept
 
@@ -319,10 +318,11 @@ All emergency workflows are simulated for demonstration, testing, and innovation
 - Icons: Lucide React
 - Map: OneMap / Leaflet-style map integration
 - Frontend State: React Hooks
-- Deployment: Vercel
+- Container: Docker
+- Registry: Harbor
+- Deployment: OpenShift
 - Hardware Prototype: Raspberry Pi + Arduino sensor node
-- AI Summary Layer: LLM / NIM-style endpoint integration
-- Speech Layer: Azure STT / TTS concept integration
+- AI Summary Layer: GB10 / NIM-style endpoint integration
 
 ---
 
@@ -352,7 +352,7 @@ app/
 
 ## 👥 Intended Users
 
-- SCDF-style operators
+- SCDF operators
 - Emergency coordinators
 - Community First Responders
 - Caregivers
@@ -361,22 +361,8 @@ app/
 
 ---
 
-## 🏆 Competition Context
-
-EchoSync was developed for the SCDF and Dell Lifesavers’ Innovation Challenge 2026.
-
-Achievement:
-
-```text
-Top 5 Finalist
-81 teams
-17 institutions
-```
-
----
-
 ## 📄 License
 
-This project was developed for the SCDF and Dell Lifesavers’ Innovation Challenge 2026 prototype showcase.
+This project was developed for the SCDF Innovation Challenge 2026 prototype showcase.
 
-Built by EchoSync.
+Built by Team EchoSync.
