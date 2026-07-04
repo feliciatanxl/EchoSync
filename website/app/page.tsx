@@ -344,7 +344,7 @@ export default function LandingPage() {
           >
             <Activity className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-semibold tracking-wide text-primary-dark">
-              PRIVACY-FIRST • COMMUNITY RESPONSE
+              PRIVACY-FIRST • PRE-ARRIVAL INTELLIGENCE
             </span>
           </div>
 
@@ -439,22 +439,22 @@ export default function LandingPage() {
 
           {/* Cards */}
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            <FeatureCard
+           <FeatureCard
               icon={Brain}
-              title="Multi-Layer AI Filtering"
-              description="Cross-references acoustic impacts, thermal signature drops, and movement patterns in real-time to eliminate false alarms and detect genuine emergencies within seconds."
+              title="Multi-Signal Detection"
+              description="Combines sound, motion, distance, and load sensor signals to detect possible distress without relying on CCTV."
               delay={0}
             />
             <FeatureCard
-              icon={Building}
-              title="Designed for HDB"
-              description="Integrates seamlessly into existing HDB infrastructure and red-button systems. No renovation needed — our edge sensors retrofit into corridor power boxes and common areas."
+              icon={Activity}
+              title="Edge AI Verification"
+              description="Checks whether multiple sensor signals support the same emergency pattern before increasing the risk level."
               delay={150}
             />
             <FeatureCard
               icon={ShieldCheck}
-              title="Built for Trust"
-              description="100% opt-in, fully edge-processed. No raw video, audio recordings, or speech is ever transmitted or stored. Only anonymized event metadata leaves the sensor."
+              title="Caregiver + SCDF Routing"
+              description="Low and medium alerts go to caregivers first, while high and critical cases are routed to the SCDF-style dashboard for operator review."
               delay={300}
             />
           </div>
@@ -480,34 +480,29 @@ export default function LandingPage() {
               <div className="mt-4 h-1 w-16 rounded-full bg-gradient-to-r from-primary to-secondary" />
 
               <p className="mt-6 text-base leading-relaxed text-text-muted sm:text-[17px]">
-                In Singapore, the survival rate for Out-of-Hospital Cardiac
-                Arrest (OHCA) hovers around just{' '}
-                <strong className="text-text-heading">5%</strong>. For isolated
-                seniors living alone in HDB flats, a fall or cardiac event can
-                go undetected for hours — or even days.
+                In unwitnessed home emergencies, the biggest gap happens before the 995 call exists.
+                For seniors living alone, a fall, collapse, or medical distress may go unnoticed when
+                there is no caregiver nearby and no one able to call for help.
               </p>
               <p className="mt-4 text-base leading-relaxed text-text-muted sm:text-[17px]">
-                EchoSync bridges the{' '}
-                <strong className="text-text-heading">"last-meter gap"</strong>{' '}
-                — the critical void between an emergency occurring inside a
-                home and the moment SCDF receives the call. By providing
-                pre-arrival intelligence, responders arrive informed, prepared,
-                and faster.
+                EchoSync helps close this first-alert gap by detecting possible distress earlier,
+                verifying the situation through Edge AI and voice check-in, and routing the alert
+                to caregivers, SCDF, or a myResponder-style flow based on severity.
               </p>
 
               {/* Stat callout cards */}
               <div className="mt-8 grid grid-cols-2 gap-4">
-                <StatCallout
-                  value="~5%"
-                  label="OHCA Survival Rate"
-                  icon={Heart}
-                  color="danger"
-                />
-                <StatCallout
-                  value="68,000+"
-                  label="Seniors Living Alone"
+               <StatCallout
+                  value="1 in 4"
+                  label="Singaporeans aged 65+ by 2030"
                   icon={Users}
                   color="primary"
+                />
+                <StatCallout
+                  value="2,500+"
+                  label="OHCA cases annually"
+                  icon={Heart}
+                  color="danger"
                 />
               </div>
             </div>
@@ -516,26 +511,26 @@ export default function LandingPage() {
             <div className="space-y-10">
               <TimelineStep
                 icon={AlertTriangle}
-                title="Emergency Occurs"
-                description="A fall, cardiac event, or prolonged inactivity is detected by EchoSync's multi-modal sensors in the home."
+                title="Possible Emergency Detected"
+                description="Sound, motion, distance, and load sensors detect a possible fall or distress pattern in the home."
                 index={0}
               />
               <TimelineStep
                 icon={Activity}
-                title="AI Confirms & Classifies"
-                description="Edge AI cross-references thermal, vibration, and environmental data — confirming the event in under 10 seconds with ≥98% accuracy."
+                title="Edge AI Verifies Signals"
+                description="EchoSync checks whether multiple signals support the same emergency pattern before raising the risk level."
                 index={1}
               />
               <TimelineStep
                 icon={Phone}
-                title="SCDF Alert Dispatched"
-                description="An automated, privacy-safe alert with incident classification is sent to SCDF's 995 operations centre and assigned paramedics."
+                title="Voice Check-In Triggered"
+                description="The system asks if the resident is okay. An okay response lowers the alert, while help or no response increases severity."
                 index={2}
               />
               <TimelineStep
                 icon={Timer}
-                title="Responders Arrive Informed"
-                description="Paramedics receive pre-arrival intelligence — incident type, floor plan context, and resident profile — before they even reach the door."
+                title="Alert Routed by Severity"
+                description="Low and medium alerts go to caregivers, while high and critical alerts appear on the SCDF-style dashboard for review."
                 index={3}
               />
             </div>
@@ -567,22 +562,22 @@ export default function LandingPage() {
 
           {/* Privacy cards */}
           <div className="mx-auto mt-14 grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <PrivacyCard
+           <PrivacyCard
               icon={EyeOff}
-              title="No Cameras or Microphones"
-              description="We use thermal, vibration, and environmental sensors only. Zero visual or audio surveillance."
+              title="No CCTV or Facial Recognition"
+              description="EchoSync avoids camera surveillance and facial recognition. The prototype relies on sensor signals and voice check-in instead of visual monitoring."
               delay={0}
             />
             <PrivacyCard
               icon={Shield}
-              title="Edge Processing"
-              description="All AI inference happens locally on the sensor. Raw data never leaves the premises."
+              title="No Raw Audio Storage"
+              description="Voice and sound signals are processed for check-in and distress detection. Raw audio is not stored as part of the prototype workflow."
               delay={150}
             />
             <PrivacyCard
               icon={ShieldCheck}
-              title="100% Opt-In"
-              description="Residents explicitly consent before enrollment. They can opt out at any time with immediate data erasure."
+              title="Edge-First Processing"
+              description="Sensor readings are processed locally first, and only structured alert summaries, risk levels, and node status are shared."
               delay={300}
             />
           </div>
@@ -596,81 +591,58 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
           {/* Top section */}
           <div className="grid gap-10 py-14 sm:py-16 lg:grid-cols-3">
-            {/* Col 1 — Brand */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-dark">
-                  <Shield className="h-5 w-5 text-white" strokeWidth={2.2} />
+            {/* Left — Brand + About */}
+            <div className="space-y-6 lg:col-span-1">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 border border-white/10">
+                    <img
+                      src="/echosync-logo.png"
+                      alt="EchoSync logo"
+                      className="h-8 w-8 object-contain"
+                    />
+                  </div>
+                  <span className="text-lg font-bold tracking-tight text-white">
+                    EchoSync
+                  </span>
                 </div>
-                <span className="text-lg font-bold tracking-tight text-white">
-                  EchoSync
-                </span>
+
+                <p className="max-w-sm text-sm leading-relaxed text-slate-400">
+                  AI-assisted pre-arrival intelligence for detecting possible home emergencies earlier,
+                  verifying real distress, and supporting faster caregiver, community, and SCDF-style response.
+                </p>
               </div>
-              <p className="max-w-xs text-sm leading-relaxed text-slate-400">
-                AI-powered community wellbeing and safety system. Protecting
-                Singapore's seniors with privacy-first, non-invasive
-                intelligence.
-              </p>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
+                  About
+                </h4>
+                <p className="max-w-sm text-sm leading-relaxed text-slate-400">
+                  EchoSync was developed as a hackathon prototype for the SCDF and Dell
+                  Lifesavers’ Innovation Challenge 2026, focusing on privacy-first sensing,
+                  Edge AI verification, caregiver support, and emergency response coordination.
+                </p>
+              </div>
             </div>
 
-            {/* Col 2 — Links */}
-            {/* <div className="space-y-4">
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
-                Resources
-              </h4>
-              <ul className="space-y-2.5">
-                <li>
-                  <a
-                    href="#privacy"
-                    className="text-sm text-slate-400 transition-colors hover:text-primary-light"
-                  >
-                    Privacy Statement
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-sm text-slate-400 transition-colors hover:text-primary-light"
-                  >
-                    Terms of Use
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-sm text-slate-400 transition-colors hover:text-primary-light"
-                  >
-                    Contact SCDF Innovation Team
-                  </a>
-                </li>
-              </ul>
-            </div> */}
+            {/* Middle intentionally left empty for cleaner footer spacing */}
+            <div className="hidden lg:block" />
 
-            {/* Col 3 — Info */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
-                About
-              </h4>
-              <p className="text-sm leading-relaxed text-slate-400">
-                EchoSync is a research initiative developed by NYP IT Techs in
-                collaboration with SCDF innovation teams to explore non-invasive,
-                AI-driven community safety solutions for Singapore.
-              </p>
-            </div>
+            {/* Right intentionally left empty */}
+            <div className="hidden lg:block" />
           </div>
-
+          
           {/* Divider */}
           <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
 
           {/* Bottom */}
           <div className="flex flex-col items-center justify-between gap-3 py-6 sm:flex-row">
             <p className="text-xs text-slate-500">
-              © {new Date().getFullYear()} EchoSync. Built by{' '}
-              <span className="font-medium text-slate-400">NYP IT Techs</span>.
+              © {new Date().getFullYear()} EchoSync. 
               All rights reserved.
             </p>
             <p className="text-xs text-slate-500">
-              A Smart Nation Initiative
+              SCDF x Dell Lifesavers’ Innovation Challenge 2026
             </p>
           </div>
         </div>
