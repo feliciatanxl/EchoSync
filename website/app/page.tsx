@@ -228,13 +228,11 @@ export default function LandingPage() {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white border border-primary/20 shadow-sm transition-transform duration-300 group-hover:scale-105">
-              <img
-                src="/echosync-logo.png"
-                alt="EchoSync logo"
-                className="h-9 w-9 object-contain"
-              />
-            </div>
+            <img
+              src="/echosync-logo.png"
+              alt="EchoSync logo"
+              className="h-8 w-8 shrink-0 object-contain translate-y-[1px] transition-transform duration-300 group-hover:scale-105"
+            />
             <span className="text-lg font-bold tracking-tight text-text-heading">
               Echo
               <span className="gradient-text">Sync</span>
@@ -242,27 +240,34 @@ export default function LandingPage() {
           </a>
 
           {/* Desktop nav links */}
-          <div className="hidden items-center gap-8 md:flex">
-            <a
-              href="#how-it-works"
-              className="nav-link text-sm font-medium text-text-body transition-colors hover:text-primary"
-            >
-              How it Works
-            </a>
-            <a
-              href="#privacy"
-              className="nav-link text-sm font-medium text-text-body transition-colors hover:text-primary"
-            >
-              Privacy
-            </a>
-            <a
-              href="/login"
-              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-primary-dark px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/20 transition-all duration-300 hover:shadow-lg hover:shadow-primary/30 hover:brightness-110 active:scale-[0.97]"
-            >
-              SCDF Portal Login
-              <ChevronRight className="h-4 w-4" />
-            </a>
-          </div>
+          <div className="hidden items-center gap-8 lg:flex">
+          <a
+            href="https://echosync-portal-kaw8xrzjo-feliciatanxls-projects.vercel.app/dashboard-v2"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-semibold text-text-body transition-colors hover:text-primary"
+          >
+            Dashboard
+          </a>
+
+          <a
+            href="https://echosync-portal-kaw8xrzjo-feliciatanxls-projects.vercel.app/caregiver-app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-semibold text-text-body transition-colors hover:text-primary"
+          >
+            Caregiver App
+          </a>
+
+          <a
+            href="https://echosync-portal-kaw8xrzjo-feliciatanxls-projects.vercel.app/myResponder"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-semibold text-text-body transition-colors hover:text-primary"
+          >
+            myResponder
+          </a>
+        </div>
 
           {/* Mobile hamburger */}
           <button
@@ -588,65 +593,54 @@ export default function LandingPage() {
           FOOTER
           ═══════════════════════════════════════ */}
       <footer className="bg-slate-900 text-slate-300">
-        <div className="mx-auto max-w-7xl px-5 sm:px-8">
-          {/* Top section */}
-          <div className="grid gap-10 py-14 sm:py-16 lg:grid-cols-3">
-            {/* Left — Brand + About */}
-            <div className="space-y-6 lg:col-span-1">
-              <div className="space-y-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 border border-white/10">
-                    <img
-                      src="/echosync-logo.png"
-                      alt="EchoSync logo"
-                      className="h-8 w-8 object-contain"
-                    />
-                  </div>
-                  <span className="text-lg font-bold tracking-tight text-white">
-                    EchoSync
-                  </span>
-                </div>
-
-                <p className="max-w-sm text-sm leading-relaxed text-slate-400">
-                  AI-assisted pre-arrival intelligence for detecting possible home emergencies earlier,
-                  verifying real distress, and supporting faster caregiver, community, and SCDF-style response.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
-                  About
-                </h4>
-                <p className="max-w-sm text-sm leading-relaxed text-slate-400">
-                  EchoSync was developed as a hackathon prototype for the SCDF and Dell
-                  Lifesavers’ Innovation Challenge 2026, focusing on privacy-first sensing,
-                  Edge AI verification, caregiver support, and emergency response coordination.
-                </p>
-              </div>
+      <div className="mx-auto max-w-7xl px-5 sm:px-8">
+        <div className="grid gap-8 py-10 lg:grid-cols-[420px_1fr]">
+          {/* Left content */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <img
+                src="/echosync-logo.png"
+                alt="EchoSync logo"
+                className="h-12 w-12 object-contain"
+              />
+              <span className="text-xl font-bold tracking-tight text-white">
+                EchoSync
+              </span>
             </div>
 
-            {/* Middle intentionally left empty for cleaner footer spacing */}
-            <div className="hidden lg:block" />
-
-            {/* Right intentionally left empty */}
-            <div className="hidden lg:block" />
-          </div>
-          
-          {/* Divider */}
-          <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
-
-          {/* Bottom */}
-          <div className="flex flex-col items-center justify-between gap-3 py-6 sm:flex-row">
-            <p className="text-xs text-slate-500">
-              © {new Date().getFullYear()} EchoSync. 
-              All rights reserved.
+            <p className="max-w-md text-sm leading-relaxed text-slate-400">
+              AI-assisted pre-arrival intelligence for detecting possible home emergencies earlier,
+              verifying real distress, and supporting faster caregiver, community, and SCDF-style response.
             </p>
-            <p className="text-xs text-slate-500">
-              SCDF x Dell Lifesavers’ Innovation Challenge 2026
-            </p>
+
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
+                About
+              </h4>
+              <p className="max-w-md text-sm leading-relaxed text-slate-400">
+                EchoSync was developed as a hackathon prototype for the SCDF and Dell
+                Lifesavers’ Innovation Challenge 2026, focusing on privacy-first sensing,
+                Edge AI verification, caregiver support, and emergency response coordination.
+              </p>
+            </div>
           </div>
+
+          {/* Middle/right intentionally empty */}
+          <div className="hidden lg:block" />
         </div>
-      </footer>
+
+        <div className="h-px bg-slate-800" />
+
+        <div className="flex flex-col items-start justify-between gap-3 py-5 sm:flex-row sm:items-center">
+          <p className="text-xs text-slate-500">
+            © {new Date().getFullYear()} EchoSync. All rights reserved.
+          </p>
+          <p className="text-xs text-slate-500">
+            SCDF x Dell Lifesavers’ Innovation Challenge 2026
+          </p>
+        </div>
+      </div>
+    </footer>
     </div>
   );
 }
