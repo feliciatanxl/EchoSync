@@ -9,19 +9,20 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "EchoSync — AI-Powered Community Wellbeing & Safety System",
+  title: "EchoSync — AI-Assisted Home Safety for Seniors Living Alone",
   description:
-    "Shifting care from reactive response to proactive protection. EchoSync leverages secure IoT sensors and cloud-based AI to protect Singapore's seniors — PDPA compliant, zero-stigma, privacy-first.",
+    "EchoSync is a privacy-first pre-arrival intelligence and first response ecosystem that detects possible home emergencies earlier using ambient sensing, Edge AI verification, caregiver support, and SCDF-style response routing.",
   keywords: [
     "EchoSync",
-    "healthcare",
-    "Smart Nation",
-    "Singapore",
+    "SCDF",
+    "Dell Technologies",
     "elderly care",
-    "AI monitoring",
+    "AI emergency response",
+    "Edge AI",
     "IoT safety",
-    "PDPA compliant",
     "HDB",
+    "caregiver verification",
+    "myResponder",
   ],
 };
 

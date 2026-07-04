@@ -228,8 +228,12 @@ export default function LandingPage() {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-dark shadow-sm transition-transform duration-300 group-hover:scale-105">
-              <Shield className="h-5 w-5 text-white" strokeWidth={2.2} />
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white border border-primary/20 shadow-sm transition-transform duration-300 group-hover:scale-105">
+              <img
+                src="/echosync-logo.png"
+                alt="EchoSync logo"
+                className="h-9 w-9 object-contain"
+              />
             </div>
             <span className="text-lg font-bold tracking-tight text-text-heading">
               Echo
@@ -340,7 +344,7 @@ export default function LandingPage() {
           >
             <Activity className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-semibold tracking-wide text-primary-dark">
-              SMART NATION • COMMUNITY SAFETY
+              PRIVACY-FIRST • COMMUNITY RESPONSE
             </span>
           </div>
 
@@ -353,8 +357,8 @@ export default function LandingPage() {
               transition: 'all 0.7s ease-out 200ms',
             }}
           >
-            AI-Assisted Pre-Arrival Intelligence for{' '}
-            <span className="gradient-text">Emergency Response.</span>
+            AI-Assisted Home Safety for{' '}
+            <span className="gradient-text">Seniors Living Alone.</span>
           </h1>
 
           {/* Sub-headline */}
@@ -367,10 +371,9 @@ export default function LandingPage() {
             }}
           >
             <strong className="text-text-body">
-              Protecting Those Who Built Our Nation.
+              Privacy-first pre-arrival intelligence
             </strong>{' '}
-            Shifting elderly care from reactive response to automated,
-            non-invasive safety.
+            that detects possible home emergencies earlier, verifies real distress, and supports faster caregiver, community, and SCDF response.
           </p>
 
           {/* CTA Buttons */}
@@ -386,14 +389,14 @@ export default function LandingPage() {
               href="#how-it-works"
               className="group inline-flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-primary to-primary-dark px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 hover:brightness-110 active:scale-[0.97]"
             >
-              Learn How it Works
+              View EchoSync Workflow
               <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
             </a>
             <a
               href="#privacy"
               className="inline-flex items-center gap-2.5 rounded-xl border-2 border-primary/30 px-7 py-3.5 text-sm font-semibold text-primary transition-all duration-300 hover:border-primary/60 hover:bg-primary-ghost active:scale-[0.97]"
             >
-              View PDPA Compliance
+              Privacy-First Design
               <ShieldCheck className="h-4 w-4" />
             </a>
           </div>
@@ -403,20 +406,10 @@ export default function LandingPage() {
         <div className="relative mx-auto mt-16 max-w-4xl px-5 sm:px-8">
           <div className="rounded-2xl border border-border bg-white p-6 shadow-lg sm:p-8">
             <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 sm:gap-0 sm:divide-x sm:divide-border">
-              <AnimatedStat value="1 in 5" label="Seniors by 2030" delay={0} />
-              <AnimatedStat
-                value="60s"
-                prefix="<"
-                label="Detection to Alert"
-                delay={100}
-              />
-              <AnimatedStat
-                value="98%"
-                prefix="≥"
-                label="Accuracy"
-                delay={200}
-              />
-              <AnimatedStat value="Zero" label="Cameras/Audio Stored" delay={300} />
+              <AnimatedStat value="1 in 4" label="Singaporeans aged 65+ by 2030" delay={0} />
+              <AnimatedStat value="2,500+" label="OHCA cases annually" delay={100} />
+              <AnimatedStat value="Top 5" label="SCDF x Dell finalist" delay={200} />
+              <AnimatedStat value="No CCTV" label="Privacy-first sensing" delay={300} />
             </div>
           </div>
         </div>
