@@ -614,7 +614,7 @@ export default function LandingPage() {
             </div>
 
             {/* Col 2 — Links */}
-            <div className="space-y-4">
+            {/* <div className="space-y-4">
               <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
                 Resources
               </h4>
@@ -644,7 +644,7 @@ export default function LandingPage() {
                   </a>
                 </li>
               </ul>
-            </div>
+            </div> */}
 
             {/* Col 3 — Info */}
             <div className="space-y-4">
